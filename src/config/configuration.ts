@@ -12,9 +12,17 @@ if (commonEnvResult.error) {
   console.error('Error loading common .env file:', commonEnvResult.error);
 }
 
+// 再加载特定环境的 .env 文件，例如 .env.development
+const envResult = config({ path: envPath });
+if (envResult.error) {
+  // 如果没有对应的env文件，不报错，因为通用.env中包含最基本的内容
+  console.warn(`Warning: Error loading .env.${env} file:`, envResult.error);
+} else {
+  console.log(`Success: Loading .env.${env} file`);
+}
 
 export default () => ({
-  port: parseInt(process.env.PORT, 10) || 3000, // 从环境变量 PORT 获取端口，默认为 3000
+  port: parseInt(process.env.PORT || '3000', 10) || 3000, // 从环境变量 PORT 获取端口，默认为 3000
   jwt: {
     secret: process.env.JWT_SECRET || 'your-secret-key', // JWT 密钥，建议使用环境变量配置
     expiresIn: process.env.JWT_EXPIRES_IN || '1h', // JWT 过期时间，默认为 1 小时
