@@ -41,6 +41,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:22.13.8"],\
           ["@types/supertest", "npm:6.0.2"],\
+          ["dotenv", "npm:16.4.7"],\
           ["eslint", "virtual:5fcb176dc4252ac97240adee40628d63249dceff0c20d2aaf71c2e0e16e4814dbd7e0fbbeb36e39046add9d5b41c55c3b83c201501098993c315aa402b649cf5#npm:9.21.0"],\
           ["eslint-config-prettier", "virtual:5fcb176dc4252ac97240adee40628d63249dceff0c20d2aaf71c2e0e16e4814dbd7e0fbbeb36e39046add9d5b41c55c3b83c201501098993c315aa402b649cf5#npm:10.0.2"],\
           ["eslint-plugin-prettier", "virtual:5fcb176dc4252ac97240adee40628d63249dceff0c20d2aaf71c2e0e16e4814dbd7e0fbbeb36e39046add9d5b41c55c3b83c201501098993c315aa402b649cf5#npm:5.2.3"],\
@@ -4944,6 +4945,15 @@ const RAW_RUNTIME_STATE =
         "linkType": "HARD"\
       }]\
     ]],\
+    ["dotenv", [\
+      ["npm:16.4.7", {\
+        "packageLocation": "../../../../../C:/Users/seconp/AppData/Local/Yarn/Berry/cache/dotenv-npm-16.4.7-29680c94f8-10c0.zip/node_modules/dotenv/",\
+        "packageDependencies": [\
+          ["dotenv", "npm:16.4.7"]\
+        ],\
+        "linkType": "HARD"\
+      }]\
+    ]],\
     ["dunder-proto", [\
       ["npm:1.0.1", {\
         "packageLocation": "../../../../../C:/Users/seconp/AppData/Local/Yarn/Berry/cache/dunder-proto-npm-1.0.1-90eb6829db-10c0.zip/node_modules/dunder-proto/",\
@@ -8012,6 +8022,7 @@ const RAW_RUNTIME_STATE =
           ["@types/jest", "npm:29.5.14"],\
           ["@types/node", "npm:22.13.8"],\
           ["@types/supertest", "npm:6.0.2"],\
+          ["dotenv", "npm:16.4.7"],\
           ["eslint", "virtual:5fcb176dc4252ac97240adee40628d63249dceff0c20d2aaf71c2e0e16e4814dbd7e0fbbeb36e39046add9d5b41c55c3b83c201501098993c315aa402b649cf5#npm:9.21.0"],\
           ["eslint-config-prettier", "virtual:5fcb176dc4252ac97240adee40628d63249dceff0c20d2aaf71c2e0e16e4814dbd7e0fbbeb36e39046add9d5b41c55c3b83c201501098993c315aa402b649cf5#npm:10.0.2"],\
           ["eslint-plugin-prettier", "virtual:5fcb176dc4252ac97240adee40628d63249dceff0c20d2aaf71c2e0e16e4814dbd7e0fbbeb36e39046add9d5b41c55c3b83c201501098993c315aa402b649cf5#npm:5.2.3"],\
