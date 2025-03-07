@@ -1,4 +1,5 @@
 # ocean.chat.private
+
 An IM platform you can fully trust.
 
 ## Description
@@ -49,3 +50,37 @@ $ mau deploy
 ```
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+
+# file structure
+
+```
+src/
+├── app.module.ts             # 根模块
+├── app.controller.ts         # 根控制器 (可选，用于处理全局路由等)
+├── app.service.ts            # 根服务 (可选，用于处理全局业务逻辑等)
+├── auth/                     # 认证模块 (登录相关功能)
+│   ├── auth.module.ts        # 认证模块
+│   ├── auth.controller.ts    # 认证控制器，处理登录相关的 HTTP 请求
+│   ├── auth.service.ts       # 认证服务，处理登录相关的业务逻辑
+│   ├── strategies/           # 认证策略目录 (不同的登录方式)
+│   │   ├── jwt.strategy.ts   # JWT 认证策略
+│   │   ├── google.strategy.ts # Google 认证策略
+│   │   └── wechat.strategy.ts # 微信认证策略
+│   ├── guards/               # 认证守卫目录 (保护路由)
+│   │   └── jwt-auth.guard.ts # JWT 认证守卫
+│   ├── dtos/                 # DTO 目录 (数据传输对象)
+│   │   ├── login.dto.ts      # 登录请求数据结构
+│   │   └── register.dto.ts   # 注册请求数据结构
+│   └── interfaces/           # 接口定义目录
+│       └── auth.interface.ts  # 认证接口
+├── users/                    # 用户模块 (可选，如果需要用户信息管理)
+│   ├── users.module.ts       # 用户模块
+│   ├── users.controller.ts   # 用户控制器
+│   └── users.service.ts      # 用户服务
+├── common/                   # 公共模块 (可复用的工具、装饰器等)
+│   └── filters/             # 全局错误处理filter
+│       └── http-exception.filter.ts
+├── config/                   # 配置模块
+│       └── configuration.ts  # 配置项
+└── main.ts                   # 应用入口
+```
