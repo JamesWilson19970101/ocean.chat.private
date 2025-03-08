@@ -1,0 +1,7 @@
+{
+  "name": "ocean.i18n",
+  "packageManager": "yarn@4.7.0",
+  "dependencies": {
+    "nestjs-i18n": "^10.5.0"
+  }
+}

@@ -27,7 +27,6 @@
     "@nestjs/platform-express": "^11.0.1",
     "joi": "^17.13.3",
     "mongoose": "7.8.6",
-    "nestjs-i18n": "^10.5.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -83,5 +82,8 @@
       "^ocean/logger(|/.*)$": "<rootDir>/libs/logger/src/$1"
     }
   },
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "workspaces": [
+    "libs/*"
+  ]
 }
