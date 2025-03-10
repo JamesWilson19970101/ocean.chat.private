@@ -6542,6 +6542,7 @@ __metadata:
     tsconfig-paths: "npm:^4.2.0"
     typescript: "npm:^5.7.3"
     typescript-eslint: "npm:^8.20.0"
+    webpack: "npm:^5.0.0"
   languageName: unknown
   linkType: soft
 
@@ -8373,7 +8374,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"webpack@npm:5.98.0":
+"webpack@npm:5.98.0, webpack@npm:^5.0.0":
   version: 5.98.0
   resolution: "webpack@npm:5.98.0"
   dependencies:
