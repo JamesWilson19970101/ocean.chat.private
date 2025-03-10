@@ -2,6 +2,8 @@
   "name": "ocean.i18n",
   "packageManager": "yarn@4.7.0",
   "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/testing": "^11.0.1",
     "nestjs-i18n": "^10.5.0"
   }
 }

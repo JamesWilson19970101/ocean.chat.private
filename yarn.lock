@@ -6549,6 +6549,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "ocean.i18n@workspace:libs/i18n"
   dependencies:
+    "@nestjs/common": "npm:^11.0.1"
+    "@nestjs/testing": "npm:^11.0.1"
     nestjs-i18n: "npm:^10.5.0"
   languageName: unknown
   linkType: soft
@@ -6556,6 +6558,9 @@ __metadata:
 "ocean.logger@workspace:libs/logger":
   version: 0.0.0-use.local
   resolution: "ocean.logger@workspace:libs/logger"
+  dependencies:
+    "@nestjs/common": "npm:^11.0.1"
+    "@nestjs/testing": "npm:^11.0.1"
   languageName: unknown
   linkType: soft
 

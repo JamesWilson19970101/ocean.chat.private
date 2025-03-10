@@ -1,4 +1,8 @@
 {
   "name": "ocean.logger",
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "dependencies": {
+    "@nestjs/common": "^11.0.1",
+    "@nestjs/testing": "^11.0.1"
+  }
 }
