@@ -11,6 +11,8 @@
     "^.+\\.(t|j)s$": "ts-jest"
   },
   "moduleNameMapper": {
+    "@app/settings": "<rootDir>/../libs/settings/src",
+    "@app/settings/(.*)": "<rootDir>/../libs/settings/src/$1",
     "ocean/i18n": "<rootDir>/../libs/i18n/src",
     "ocean/i18n/(.*)": "<rootDir>/../libs/i18n/src/$1",
     "ocean/logger": "<rootDir>/../libs/logger/src",

@@ -18,6 +18,12 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
+      "@app/settings": [
+        "libs/settings/src"
+      ],
+      "@app/settings/*": [
+        "libs/settings/src/*"
+      ],
       "ocean/i18n": [
         "libs/i18n/src"
       ],
