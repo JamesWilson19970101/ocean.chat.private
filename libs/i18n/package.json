@@ -1,6 +1,9 @@
 {
-  "name": "ocean.i18n",
+  "name": "@ocean.chat/i18n",
   "packageManager": "yarn@4.7.0",
+  "scripts": {
+    "build": "nest build i18n"
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/testing": "^11.0.1",

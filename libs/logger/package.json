@@ -1,5 +1,5 @@
 {
-  "name": "ocean.logger",
+  "name": "@ocean.chat/logger",
   "packageManager": "yarn@4.7.0",
   "dependencies": {
     "@nestjs/common": "^11.0.1",

@@ -3,9 +3,10 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
+import { I18nModule } from 'ocean/i18n';
 
 @Module({
-  imports: [DatabaseModule, ConfigModule],
+  imports: [I18nModule.forRoot({}), DatabaseModule, ConfigModule],
   controllers: [AppController],
   providers: [AppService],
 })
