@@ -31,18 +31,11 @@ export class I18nService {
   translate(key: string): string {
     // get lang from resolver
     const currentContext = I18nContext.current();
-    let lang = currentContext ? currentContext.lang : this.fallbackLanguage;
-    console.log('lang is:', lang);
-    console.log('key is:', key);
-    lang = 'en';
+    const lang = currentContext ? currentContext.lang : this.fallbackLanguage;
     try {
-      const a: string = this.nestJsI18nService.t('en.hello', {
+      return this.nestJsI18nService.t(`${lang}.${key}`, {
         lang: lang,
       });
-      console.log('---------------------------');
-      console.log('a is', a);
-
-      return a;
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       // TODO: add logger

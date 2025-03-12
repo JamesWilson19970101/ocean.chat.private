@@ -17,7 +17,7 @@
         "tsConfigPath": "libs/i18n/tsconfig.lib.json",
         "assets": [
           {
-            "include": "libs/i18n/src/locales/*",
+            "include": "libs/i18n/src/i18n/*",
             "watchAssets": true,
             "outDir": "dist/i18n"
           }

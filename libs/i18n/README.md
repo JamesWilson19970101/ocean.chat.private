@@ -18,7 +18,7 @@ libs/
 │ │ └── language-validation.pipe.ts
 │ ├── utils/ # Utility functions
 │ │ └── i18n.util.ts # Helper functions for i18n
-│ ├── locales/ # Translation files
+│ ├── i18n/ # Translation files
 │ │ ├── en.json # English translations
 │ │ ├── zh.json # Chinese translations
 │ │ └── ... # Other language files

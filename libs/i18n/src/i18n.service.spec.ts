@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { I18nService } from './i18n.service';
 import {
   I18nModule as NestJsI18nModule,
+  I18nContext,
   QueryResolver,
   HeaderResolver,
   CookieResolver,
@@ -52,19 +53,18 @@ describe('I18nService', () => {
   describe('getI18nPath', () => {
     it('should get the i18n path', () => {
       expect(service.getI18nPath()).toBe(
-        '/home/seconp/ocean.chat.private/libs/i18n/src/locales',
+        '/home/seconp/ocean.chat.private/libs/i18n/src/i18n/',
       );
     });
   });
 
   describe('tranlate', () => {
     it('should translate a key', () => {
-      // jest.spyOn(I18nContext, 'current').mockReturnValue({
-      //   lang: 'zh-CN',
-      //   // other properties are not needed for this test
-      // } as any);
-      const translated = service.translate('HELLO WORLD');
-      expect(translated).toBe('你好，世界！');
+      jest.spyOn(I18nContext, 'current').mockReturnValue({
+        lang: 'zh-CN',
+      } as any);
+      const translated = service.translate('HELLO');
+      expect(translated).toBe('你好！');
     });
   });
 });
