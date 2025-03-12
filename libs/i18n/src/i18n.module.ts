@@ -1,9 +1,15 @@
 import { Global, Module, DynamicModule } from '@nestjs/common';
 import { I18nService } from './i18n.service';
-import { I18nModule as NestJsI18nModule } from 'nestjs-i18n';
-import * as path from 'path';
+import {
+  I18nModule as NestJsI18nModule,
+  AcceptLanguageResolver,
+  QueryResolver,
+  HeaderResolver,
+  CookieResolver,
+} from 'nestjs-i18n';
 
-import type { I18nOptions } from './i18n.service';
+import { type I18nOptions } from './i18n.interface';
+import { DEFAULT_FALLBACK_LANGUAGE, DEFAULT_I18N_PATH } from './i18n.constants';
 
 @Global()
 @Module({
@@ -15,12 +21,22 @@ export class I18nModule {
     return {
       module: I18nModule,
       imports: [
-        NestJsI18nModule.forRoot({
-          fallbackLanguage: options.fallbackLanguage || 'zh-CN',
-          loaderOptions: {
-            path: options.path || path.join(__dirname, 'i18n'),
-            watch: true,
-          },
+        NestJsI18nModule.forRootAsync({
+          // TODO: use settings to switch language
+          resolvers: [
+            { use: QueryResolver, options: { queryParameter: 'lang' } }, // Corrected QueryResolver
+            new CookieResolver(),
+            new AcceptLanguageResolver(), // Corrected AcceptLanguageResolver
+            { use: HeaderResolver, options: { header: 'x-lang' } }, // Corrected HeaderResolver
+          ],
+          useFactory: () => ({
+            fallbackLanguage:
+              options.fallbackLanguage || DEFAULT_FALLBACK_LANGUAGE,
+            loaderOptions: {
+              path: options.path || DEFAULT_I18N_PATH,
+              watch: true,
+            },
+          }),
         }),
       ],
     };
