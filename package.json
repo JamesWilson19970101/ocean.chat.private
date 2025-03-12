@@ -83,9 +83,9 @@
       "<rootDir>/libs/"
     ],
     "moduleNameMapper": {
-      "^ocean/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
-      "^ocean/logger(|/.*)$": "<rootDir>/libs/logger/src/$1",
-      "^ocean/settings(|/.*)$": "<rootDir>/libs/settings/src/$1"
+      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
+      "^@ocean.chat/logger(|/.*)$": "<rootDir>/libs/logger/src/$1",
+      "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1"
     }
   },
   "packageManager": "yarn@4.7.0",
