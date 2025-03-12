@@ -6,7 +6,7 @@ import { ConfigModule } from '@nestjs/config';
 import { I18nModule } from '@ocean.chat/i18n';
 
 @Module({
-  imports: [I18nModule.forRoot({}), DatabaseModule, ConfigModule],
+  imports: [ConfigModule, I18nModule.forRoot({}), DatabaseModule],
   controllers: [AppController],
   providers: [AppService],
 })
