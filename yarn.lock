@@ -1612,6 +1612,7 @@ __metadata:
   resolution: "@ocean.chat/i18n@workspace:libs/i18n"
   dependencies:
     "@nestjs/common": "npm:^11.0.1"
+    "@nestjs/config": "npm:^4.0.1"
     "@nestjs/testing": "npm:^11.0.1"
     nestjs-i18n: "npm:^10.5.0"
   languageName: unknown
