@@ -1,8 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 
-const files: string[] = fs.readdirSync('./locales');
-const en: string = fs.readFileSync(`./locales/en.i18n.json`, 'utf8');
+// Get the directory of the current script
+const currentDir: string = __dirname;
+
+const files: string[] = fs.readdirSync(`${currentDir}/locales`);
+const en: string = fs.readFileSync(
+  `${currentDir}/locales/en.i18n.json`,
+  'utf8',
+);
 
 const generateJson: (files: string[]) => string = (files) =>
   files
@@ -10,7 +16,7 @@ const generateJson: (files: string[]) => string = (files) =>
       // Extract the json object and generate the js object later
       const lang: string = path.basename(file, '.i18n.json');
       const parsedJson: Record<string, string> = JSON.parse(
-        fs.readFileSync(`./locales/${file}`, 'utf8'),
+        fs.readFileSync(`${currentDir}/locales/${file}`, 'utf8'),
       );
       return `\n"${lang}": ${JSON.stringify(parsedJson, null, 2)}`;
     })
@@ -41,7 +47,7 @@ export = dict;
 
 // write the files
 if (fs.existsSync(`./dist`)) {
-  fs.rmdirSync(`./dist`, { recursive: true });
+  fs.rmSync(`./dist`, { recursive: true });
 }
 
 fs.mkdirSync(`./dist`);
