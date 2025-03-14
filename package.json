@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "nest build",
+    "build": "nest build && turbo run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "NODE_ENV=development nest start --watch",
@@ -90,7 +90,6 @@
   },
   "packageManager": "yarn@4.7.0",
   "workspaces": [
-    "libs/*",
     "packages/*"
   ]
 }

@@ -1,4 +1,13 @@
 {
   "name": "i18n",
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.json && mkdir ./dist/locales && cp -r ./src/locales/* ./dist/locales && node ./dist/generator.js"
+  },
+  "dependencies": {
+    "i18next": "^24.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10"
+  }
 }
