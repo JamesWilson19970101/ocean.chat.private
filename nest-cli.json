@@ -5,7 +5,13 @@
   "monorepo": true,
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": true
+    "webpack": false,
+    "assets": [
+      {
+        "include": "assets/**/*",
+        "watchAssets": true
+      }
+    ]
   },
   "projects": {
     "i18n": {
@@ -17,29 +23,11 @@
         "tsConfigPath": "libs/i18n/tsconfig.lib.json",
         "assets": [
           {
-            "include": "libs/i18n/src/i18n/*",
+            "include": "i18n/**/*",
             "watchAssets": true,
-            "outDir": "dist/i18n"
+            "outDir": "dist/libs/i18n"
           }
         ]
-      }
-    },
-    "logger": {
-      "type": "library",
-      "root": "libs/logger",
-      "entryFile": "index",
-      "sourceRoot": "libs/logger/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/logger/tsconfig.lib.json"
-      }
-    },
-    "settings": {
-      "type": "library",
-      "root": "libs/settings",
-      "entryFile": "index",
-      "sourceRoot": "libs/settings/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/settings/tsconfig.lib.json"
       }
     }
   }

@@ -29,6 +29,7 @@
     "hbs": "^4.2.0",
     "joi": "^17.13.3",
     "mongoose": "7.8.6",
+    "nestjs-pino": "^4.3.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },
@@ -58,6 +59,7 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
+    "turbo": "^2.4.4",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0",
     "webpack": "^5.0.0"
@@ -83,13 +85,12 @@
       "<rootDir>/libs/"
     ],
     "moduleNameMapper": {
-      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
-      "^@ocean.chat/logger(|/.*)$": "<rootDir>/libs/logger/src/$1",
-      "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1"
+      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1"
     }
   },
   "packageManager": "yarn@4.7.0",
   "workspaces": [
-    "libs/*"
+    "libs/*",
+    "packages/*"
   ]
 }
