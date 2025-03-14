@@ -73,6 +73,7 @@ src/
 │   │   └── register.dto.ts   # 注册请求数据结构
 │   └── interfaces/           # 接口定义目录
 │       └── auth.interface.ts  # 认证接口
+├── assets/                   # The assets should be located in the src folder otherwise they will not be copied. https://docs.nestjs.com/cli/monorepo#assets
 ├── users/                    # 用户模块 (可选，如果需要用户信息管理)
 │   ├── users.module.ts       # 用户模块
 │   ├── users.controller.ts   # 用户控制器
