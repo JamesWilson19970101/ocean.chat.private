@@ -1,5 +1,5 @@
 {
-  "name": "i18n",
+  "name": "@ocean.chat/i18n",
   "packageManager": "yarn@4.7.0",
   "scripts": {
     "build": "rm -rf dist && tsc -p tsconfig.json && mkdir ./dist/locales && cp -r ./src/locales/* ./dist/locales && node ./dist/generator.js"
