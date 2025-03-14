@@ -25,8 +25,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mongoose": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
-    "@ocean.chat/i18n": "workspace:libs/i18n",
-    "hbs": "^4.2.0",
+    "@ocean.chat/i18n": "workspace:packages/i18n",
     "joi": "^17.13.3",
     "mongoose": "7.8.6",
     "nestjs-pino": "^4.3.1",
@@ -44,9 +43,8 @@
     "@types/express": "^5.0.0",
     "@types/hbs": "^4",
     "@types/jest": "^29.5.14",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.13.10",
     "@types/supertest": "^6.0.2",
-    "class-validator": "^0.14.0",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -84,9 +82,7 @@
       "<rootDir>/src/",
       "<rootDir>/libs/"
     ],
-    "moduleNameMapper": {
-      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1"
-    }
+    "moduleNameMapper": {}
   },
   "packageManager": "yarn@4.7.0",
   "workspaces": [

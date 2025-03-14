@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
-import { I18nModule } from '@ocean.chat/i18n';
 
 describe('AppController', () => {
   let appController: AppController;
@@ -13,7 +12,6 @@ describe('AppController', () => {
         ConfigModule.forRoot({
           isGlobal: true,
         }),
-        I18nModule.forRoot({}),
       ],
       controllers: [AppController],
       providers: [AppService],

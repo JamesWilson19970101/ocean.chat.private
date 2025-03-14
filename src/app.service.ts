@@ -1,14 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { I18nService } from '@ocean.chat/i18n';
 
 @Injectable()
 export class AppService {
   currentEnv: string;
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly i18nService: I18nService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     // Access NODE_ENV
     this.currentEnv =
       this.configService.get<string>('NODE_ENV') || 'development';

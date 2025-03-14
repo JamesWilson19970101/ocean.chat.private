@@ -17,9 +17,6 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
-    "paths": {
-      "@ocean.chat/i18n": ["libs/i18n/src"],
-      "@ocean.chat/i18n/*": ["libs/i18n/src/*"]
-    }
+    "paths": {}
   }
 }

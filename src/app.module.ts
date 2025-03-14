@@ -3,10 +3,9 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 import { ConfigModule } from '@nestjs/config';
-import { I18nModule } from '@ocean.chat/i18n';
 
 @Module({
-  imports: [ConfigModule, I18nModule.forRoot({}), DatabaseModule],
+  imports: [ConfigModule, DatabaseModule],
   controllers: [AppController],
   providers: [AppService],
 })

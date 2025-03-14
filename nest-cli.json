@@ -2,7 +2,6 @@
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
-  "monorepo": true,
   "compilerOptions": {
     "deleteOutDir": true,
     "webpack": false,
@@ -13,22 +12,5 @@
       }
     ]
   },
-  "projects": {
-    "i18n": {
-      "type": "library",
-      "root": "libs/i18n",
-      "entryFile": "index",
-      "sourceRoot": "libs/i18n/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/i18n/tsconfig.lib.json",
-        "assets": [
-          {
-            "include": "i18n/**/*",
-            "watchAssets": true,
-            "outDir": "dist/libs/i18n"
-          }
-        ]
-      }
-    }
-  }
+  "projects": {}
 }

@@ -6,12 +6,5 @@
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
   },
-  "moduleNameMapper": {
-    "@ocean.chat/i18n": "<rootDir>/../libs/i18n/src",
-    "@ocean.chat/i18n/(.*)": "<rootDir>/../libs/i18n/src/$1",
-    "@ocean.chat/logger": "<rootDir>/../libs/logger/src",
-    "@ocean.chat/logger/(.*)": "<rootDir>/../libs/logger/src/$1",
-    "@ocean.chat/settings": "<rootDir>/../libs/settings/src",
-    "@ocean.chat/settings/(.*)": "<rootDir>/../libs/settings/src/$1"
-  }
+  "moduleNameMapper": {}
 }
