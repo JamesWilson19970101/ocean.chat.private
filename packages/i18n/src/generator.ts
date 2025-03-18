@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+
 // Get the directory of the current script
 const currentDir: string = __dirname;
 // By default, the en.i18n.json file has the most complete key-value pairs.
