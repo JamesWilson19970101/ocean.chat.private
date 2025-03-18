@@ -4,7 +4,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json && mkdir ./dist/locales && cp -r ./src/locales/* ./dist/locales && node ./dist/generator.js",
     "test": "jest",
-    "dev": "ts-node src/index"
+    "dev": "ts-node src/index",
+    "lint": "eslint \"{src,test}/**/*.ts\" --fix"
   },
   "dependencies": {
     "i18next": "^24.2.3"

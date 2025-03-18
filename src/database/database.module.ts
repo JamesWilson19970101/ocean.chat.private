@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+
 import configuration from '../config/configuration';
-import { validationSchema } from '../config/validation';
 import { Env } from '../config/env';
+import { validationSchema } from '../config/validation';
 
 @Module({
   imports: [
