@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug i18n/generator.spec.ts",
+      "cwd": "${workspaceFolder}/packages/i18n",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "jest",
+        "test/generator.spec.ts"
+      ],
+      "env": {
+        "NODE_ENV": "test"
+      }
+    }
+  ]
+}
