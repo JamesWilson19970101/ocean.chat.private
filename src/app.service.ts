@@ -1,9 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AppService {
   currentEnv: string;
+  private readonly logger = new Logger('testpino');
+
   constructor(private readonly configService: ConfigService) {
     // Access NODE_ENV
     this.currentEnv =
@@ -25,6 +27,7 @@ export class AppService {
   }
 
   getHello(): string {
+    this.logger.log('foo');
     return 'Hello World!';
   }
 }
