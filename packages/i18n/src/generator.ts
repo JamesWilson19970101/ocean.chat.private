@@ -53,5 +53,5 @@ if (fs.existsSync(`./dist`)) {
 
 fs.mkdirSync(`./dist`);
 
-fs.writeFileSync(`./dist/index.js`, esm);
-fs.writeFileSync(`./dist/index.d.ts`, declarations);
+fs.writeFileSync(`./dist/translate.js`, esm);
+fs.writeFileSync(`./dist/translate.d.ts`, declarations);
