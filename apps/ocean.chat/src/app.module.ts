@@ -7,7 +7,11 @@ import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
-  imports: [ConfigModule, DatabaseModule, LoggerModule.forRoot()],
+  imports: [
+    ConfigModule,
+    DatabaseModule,
+    LoggerModule.forRoot({ renameContext: 'ocean.chat' }),
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
