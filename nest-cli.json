@@ -1,16 +1,38 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/ocean.chat/src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": false,
+    "webpack": true,
     "assets": [
       {
         "include": "assets/**/*",
         "watchAssets": true
       }
-    ]
+    ],
+    "tsConfigPath": "apps/ocean.chat/tsconfig.app.json"
   },
-  "projects": {}
+  "projects": {
+    "account": {
+      "type": "application",
+      "root": "apps/account",
+      "entryFile": "main",
+      "sourceRoot": "apps/account/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/account/tsconfig.app.json"
+      }
+    },
+    "ocean.chat": {
+      "type": "application",
+      "root": "apps/ocean.chat",
+      "entryFile": "main",
+      "sourceRoot": "apps/ocean.chat/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ocean.chat/tsconfig.app.json"
+      }
+    }
+  },
+  "monorepo": true,
+  "root": "apps/ocean.chat"
 }
