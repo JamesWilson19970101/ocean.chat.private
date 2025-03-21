@@ -23,6 +23,15 @@
         "tsConfigPath": "apps/account/tsconfig.app.json"
       }
     },
+    "authorization": {
+      "type": "application",
+      "root": "apps/authorization",
+      "entryFile": "main",
+      "sourceRoot": "apps/authorization/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/authorization/tsconfig.app.json"
+      }
+    },
     "ocean.chat": {
       "type": "application",
       "root": "apps/ocean.chat",
