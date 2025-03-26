@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { AuthorizationController } from './authorization.controller';
 import { AuthorizationService } from './authorization.service';
 
@@ -11,7 +12,9 @@ describe('AuthorizationController', () => {
       providers: [AuthorizationService],
     }).compile();
 
-    authorizationController = app.get<AuthorizationController>(AuthorizationController);
+    authorizationController = app.get<AuthorizationController>(
+      AuthorizationController,
+    );
   });
 
   describe('root', () => {
