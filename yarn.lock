@@ -1629,6 +1629,16 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@ocean.chat/models@workspace:packages/models":
+  version: 0.0.0-use.local
+  resolution: "@ocean.chat/models@workspace:packages/models"
+  dependencies:
+    "@types/jest": "npm:^29.5.14"
+    jest: "npm:^29.7.0"
+    ts-jest: "npm:^29.2.6"
+  languageName: unknown
+  linkType: soft
+
 "@ocean.chat/settings@workspace:packages/settings":
   version: 0.0.0-use.local
   resolution: "@ocean.chat/settings@workspace:packages/settings"
