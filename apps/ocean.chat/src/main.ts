@@ -5,8 +5,7 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  const logger = app.get(Logger);
-  app.useLogger(logger);
+  app.useLogger(app.get(Logger));
   await app.listen(process.env.OCEAN_CHAT_PORT ?? 3000);
 }
 bootstrap().catch((error) => {

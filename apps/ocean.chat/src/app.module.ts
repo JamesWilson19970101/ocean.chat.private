@@ -4,13 +4,25 @@ import { LoggerModule } from 'nestjs-pino';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import configuration from './config/configuration';
+import { Env } from './config/env';
+import { validationSchema } from './config/validation';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
-    ConfigModule,
+    ConfigModule.forRoot({
+      load: [configuration],
+      isGlobal: true,
+      validationSchema,
+      envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
+    }),
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
+      },
+    }),
     DatabaseModule,
-    LoggerModule.forRoot({ renameContext: 'ocean.chat' }),
   ],
   controllers: [AppController],
   providers: [AppService],
