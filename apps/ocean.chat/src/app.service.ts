@@ -18,16 +18,9 @@ export class AppService {
     } else {
       console.log('You are in the production or other environment.');
     }
-
-    // Example of accessing other config variables:
-    const databaseUri = this.configService.get<string>('database.uri');
-    const databaseName = this.configService.get<string>('database.name');
-    console.log(`Database URI: ${databaseUri}`);
-    console.log(`Database Name: ${databaseName}`);
   }
 
   getHello(): string {
-    this.logger.log('foo');
     return 'Hello World!';
   }
 }
