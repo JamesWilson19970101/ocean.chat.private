@@ -1,4 +1,4 @@
-import fs from 'fs';
+import * as fs from 'fs';
 import path from 'path';
 
 // Get the directory of the current script
@@ -7,6 +7,8 @@ const currentDir: string = __dirname;
 const enJson = `${currentDir}/locales/en.i18n.json`;
 
 const jsonFolder = `${currentDir}/locales/`;
+console.log('jsonFolder', jsonFolder);
+console.log('fs.readdirSync(jsonFolder)', fs);
 
 const files: string[] = fs.readdirSync(jsonFolder);
 const en: string = fs.readFileSync(enJson, 'utf8');
@@ -45,13 +47,6 @@ export type OceanchatI18nKeys = keyof OceanchatI18n;
 
 export = dict;
 `;
-
-// write the files
-if (fs.existsSync(`./dist`)) {
-  fs.rmSync(`./dist`, { recursive: true });
-}
-
-fs.mkdirSync(`./dist`);
 
 fs.writeFileSync(`./dist/translate.js`, esm);
 fs.writeFileSync(`./dist/translate.d.ts`, declarations);
