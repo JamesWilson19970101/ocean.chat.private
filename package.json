@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "nest build && turbo run build",
+    "build": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:account": "NODE_ENV=development nest start account --watch",
@@ -89,7 +89,9 @@
       "<rootDir>/libs/",
       "<rootDir>/apps/"
     ],
-    "moduleNameMapper": {}
+    "moduleNameMapper": {
+      "^ocean/i18n(|/.*)$": "<rootDir>/packages/i18n/src/$1"
+    }
   },
   "packageManager": "yarn@4.7.0",
   "workspaces": [
