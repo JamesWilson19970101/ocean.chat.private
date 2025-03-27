@@ -4,14 +4,7 @@
   "sourceRoot": "apps/ocean.chat/src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": true,
-    "assets": [
-      {
-        "include": "assets/**/*",
-        "watchAssets": true
-      }
-    ],
-    "tsConfigPath": "apps/ocean.chat/tsconfig.app.json"
+    "webpack": false
   },
   "projects": {
     "account": {
