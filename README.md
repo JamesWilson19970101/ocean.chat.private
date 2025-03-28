@@ -15,10 +15,8 @@ $ yarn install
 ## Compile and run the project
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
+# run with watch mode
+# Notice: This command will first execute nest build. By default, nest build will use tsc to build the code in all root directories, so the code under the packages will be automatically built into dist. So the turbo build command currently does not play a role in the running process of the project.
 $ yarn run start:dev
 
 # production mode
