@@ -4,7 +4,13 @@
   "sourceRoot": "apps/ocean.chat/src",
   "compilerOptions": {
     "deleteOutDir": true,
-    "webpack": false
+    "webpack": false,
+    "assets": [
+      {
+        "include": "oceanchat_assets/**/*",
+        "outDir": "dist/apps/ocean.chat/src"
+      }
+    ]
   },
   "projects": {
     "account": {
