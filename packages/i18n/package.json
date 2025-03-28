@@ -2,11 +2,7 @@
   "name": "@ocean.chat/i18n",
   "packageManager": "yarn@4.7.0",
   "scripts": {
-    "build": "yarn build:js && yarn build:copy",
-    "build:js": "tsc -p tsconfig.json",
-    "build:copy": "mkdir -p ./dist/locales && cp -r ./src/locales/* ./dist/locales",
-    "prebuild": "rm -rf ./dist",
-    "postbuild": "node ./dist/generator.js",
+    "build": "tsc -p tsconfig.json",
     "test": "jest",
     "dev": "ts-node src/index",
     "lint": "eslint \"{src,test}/**/*.ts\" --fix"
@@ -21,5 +17,10 @@
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
-  }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "/dist"
+  ]
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { I18nModule } from '@ocean.chat/i18n';
 import { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -46,6 +47,7 @@ import { DatabaseModule } from './database/database.module';
       },
     }),
     DatabaseModule,
+    I18nModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -4,8 +4,8 @@ import translate from './translate';
 
 i18next
   .init({
-    lng: 'zh', // 默认语言
-    fallbackLng: 'zh', // 当找不到对应翻译时的回退语言
+    lng: 'zh', // default language
+    fallbackLng: 'en', // Choice when no corresponding language is found
     resources: {
       ...translate,
     },

@@ -1,8 +1,7 @@
+import { en } from './locales/en';
+import { zh } from './locales/zh';
+
 export default {
-  en: {
-    translation: { HELLO: 'Hello!', GOODBYE: 'Goodbye!', WELCOME: 'Welcome!' },
-  },
-  zh: {
-    translation: { HELLO: '你好！', GOODBYE: '再见！', WELCOME: '欢迎！' },
-  },
+  en: { ...en },
+  zh: { ...zh },
 };
