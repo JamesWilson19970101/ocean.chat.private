@@ -19,6 +19,23 @@
       "env": {
         "NODE_ENV": "test"
       }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Ocean.chat",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:ocean.chat"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
     }
   ]
 }
