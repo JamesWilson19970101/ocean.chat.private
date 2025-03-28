@@ -31,6 +31,15 @@
         "tsConfigPath": "apps/authorization/tsconfig.app.json"
       }
     },
+    "i18n": {
+      "type": "library",
+      "root": "libs/i18n",
+      "entryFile": "index",
+      "sourceRoot": "libs/i18n/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/i18n/tsconfig.lib.json"
+      }
+    },
     "ocean.chat": {
       "type": "application",
       "root": "apps/ocean.chat",
