@@ -90,6 +90,7 @@
       "<rootDir>/apps/"
     ],
     "moduleNameMapper": {
+      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
       "^ocean/i18n(|/.*)$": "<rootDir>/packages/i18n/src/$1"
     }
   },
