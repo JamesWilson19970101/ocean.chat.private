@@ -27,7 +27,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mongoose": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
-    "@ocean.chat/i18n": "workspace:packages/i18n",
+    "i18next": "^24.2.3",
     "joi": "^17.13.3",
     "mongoose": "7.8.6",
     "nestjs-pino": "^4.3.1",
@@ -90,8 +90,7 @@
       "<rootDir>/apps/"
     ],
     "moduleNameMapper": {
-      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
-      "^ocean/i18n(|/.*)$": "<rootDir>/packages/i18n/src/$1"
+      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1"
     }
   },
   "packageManager": "yarn@4.7.0",

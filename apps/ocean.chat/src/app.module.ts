@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { I18nModule } from '@ocean.chat/i18n';
 import { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -12,6 +13,7 @@ import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
+    I18nModule.forRoot(),
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,
