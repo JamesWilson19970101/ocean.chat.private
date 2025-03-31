@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as i18next from 'i18next';
 import { TFunction } from 'i18next';
 
@@ -9,8 +9,12 @@ export class I18nService {
   private t: TFunction;
   private readonly logger = new Logger('i18n.module');
 
-  constructor() {
-    void this.initializeI18next();
+  constructor() {}
+
+  async onModuleInit(): Promise<void> {
+    this.logger.log('OnModuleInit hook started, initializing i18next...');
+    await this.initializeI18next();
+    this.logger.log('OnModuleInit hook finished.');
   }
 
   private async initializeI18next(): Promise<void> {
