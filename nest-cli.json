@@ -40,6 +40,15 @@
         "tsConfigPath": "libs/i18n/tsconfig.lib.json"
       }
     },
+    "models": {
+      "type": "library",
+      "root": "libs/models",
+      "entryFile": "index",
+      "sourceRoot": "libs/models/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/models/tsconfig.lib.json"
+      }
+    },
     "ocean.chat": {
       "type": "application",
       "root": "apps/ocean.chat",
