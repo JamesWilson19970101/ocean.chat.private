@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "turbo build && nest build",
+    "build": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:account": "NODE_ENV=development nest start account --watch",
@@ -64,7 +64,6 @@
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "turbo": "^2.4.4",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0",
     "webpack": "^5.0.0"
@@ -93,8 +92,5 @@
       "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1"
     }
   },
-  "packageManager": "yarn@4.7.0",
-  "workspaces": [
-    "packages/*"
-  ]
+  "packageManager": "yarn@4.7.0"
 }
