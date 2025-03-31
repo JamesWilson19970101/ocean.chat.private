@@ -48,6 +48,15 @@
       "compilerOptions": {
         "tsConfigPath": "apps/ocean.chat/tsconfig.app.json"
       }
+    },
+    "settings": {
+      "type": "library",
+      "root": "libs/settings",
+      "entryFile": "index",
+      "sourceRoot": "libs/settings/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/settings/tsconfig.lib.json"
+      }
     }
   },
   "monorepo": true,

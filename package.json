@@ -89,7 +89,8 @@
       "<rootDir>/apps/"
     ],
     "moduleNameMapper": {
-      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1"
+      "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
+      "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1"
     }
   },
   "packageManager": "yarn@4.7.0"
