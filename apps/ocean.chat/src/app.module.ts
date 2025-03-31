@@ -13,7 +13,7 @@ import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
-    I18nModule,
+    I18nModule.forRoot(),
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,

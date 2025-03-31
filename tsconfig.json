@@ -18,12 +18,6 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      // "@ocean.chat/i18n": [
-      //   "packages/i18n/src"
-      // ],
-      // "@ocean.chat/i18n/*": [
-      //   "packages/i18n/*"
-      // ],
       "@ocean.chat/i18n": ["libs/i18n/src"],
       "@ocean.chat/i18n/*": ["libs/i18n/src/*"]
     }
