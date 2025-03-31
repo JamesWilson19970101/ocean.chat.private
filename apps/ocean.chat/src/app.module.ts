@@ -13,6 +13,7 @@ import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
+    I18nModule,
     ConfigModule.forRoot({
       load: [configuration],
       isGlobal: true,
@@ -47,7 +48,6 @@ import { DatabaseModule } from './database/database.module';
       },
     }),
     DatabaseModule,
-    I18nModule,
   ],
   controllers: [AppController],
   providers: [AppService],
