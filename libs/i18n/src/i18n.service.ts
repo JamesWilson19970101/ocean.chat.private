@@ -1,14 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as i18next from 'i18next';
 import { TOptions } from 'i18next';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import translate from './translate';
 
 @Injectable()
-export class I18nService {
-  private readonly logger = new Logger('i18n.i18n.module');
+export class I18nService implements OnModuleInit {
+  constructor(
+    @InjectPinoLogger('i18n.module')
+    private readonly logger: PinoLogger,
+  ) {}
 
-  constructor() {}
+  async onModuleInit() {
+    await this.init();
+  }
 
   async init() {
     try {
@@ -19,7 +25,7 @@ export class I18nService {
           ...translate,
         },
       });
-      this.logger.log('I18nService initialized successfully.');
+      this.logger.info('I18nService initialized successfully.');
     } catch (error) {
       this.logger.error('Failed to initialize I18nService.', error);
       throw error; // Re-throw the error to prevent the application from starting with a broken i18n setup}
