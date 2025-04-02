@@ -4,6 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Connection } from 'mongoose';
 import { PinoLogger } from 'nestjs-pino';
 
+import { DatabaseService } from './database.service';
+
 @Module({
   imports: [
     MongooseModule.forRootAsync({
@@ -23,5 +25,6 @@ import { PinoLogger } from 'nestjs-pino';
       inject: [ConfigService, PinoLogger],
     }),
   ],
+  providers: [DatabaseService],
 })
 export class DatabaseModule {}
