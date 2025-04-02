@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
+import { Connection } from 'mongoose';
 
 @Module({
   imports: [
@@ -10,6 +11,10 @@ import { MongooseModule } from '@nestjs/mongoose';
         uri: configService.get<string>('database.uri'),
         dbName: configService.get<string>('database.name'),
         serverSelectionTimeoutMS: 5000,
+        onConnectionCreate: (connection: Connection) => {
+          connection.on('connected', () => console.log('connected'));
+          return connection;
+        },
       }),
       inject: [ConfigService],
     }),
