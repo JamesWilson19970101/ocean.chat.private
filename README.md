@@ -12,6 +12,21 @@ An IM platform you can fully trust.
 $ yarn install
 ```
 
+## mongodb setup
+
+Firstly specify the replica set name in mongod.conf.
+
+```
+replication:
+  replSetName: "ocrs0"
+```
+
+Then initiate replica set.
+
+```js
+rs.initiate(); // should set replica set first to watch change stream.
+```
+
 ## Compile and run the project
 
 ```bash
