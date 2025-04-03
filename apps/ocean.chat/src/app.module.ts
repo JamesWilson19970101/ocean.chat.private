@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { I18nModule } from '@ocean.chat/i18n';
+import { ModelsModule } from '@ocean.chat/models';
 import { IncomingMessage, ServerResponse } from 'http';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -48,6 +49,7 @@ import { DatabaseModule } from './database/database.module';
       },
     }),
     DatabaseModule,
+    ModelsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
