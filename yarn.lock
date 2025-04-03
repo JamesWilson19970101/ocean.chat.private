@@ -6387,7 +6387,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mongodb@npm:~6.15.0":
+"mongodb@npm:6.15.0, mongodb@npm:~6.15.0":
   version: 6.15.0
   resolution: "mongodb@npm:6.15.0"
   dependencies:
@@ -6649,6 +6649,7 @@ __metadata:
     i18next: "npm:^24.2.3"
     jest: "npm:^29.7.0"
     joi: "npm:^17.13.3"
+    mongodb: "npm:6.15.0"
     mongoose: "npm:^8.13.1"
     nestjs-pino: "npm:^4.3.1"
     pino: "npm:^9.6.0"
