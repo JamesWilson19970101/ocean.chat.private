@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 import { User } from '../entities/user.entity';
 import { UserRepository } from '../repositories/user.repository';
-
+/**
+ * @author James
+ */
 @Injectable()
 export class UserService {
   constructor(private readonly userRepository: UserRepository) {}
