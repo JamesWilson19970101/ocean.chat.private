@@ -18,24 +18,12 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@ocean.chat/i18n": [
-        "libs/i18n/src"
-      ],
-      "@ocean.chat/i18n/*": [
-        "libs/i18n/src/*"
-      ],
-      "@ocean.chat/models": [
-        "libs/models/src"
-      ],
-      "@ocean.chat/models/*": [
-        "libs/models/src/*"
-      ],
-      "@ocean.chat/settings": [
-        "libs/settings/src"
-      ],
-      "@ocean.chat/settings/*": [
-        "libs/settings/src/*"
-      ]
+      "@ocean.chat/i18n": ["libs/i18n/src"],
+      "@ocean.chat/i18n/*": ["libs/i18n/src/*"],
+      "@ocean.chat/models": ["libs/models/src"],
+      "@ocean.chat/models/*": ["libs/models/src/*"],
+      "@ocean.chat/settings": ["libs/settings/src"],
+      "@ocean.chat/settings/*": ["libs/settings/src/*"]
     }
   }
 }
