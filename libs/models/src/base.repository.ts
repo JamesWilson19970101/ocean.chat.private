@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { FilterQuery, Model, UpdateQuery } from 'mongoose';
+import { Document, FilterQuery, Model, UpdateQuery } from 'mongoose';
 
 import { IRepository } from './interfaces/repository.interface';
 
 @Injectable()
-export abstract class BaseRepository<T> implements IRepository<T> {
+export abstract class BaseRepository<T extends Document>
+  implements IRepository<T>
+{
   protected readonly model: Model<T>;
 
   constructor(model: Model<T>) {
@@ -15,15 +17,19 @@ export abstract class BaseRepository<T> implements IRepository<T> {
     return this.model.find(filter).exec();
   }
 
-  async findById(id: any): Promise<T | null> {
+  async findById(id: any): Promise<Partial<T> | null> {
     return this.model.findById(id).exec();
   }
 
-  async create(entity: T): Promise<T> {
-    return this.model.create(entity);
+  async create(entity: Partial<T>): Promise<T> {
+    const model = new this.model(entity);
+    return model.save();
   }
 
-  async update(id: any, entity: UpdateQuery<T>): Promise<T | null> {
+  async update(
+    id: any,
+    entity: UpdateQuery<Partial<T>>,
+  ): Promise<Partial<T> | null> {
     return this.model.findByIdAndUpdate(id, entity, { new: true }).exec();
   }
 
