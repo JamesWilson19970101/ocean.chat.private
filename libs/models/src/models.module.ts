@@ -12,7 +12,7 @@ const repositories = [UserRepository];
 
 @Module({
   providers: [...repositories],
-  exports: [models, ...repositories],
+  exports: [...repositories],
   imports: [models],
 })
 export class ModelsModule {}
