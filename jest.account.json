@@ -1,0 +1,17 @@
+{
+  "moduleFileExtensions": ["js", "json", "ts"],
+  "rootDir": ".",
+  "roots": ["<rootDir>/apps/account"],
+  "testEnvironment": "node",
+  "testRegex": ".spec.ts$",
+  "transform": {
+    "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "coverageDirectory": "./apps/account/coverage",
+  "collectCoverage": true,
+  "moduleNameMapper": {
+    "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
+    "^@ocean.chat/models(|/.*)$": "<rootDir>/libs/models/src/$1",
+    "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1"
+  }
+}
