@@ -37,7 +37,7 @@ export class AccountService {
   }
 
   async signUp(signUpDto: {
-    name: string;
+    name?: string;
     email?: string;
     username: string;
     password: string;
@@ -46,7 +46,7 @@ export class AccountService {
     const salt = PasswordUtils.generateSalt();
     const hashedPassword = await PasswordUtils.hashPassword(password, salt);
     const user = {
-      name,
+      ...(name !== undefined && { name }),
       ...(email !== undefined && { email }),
       username,
       credentials: {
