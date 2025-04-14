@@ -61,6 +61,7 @@ import { DatabaseModule } from './database/database.module';
     }),
   ],
   controllers: [AccountController],
+  // TODO: at the time, the authentication guard is only can be used in account module.
   providers: [AccountService, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AccountModule {}
