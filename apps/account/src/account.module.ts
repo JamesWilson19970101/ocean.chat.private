@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { I18nModule } from '@ocean.chat/i18n';
 import { ModelsModule } from '@ocean.chat/models';
@@ -8,6 +9,7 @@ import { LoggerModule } from 'nestjs-pino';
 
 import { AccountController } from './account.controller';
 import { AccountService } from './account.service';
+import { AuthGuard } from './auth.guard';
 import configuration from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
@@ -59,6 +61,6 @@ import { DatabaseModule } from './database/database.module';
     }),
   ],
   controllers: [AccountController],
-  providers: [AccountService],
+  providers: [AccountService, { provide: APP_GUARD, useClass: AuthGuard }],
 })
 export class AccountModule {}
