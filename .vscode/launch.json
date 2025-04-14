@@ -36,6 +36,23 @@
       "autoAttachChildProcesses": true,
       "sourceMaps": true,
       "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Account",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:account"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
     }
   ]
 }
