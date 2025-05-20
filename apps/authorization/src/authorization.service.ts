@@ -13,7 +13,7 @@ export class AuthorizationService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    const modelPath = join(__dirname, '/config/model.conf'); // Adjust path relative to dist/src
+    const modelPath = join(__dirname, '/authorization_assets/model.conf'); // Adjust path relative to dist/
     this.logger.info(`Using Casbin model from: ${modelPath}`);
     this.enforcer = await newEnforcer(modelPath);
     // // TODO: find policies from mongodb
