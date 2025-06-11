@@ -15,15 +15,26 @@ export class User extends Document {
   @Prop({ type: String })
   name?: string;
   /**
-   * The email address of the user. The sparse option creates an index when emails exist. The unique option creates an index regardless of whether the corresponding filed exists.
-   */
-  @Prop({ type: String, unique: true, sparse: true })
-  email: string;
-  /**
    * The unique username of the user.
    */
   @Prop({ type: String, required: true, unique: true })
   username: string;
+
+  @Prop({
+    type: [
+      {
+        address: { type: String, required: true, unique: true, sparse: true },
+        verified: { type: Boolean, required: true, default: false },
+        _id: false, // Do not create a separate _id for sub-documents in the array
+      },
+    ],
+    default: [], // Default to an empty array
+  })
+  emails: {
+    address: string;
+    verified: boolean;
+  }[];
+
   /**
    * An object containing the user's authentication credentials.<br />
    * <ul>
