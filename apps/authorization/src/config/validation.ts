@@ -9,4 +9,7 @@ export const validationSchema = Joi.object({
     'string.empty': 'DATABASE_NAME is required',
     'any.required': 'DATABASE_NAME is required',
   }),
+  REDIS_HOST: Joi.string().default('127.0.0.1'),
+  REDIS_PORT: Joi.number().default(6379),
+  AUTHORIZATION_PORT: Joi.number().default(3002),
 });
