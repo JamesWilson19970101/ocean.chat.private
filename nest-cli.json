@@ -9,6 +9,10 @@
       {
         "include": "oceanchat_assets/**/*",
         "outDir": "dist/apps/ocean.chat/src"
+      },
+      {
+        "include": "authorization_assets/**/*",
+        "outDir": "dist/apps/authorization/src"
       }
     ]
   },
