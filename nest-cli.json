@@ -70,6 +70,15 @@
       "compilerOptions": {
         "tsConfigPath": "libs/settings/tsconfig.lib.json"
       }
+    },
+    "stream": {
+      "type": "application",
+      "root": "apps/stream",
+      "entryFile": "main",
+      "sourceRoot": "apps/stream/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/stream/tsconfig.app.json"
+      }
     }
   },
   "monorepo": true,
