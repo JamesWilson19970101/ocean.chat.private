@@ -1,8 +1,11 @@
 import { registerAs } from '@nestjs/config';
 
 export default registerAs('database', () => ({
-  uri: process.env.DATABASE_URI,
-  name: process.env.DATABASE_NAME,
+  uri: process.env.DATABASE_URI || 'mongodb://localhost:27017',
+  name:
+    process.env.DATABASE_NAME || process.env.NODE_ENV === 'production'
+      ? 'oceanchat'
+      : 'oceanchat_development',
 }));
 
 export const redisConfiguration = registerAs('redis', () => ({
