@@ -24,6 +24,7 @@ export class I18nService implements OnModuleInit {
         resources: {
           ...translate,
         },
+        interpolation: { escapeValue: false },
       });
       this.logger.info('I18nService initialized successfully.');
     } catch (error) {
