@@ -37,4 +37,12 @@ export abstract class BaseRepository<T extends Document>
     const result = await this.model.deleteOne({ _id: id }).exec();
     return result.deletedCount > 0;
   }
+
+  /**
+   * This method retrieves the name of the collection that the model is associated with.
+   * @returns The name of the collection associated with the model.
+   */
+  getCollectionName(): string {
+    return this.model.collection.name;
+  }
 }
