@@ -17,7 +17,7 @@ export type SettingValue =
   | Record<string, unknown>
   | any[];
 
-@Schema({ _id: true, timestamps: true })
+@Schema({ timestamps: true })
 export class Setting extends Document {
   @Prop({ required: true })
   type: SettingType; // Type of the setting, e.g., string, int, boolean, etc.
