@@ -52,7 +52,7 @@ import { DatabaseModule } from './database/database.module';
     RedisModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: 'single',
+        type: 'single', // TODO: make this configurable for cluster in production.
         url: `redis://${configService.get<string>('redis.host')}:${configService.get<number>('redis.port')}`,
       }),
       inject: [ConfigService],
