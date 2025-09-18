@@ -1,5 +1,5 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import { InjectConnection } from '@nestjs/mongoose';
 import { I18nService } from '@ocean.chat/i18n';
 import { EventEmitter } from 'events';
 import {
@@ -8,9 +8,10 @@ import {
   ChangeStreamUpdateDocument,
   Db,
 } from 'mongodb';
+import { Connection } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-import { DatabaseService } from './mongo.service';
+import { WATCHED_COLLECTION_TOKEN } from '../interfaces';
 import type { OceanChatRecord } from './OceanChatRecord'; // Adjust the import path as necessary
 import { UtilsService } from './utils.service';
 
@@ -21,27 +22,35 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
     private readonly i18nService: I18nService,
     @InjectPinoLogger('ocean.chat.models.watcher')
     private readonly logger: PinoLogger,
-    private readonly configService: ConfigService,
-    private readonly databaseService: DatabaseService,
+    // private readonly databaseService: DatabaseService,
     private readonly utilsService: UtilsService,
+    @InjectConnection() private readonly connection: Connection,
+    @Optional()
+    @Inject(WATCHED_COLLECTION_TOKEN)
+    private readonly collectionsToWatch: string[],
   ) {
     super();
   }
 
-  async onModuleInit() {
+  onModuleInit() {
     try {
       this.logger.info('Initializing DatabaseWatcher...');
-      const db = await this.databaseService.getConnection();
-      const collectionsToWatch = this.databaseService.getWatchCollectionNames();
+      const db: Db = this.connection.db as unknown as Db;
+      // Use the injected collections. It can be a single string or an array of strings.
+      // We ensure it's always an array and remove duplicates.
+      const collectionsInput = this.collectionsToWatch || [];
+      const collections = Array.isArray(collectionsInput)
+        ? [...new Set(collectionsInput)]
+        : [];
 
-      if (collectionsToWatch.length === 0) {
+      if (collections.length === 0) {
         this.logger.warn(
           'No collections configured to be watched. DatabaseWatcher will be idle.',
         );
         return;
       }
 
-      this.watchStream(db, collectionsToWatch);
+      this.watchStream(db, collections);
     } catch (error) {
       this.logger.error(
         { err: error },

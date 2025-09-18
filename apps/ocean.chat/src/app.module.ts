@@ -1,16 +1,18 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
 import { I18nModule } from '@ocean.chat/i18n';
-import { ModelsModule } from '@ocean.chat/models';
+import { ModelsModule, MongoModule } from '@ocean.chat/models';
 import { IncomingMessage, ServerResponse } from 'http';
+import { Connection } from 'mongoose';
 import { LoggerModule } from 'nestjs-pino';
+import { PinoLogger } from 'nestjs-pino';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
-import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
@@ -48,8 +50,25 @@ import { DatabaseModule } from './database/database.module';
         },
       },
     }),
-    DatabaseModule,
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService, logger: PinoLogger) => ({
+        uri: configService.get<string>('database.uri'),
+        dbName: configService.get<string>('database.name'),
+        serverSelectionTimeoutMS: 5000,
+        onConnectionCreate: (connection: Connection) => {
+          connection.on('connected', () => {
+            logger.setContext('database.module');
+            logger.info('Database connected successfully');
+          });
+          return connection;
+        },
+      }),
+      inject: [ConfigService, PinoLogger],
+    }),
     ModelsModule,
+    // Using MongoModule to register collections for watching
+    MongoModule.register(['users', 'settings']),
   ],
   controllers: [AppController],
   providers: [AppService],
