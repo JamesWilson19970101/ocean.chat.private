@@ -10,7 +10,10 @@ import { PinoLogger } from 'nestjs-pino';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import configuration from './config/configuration';
+import {
+  databaseConfiguration,
+  redisConfiguration,
+} from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
 
@@ -18,7 +21,7 @@ import { validationSchema } from './config/validation';
   imports: [
     I18nModule.forRoot(),
     ConfigModule.forRoot({
-      load: [configuration],
+      load: [databaseConfiguration, redisConfiguration],
       isGlobal: true,
       validationSchema,
       envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
