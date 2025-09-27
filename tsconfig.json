@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -17,6 +18,8 @@
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
+    "lib": ["es2023"],
+    "types": ["node", "jest", "express", "ws"],
     "paths": {
       "@ocean.chat/redis": ["libs/redis/src"],
       "@ocean.chat/redis/*": ["libs/redis/src/*"],

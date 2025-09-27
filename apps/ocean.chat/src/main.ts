@@ -3,9 +3,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 
 import { AppModule } from './app.module';
+import { AppExceptionsFilter } from './common/filters/app-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  app.useGlobalFilters(new AppExceptionsFilter(app.get(Logger)));
   app.useLogger(app.get(Logger));
   if (process.env.NODE_ENV !== 'production') {
     const options = new DocumentBuilder()
