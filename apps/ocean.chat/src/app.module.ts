@@ -5,8 +5,7 @@ import { I18nModule } from '@ocean.chat/i18n';
 import { ModelsModule, MongoModule } from '@ocean.chat/models';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Connection } from 'mongoose';
-import { LoggerModule } from 'nestjs-pino';
-import { PinoLogger } from 'nestjs-pino';
+import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
