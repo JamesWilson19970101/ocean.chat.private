@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { I18nModule } from '@ocean.chat/i18n';
+import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { ModelsModule, MongoModule } from '@ocean.chat/models';
+import { RedisModule } from '@ocean.chat/redis';
+import { SettingsModule } from '@ocean.chat/settings';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Connection } from 'mongoose';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
@@ -15,6 +17,7 @@ import {
 } from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
+import { SettingsController } from './settings/settings.controller';
 
 @Module({
   imports: [
@@ -51,27 +54,51 @@ import { validationSchema } from './config/validation';
         },
       },
     }),
-    MongooseModule.forRootAsync({
+    RedisModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService, logger: PinoLogger) => ({
-        uri: configService.get<string>('database.uri'),
-        dbName: configService.get<string>('database.name'),
-        serverSelectionTimeoutMS: 5000,
-        onConnectionCreate: (connection: Connection) => {
-          connection.on('connected', () => {
-            logger.setContext('database.module');
-            logger.info('Database connected successfully');
-          });
-          return connection;
-        },
+      useFactory: (configService: ConfigService) => ({
+        host: configService.get<string>('redis.host'),
+        port: configService.get<number>('redis.port'),
       }),
-      inject: [ConfigService, PinoLogger],
+      inject: [ConfigService, I18nService],
+    }),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule, I18nModule],
+      useFactory: async (
+        configService: ConfigService,
+        logger: PinoLogger,
+        i18nService: I18nService,
+      ) => {
+        // Ensure i18next is initialized before use it.
+        await i18nService.init();
+        return {
+          uri: configService.get<string>('database.uri'),
+          dbName: configService.get<string>('database.name'),
+          serverSelectionTimeoutMS: 5000,
+          onConnectionCreate: (connection: Connection) => {
+            connection.on('connected', () => {
+              logger.setContext('database.module');
+              logger.info(i18nService.translate('Database_Connected'));
+            });
+            return connection;
+          },
+        };
+      },
+      inject: [ConfigService, PinoLogger, I18nService],
     }),
     ModelsModule,
     // Using MongoModule to register collections for watching
     MongoModule.register(['users', 'settings']),
+    SettingsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, SettingsController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  constructor(
+    // Injecting the logger and i18n service here ensures they are available
+    // within the module context if needed, and properly instantiated.
+    private readonly logger: PinoLogger,
+    private readonly i18nService: I18nService,
+  ) {}
+}

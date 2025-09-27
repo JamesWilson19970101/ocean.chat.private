@@ -7,6 +7,8 @@ import translate from './translate';
 
 @Injectable()
 export class I18nService implements OnModuleInit {
+  private isInitialized = false;
+
   constructor(
     @InjectPinoLogger('i18n.module')
     private readonly logger: PinoLogger,
@@ -17,6 +19,10 @@ export class I18nService implements OnModuleInit {
   }
 
   async init() {
+    if (this.isInitialized) {
+      return;
+    }
+
     try {
       await i18next.init({
         lng: 'zh', // default language
@@ -24,9 +30,10 @@ export class I18nService implements OnModuleInit {
         resources: {
           ...translate,
         },
+        returnObjects: false, // Ensure t() returns a string even if key not found
         interpolation: { escapeValue: false },
       });
-      this.logger.info('I18nService initialized successfully.');
+      this.isInitialized = true;
     } catch (error) {
       this.logger.error('Failed to initialize I18nService.', error);
       throw error; // Re-throw the error to prevent the application from starting with a broken i18n setup}
