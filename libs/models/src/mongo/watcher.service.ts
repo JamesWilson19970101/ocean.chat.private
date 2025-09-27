@@ -34,7 +34,9 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
 
   onModuleInit() {
     try {
-      this.logger.info('Initializing DatabaseWatcher...');
+      this.logger.info(
+        this.i18nService.translate('Initializing_DatabaseWatcher'),
+      );
       const db: Db = this.connection.db as unknown as Db;
       // Use the injected collections. It can be a single string or an array of strings.
       // We ensure it's always an array and remove duplicates.
@@ -44,9 +46,7 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
         : [];
 
       if (collections.length === 0) {
-        this.logger.warn(
-          'No collections configured to be watched. DatabaseWatcher will be idle.',
-        );
+        this.logger.warn(this.i18nService.translate('No_Collections_To_Watch'));
         return;
       }
 
@@ -54,7 +54,7 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         { err: error },
-        'Failed to initialize DatabaseWatcher during onModuleInit.',
+        this.i18nService.translate('DatabaseWatcher_Init_Failed'),
       );
     }
   }
@@ -89,7 +89,10 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
       ); // Use 'updateLookup' to get the full document on updates
 
       watchStream.on('change', (change) => {
-        this.logger.info({ change }, 'Database change detected');
+        this.logger.info(
+          { change },
+          this.i18nService.translate('Database_Change_Detected'),
+        );
         // You can also emit typed events here for other services to consume
         this.emit(
           change.ns.coll,
@@ -100,14 +103,14 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
       watchStream.on('error', (error) => {
         this.logger.error(
           { err: error },
-          'Change stream encountered an error.',
+          this.i18nService.translate('Change_Stream_Error'),
         );
         // Here you might want to implement a reconnection logic
       });
     } catch (error) {
       this.logger.error(
         { err: error },
-        'Failed to start the change stream. Please ensure MongoDB is running as a replica set.',
+        this.i18nService.translate('Change_Stream_Start_Failed'),
       );
     }
   }
