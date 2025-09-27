@@ -109,6 +109,7 @@
       "<rootDir>/apps/"
     ],
     "moduleNameMapper": {
+      "^@ocean.chat/redis(|/.*)$": "<rootDir>/libs/redis/src/$1",
       "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
       "^@ocean.chat/models(|/.*)$": "<rootDir>/libs/models/src/$1",
       "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1"
