@@ -21,7 +21,6 @@ import { validationSchema } from './config/validation';
     I18nModule.forRoot(),
     ConfigModule.forRoot({
       load: [databaseConfiguration, redisConfiguration],
-      isGlobal: true,
       validationSchema,
       envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
     }),
