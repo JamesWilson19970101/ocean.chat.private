@@ -8,4 +8,13 @@ async function bootstrap() {
   app.useLogger(app.get(Logger));
   await app.listen(process.env.port ?? 3000);
 }
-bootstrap();
+bootstrap().catch((error) => {
+  if (error instanceof Error) {
+    console.error(
+      `Failed to bootstrap application: ${error.message}`,
+      error.stack,
+    );
+  } else {
+    console.error('Failed to bootstrap application with a non-error:', error);
+  }
+});

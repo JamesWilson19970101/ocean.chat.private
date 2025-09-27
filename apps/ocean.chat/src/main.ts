@@ -21,5 +21,12 @@ async function bootstrap() {
   await app.listen(process.env.OCEAN_CHAT_PORT ?? 3000);
 }
 bootstrap().catch((error) => {
-  console.error('Failed to bootstrap application:', error);
+  if (error instanceof Error) {
+    console.error(
+      `Failed to bootstrap application: ${error.message}`,
+      error.stack,
+    );
+  } else {
+    console.error('Failed to bootstrap application with a non-error:', error);
+  }
 });

@@ -23,4 +23,13 @@ async function bootstrap() {
 
   await app.listen(process.env.ACCOUNTS_PORT ?? 3001);
 }
-bootstrap().catch(console.error);
+bootstrap().catch((error) => {
+  if (error instanceof Error) {
+    console.error(
+      `Failed to bootstrap application: ${error.message}`,
+      error.stack,
+    );
+  } else {
+    console.error('Failed to bootstrap application with a non-error:', error);
+  }
+});

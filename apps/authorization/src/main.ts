@@ -11,5 +11,12 @@ async function bootstrap() {
   await app.listen(process.env.AUTHORIZATION_PORT ?? 3002);
 }
 bootstrap().catch((error) => {
-  console.error('Failed to bootstrap application:', error);
+  if (error instanceof Error) {
+    console.error(
+      `Failed to bootstrap application: ${error.message}`,
+      error.stack,
+    );
+  } else {
+    console.error('Failed to bootstrap application with a non-error:', error);
+  }
 });
