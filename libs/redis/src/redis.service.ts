@@ -60,6 +60,23 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Atomically sets a key if it does not exist, with a specified TTL.
+   * This is the primitive for implementing a distributed lock.
+   * @param key The key to set.
+   * @param value The value to set.
+   * @param ttl The time to live in seconds.
+   * @returns 'OK' if the key was set, or null if the key already existed.
+   */
+  async setnx(
+    key: RedisKey,
+    value: RedisValue,
+    ttl: number,
+  ): Promise<'OK' | null> {
+    // Use 'EX' for seconds and 'NX' to set only if the key does not exist.
+    return this.redisClient.set(key, value, 'EX', ttl, 'NX');
+  }
+
+  /**
    * Delete a key from redis.
    * @param key The key or keys to delete.
    * @returns The number of keys that were removed.
