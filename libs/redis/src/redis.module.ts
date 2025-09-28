@@ -2,12 +2,10 @@ import { DynamicModule, Module } from '@nestjs/common';
 
 import { RedisModuleAsyncOptions, RedisModuleOptions } from './redis.interface';
 import { createAsyncProviders, createProviders } from './redis.provider';
+import { REDIS_CLIENT } from './redis.provider';
 import { RedisService } from './redis.service';
 
-@Module({
-  providers: [RedisService],
-  exports: [RedisService],
-})
+@Module({})
 export class RedisModule {
   /**
    * Register a redis module.
@@ -18,8 +16,9 @@ export class RedisModule {
     const providers = createProviders(options);
     return {
       module: RedisModule,
-      providers: [...providers],
-      exports: [...providers],
+      global: true,
+      providers: [...providers, RedisService],
+      exports: [RedisService, REDIS_CLIENT],
     };
   }
 
@@ -28,8 +27,9 @@ export class RedisModule {
     return {
       module: RedisModule,
       imports: options.imports,
-      providers: [...providers],
-      exports: [...providers],
+      global: true,
+      providers: [...providers, RedisService],
+      exports: [RedisService, REDIS_CLIENT],
     };
   }
 }
