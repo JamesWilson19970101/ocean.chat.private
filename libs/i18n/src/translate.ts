@@ -21,6 +21,26 @@ export default {
       Change_Stream_Error: 'Change stream encountered an error.',
       Change_Stream_Start_Failed:
         'Failed to start the change stream. Please ensure MongoDB is running as a replica set.',
+      Redis_Breaker_Opened: 'Redis circuit breaker has opened.',
+      Redis_Breaker_Closed: 'Redis circuit breaker has closed.',
+      Redis_Breaker_HalfOpen:
+        'Redis circuit breaker is half-open, attempting recovery in {{resetTimeout}}ms.',
+      Cache_Hit_For_Setting: 'Cache hit for setting.',
+      Cache_Get_Failed_Fallback:
+        'Failed to get setting from Redis. Falling back to database.',
+      Lock_Acquire_Failed:
+        'Failed to acquire Redis lock due to breaker/error. Proceeding without lock.',
+      Cache_Miss_Lock_Acquired: 'Cache miss, lock acquired. Fetching from DB.',
+      Cache_Set_Failed_After_DB:
+        'Failed to set cache after DB fetch. Operation still successful.',
+      DB_Fetch_Or_Cache_Set_Error:
+        'Error fetching from DB or setting cache while holding lock.',
+      Lock_Release_Failed:
+        'Failed to release Redis lock. It will expire automatically.',
+      Cache_Miss_Lock_Not_Acquired:
+        'Cache miss, lock not acquired. Waiting and retrying from cache.',
+      Cache_Invalidate_Failed:
+        'Failed to invalidate setting cache in Redis after DB update.',
     },
   },
   zh: {
@@ -43,6 +63,21 @@ export default {
       Change_Stream_Error: 'change stream 遇到错误。',
       Change_Stream_Start_Failed:
         '无法启动change stream。请确保 MongoDB 正在作为副本集运行。',
+      Redis_Breaker_Opened: 'Redis 断路器已打开。',
+      Redis_Breaker_Closed: 'Redis 断路器已关闭。',
+      Redis_Breaker_HalfOpen:
+        'Redis 断路器处于半开状态，将在 {{resetTimeout}} 毫秒后尝试恢复。',
+      Cache_Hit_For_Setting: '设置项缓存命中。',
+      Cache_Get_Failed_Fallback: '从 Redis 获取设置失败，回退到数据库。',
+      Lock_Acquire_Failed:
+        '因断路器或错误导致获取 Redis 锁失败，无锁继续执行。',
+      Cache_Miss_Lock_Acquired: '缓存未命中，已获取锁，正在从数据库获取。',
+      Cache_Set_Failed_After_DB: '数据库获取后设置缓存失败，但操作仍成功。',
+      DB_Fetch_Or_Cache_Set_Error: '持有锁期间，从数据库获取或设置缓存时出错。',
+      Lock_Release_Failed: '释放 Redis 锁失败，锁将自动过期。',
+      Cache_Miss_Lock_Not_Acquired:
+        '缓存未命中，未获取到锁，等待后从缓存重试。',
+      Cache_Invalidate_Failed: '数据库更新后，使 Redis 缓存失效失败。',
     },
   },
 };

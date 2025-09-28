@@ -2418,6 +2418,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/opossum@npm:^8.1.9":
+  version: 8.1.9
+  resolution: "@types/opossum@npm:8.1.9"
+  dependencies:
+    "@types/node": "npm:*"
+  checksum: 10c0/dd79ea42e76b19ec8682e991ee47bf423f7ceadf7c2063b5bd63a6ddbfaa974fb3161f3c994b1e7c152448aca4d4b7cb97771a2de3951415a9eb230aa512bc47
+  languageName: node
+  linkType: hard
+
 "@types/qs@npm:*":
   version: 6.9.18
   resolution: "@types/qs@npm:6.9.18"
@@ -7481,6 +7490,7 @@ __metadata:
     "@types/hbs": "npm:^4"
     "@types/jest": "npm:^29.5.14"
     "@types/node": "npm:^22.13.10"
+    "@types/opossum": "npm:^8.1.9"
     "@types/supertest": "npm:^6.0.2"
     "@types/ws": "npm:8.18.1"
     argon2: "npm:^0.41.1"
@@ -7502,6 +7512,7 @@ __metadata:
     mongoose: "npm:^8.13.1"
     nats: "npm:^2.29.3"
     nestjs-pino: "npm:^4.3.1"
+    opossum: "npm:^9.0.0"
     pino: "npm:^9.6.0"
     pino-http: "npm:^10.4.0"
     pino-pretty: "npm:^13.0.0"
@@ -7554,6 +7565,13 @@ __metadata:
   dependencies:
     mimic-fn: "npm:^2.1.0"
   checksum: 10c0/ffcef6fbb2692c3c40749f31ea2e22677a876daea92959b8a80b521d95cca7a668c884d8b2045d1d8ee7d56796aa405c405462af112a1477594cc63531baeb8f
+  languageName: node
+  linkType: hard
+
+"opossum@npm:^9.0.0":
+  version: 9.0.0
+  resolution: "opossum@npm:9.0.0"
+  checksum: 10c0/14d267a1d5a9490c46215b4341582e45e947078e21c9de4c2e43f61503809da0e42b267aac2820412e7cb5cdd5f998bda2dbab84d27cf1e8f23c55e43569abf2
   languageName: node
   linkType: hard
 
