@@ -2,12 +2,23 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
 /**
+ * @enum {string}
+ * @description Defines the possible online statuses for a user.
+ */
+export enum UserStatus {
+  ONLINE = 'online',
+  AWAY = 'away',
+  BUSY = 'busy',
+  OFFLINE = 'offline',
+}
+
+/**
  * @class User
  * Represents a user entity in the system.
  * This entity is used to store user-related information.
  * @extends Document
  */
-@Schema()
+@Schema({ timestamps: true })
 export class User extends Document {
   /**
    * The name of the user. Users can customize the name.
@@ -20,6 +31,42 @@ export class User extends Document {
   @Prop({ type: String, required: true, unique: true })
   username: string;
 
+  /**
+   * The type of user, e.g., 'user', 'bot', 'guest'.
+   * @default 'user'
+   */
+  @Prop({ type: String, required: true, default: 'user' })
+  type: string;
+
+  /**
+   * The active status of the user. A disabled user cannot log in.
+   * @default true
+   */
+  @Prop({ type: Boolean, default: true })
+  active: boolean;
+
+  /**
+   * The current online status of the user.
+   * @default 'offline'
+   */
+  @Prop({ type: String, enum: UserStatus, default: UserStatus.OFFLINE })
+  status: UserStatus;
+
+  /**
+   * The roles assigned to the user.
+   * @default ['user']
+   */
+  @Prop({ type: [String], default: ['user'] })
+  roles: string[];
+
+  /**
+   * The email addresses associated with the user.
+   * Each email object contains:
+   * - address: The email address (must be unique).
+   * - verified: A boolean indicating if the email has been verified.
+   * The array allows for multiple email addresses per user.
+   * The 'sparse' option allows multiple documents to have a null value for 'address'.
+   */
   @Prop({
     type: [
       {
@@ -28,12 +75,8 @@ export class User extends Document {
         _id: false, // Do not create a separate _id for sub-documents in the array
       },
     ],
-    default: [], // Default to an empty array
   })
-  emails: {
-    address: string;
-    verified: boolean;
-  }[];
+  emails?: { address: string; verified: boolean }[];
 
   /**
    * An object containing the user's authentication credentials.<br />
@@ -43,13 +86,19 @@ export class User extends Document {
    */
   @Prop({
     type: {
-      passwordHash: { type: String, required: true },
+      passwordHash: { type: String, required: true, select: false },
     },
     _id: false,
   })
   credentials: {
     passwordHash: string;
   };
+
+  /**
+   * The timestamp of the user's last login.
+   */
+  @Prop({ type: Date })
+  lastLogin?: Date;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
