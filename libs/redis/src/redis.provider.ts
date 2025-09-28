@@ -47,7 +47,6 @@ export const createAsyncProviders = (options: RedisModuleAsyncOptions) => {
           throw new Error('useFactory is required');
         }
         logger.setContext('redis.provider');
-        await i18nService.init(); // Ensure i18n is ready
         const redisOptions: RedisOptions = await options.useFactory(...args);
         const client = new Redis(redisOptions);
 

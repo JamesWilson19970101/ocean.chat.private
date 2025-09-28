@@ -60,17 +60,15 @@ import { SettingsController } from './settings/settings.controller';
         host: configService.get<string>('redis.host'),
         port: configService.get<number>('redis.port'),
       }),
-      inject: [ConfigService, I18nService],
+      inject: [ConfigService],
     }),
     MongooseModule.forRootAsync({
-      imports: [ConfigModule, I18nModule],
-      useFactory: async (
+      imports: [ConfigModule],
+      useFactory: (
         configService: ConfigService,
         logger: PinoLogger,
         i18nService: I18nService,
       ) => {
-        // Ensure i18next is initialized before use it.
-        await i18nService.init();
         return {
           uri: configService.get<string>('database.uri'),
           dbName: configService.get<string>('database.name'),
