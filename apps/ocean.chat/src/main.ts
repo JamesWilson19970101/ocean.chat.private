@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
@@ -20,6 +21,14 @@ async function bootstrap() {
     const document = SwaggerModule.createDocument(app, options);
     SwaggerModule.setup('api', app, document);
   }
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Strips away properties that do not have any decorators
+      forbidNonWhitelisted: true, // Throw an error if non-whitelisted properties are present
+      transform: true, // Automatically transform payloads to be objects typed according to their DTO classes
+      transformOptions: { enableImplicitConversion: true }, // Enable implicit type conversion, if the DTO property is a number, it will convert the string to a number
+    }),
+  );
   await app.listen(process.env.OCEAN_CHAT_PORT ?? 3000);
 }
 bootstrap().catch((error) => {
