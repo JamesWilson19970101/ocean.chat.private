@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document } from 'mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
 
 /**
  * @enum {string}
@@ -100,5 +100,26 @@ export class User extends Document {
   @Prop({ type: Date })
   lastLogin?: Date;
 }
+
+/**
+ * @class UserIdentifier
+ * @description A lean, identifiable representation of a user, used for message authors, mentions, etc.
+ */
+@Schema({ _id: false })
+export class UserIdentifier {
+  /** The unique ID of the user. */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  _id: User | MongooseSchema.Types.ObjectId;
+
+  /** The unique username of the user. */
+  @Prop({ required: true })
+  username: string;
+
+  /** The display name of the user. */
+  @Prop()
+  name?: string;
+}
+export const UserIdentifierSchema =
+  SchemaFactory.createForClass(UserIdentifier);
 
 export const UserSchema = SchemaFactory.createForClass(User);
