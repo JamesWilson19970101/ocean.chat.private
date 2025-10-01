@@ -17,7 +17,7 @@ export class SettingsRepository extends BaseRepository<Setting> {
    * @returns The setting document that matches the provided key, or null if no such document exists.
    */
   async findByKey(key: string): Promise<Setting | null> {
-    return this.model.findOne({ key }).exec();
+    return this.model.findOne({ _id: key }).exec();
   }
 
   /**
@@ -28,7 +28,7 @@ export class SettingsRepository extends BaseRepository<Setting> {
    */
   async upsert(key: string, value: Setting['value']): Promise<Setting> {
     return this.model
-      .findOneAndUpdate({ key }, { value }, { upsert: true, new: true })
+      .findOneAndUpdate({ _id: key }, { value }, { upsert: true, new: true })
       .exec();
   }
 }
