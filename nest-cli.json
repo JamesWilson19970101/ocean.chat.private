@@ -62,6 +62,24 @@
         "tsConfigPath": "apps/ocean.chat/tsconfig.app.json"
       }
     },
+    "oceanchat-auth": {
+      "type": "application",
+      "root": "apps/oceanchat-auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-auth/tsconfig.app.json"
+      }
+    },
+    "oceanchat-gateway": {
+      "type": "application",
+      "root": "apps/oceanchat-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-gateway/tsconfig.app.json"
+      }
+    },
     "redis": {
       "type": "library",
       "root": "libs/redis",
