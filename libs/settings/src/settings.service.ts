@@ -18,7 +18,8 @@ export class SettingsService {
   constructor(
     private readonly settingsRepository: SettingsRepository,
     private readonly redisService: RedisService,
-    @InjectPinoLogger('settings.service') private readonly logger: PinoLogger,
+    @InjectPinoLogger('lib.settings.settings.service')
+    private readonly logger: PinoLogger,
     private readonly i18nService: I18nService,
   ) {
     // Configure the circuit breaker for Redis
