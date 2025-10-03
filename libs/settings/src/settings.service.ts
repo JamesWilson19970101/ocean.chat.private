@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import type { Setting } from '@ocean.chat/models';
 import { SettingsRepository } from '@ocean.chat/models';
@@ -6,8 +6,10 @@ import { RedisService } from '@ocean.chat/redis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as CircuitBreaker from 'opossum';
 
+import { DefaultSetting, defaultSettings } from './default-settings';
+
 @Injectable()
-export class SettingsService {
+export class SettingsService implements OnModuleInit {
   private readonly CACHE_KEY_PREFIX = 'setting:';
   // Cache TTLs(time to live) in seconds
   private readonly CACHE_TTL_SECONDS = 3600; // 1 hour
@@ -53,10 +55,53 @@ export class SettingsService {
     );
   }
 
+  /**
+   * Initializes default settings when the module is loaded by iterating
+   * through the `defaultSettings` array.
+   * This ensures that essential settings are present in the database on first startup.
+   * It also pre-warms the cache by loading all settings from the database into Redis.
+   */
+  async onModuleInit() {
+    try {
+      this.logger.info('Initializing default settings...');
+      for (const setting of defaultSettings) {
+        await this.createDefaultSetting(setting);
+      }
+      this.logger.info('Default settings initialization complete.');
+
+      this.logger.info('Pre-warming settings cache from database...');
+      await this._loadAllSettingsToCache();
+      this.logger.info('Settings cache pre-warming complete.');
+    } catch (error) {
+      this.logger.error(
+        { err: error },
+        'Failed to initialize settings during onModuleInit.',
+      );
+    }
+  }
+
+  /**
+   * Creates a default setting if it does not already exist in the database.
+   * @param setting The default setting to create if it does not already exist.
+   */
+  private async createDefaultSetting(setting: DefaultSetting) {
+    await this.settingsRepository.createIfNotExists(setting);
+  }
+
+  /**
+   *  get setting prefixed cache key
+   * @param key  setting key
+   * @returns the cache key with prefix
+   */
   private getCacheKey(key: string): string {
     return `${this.CACHE_KEY_PREFIX}${key}`;
   }
 
+  /**
+   * get setting lock key
+   * @param key setting key
+   * @returns the lock key for the setting
+   */
   private getLockKey(key: string): string {
     return `${this.getCacheKey(key)}:lock`;
   }
@@ -189,5 +234,38 @@ export class SettingsService {
     });
 
     return updatedSetting;
+  }
+
+  private async _loadAllSettingsToCache(): Promise<void> {
+    const allSettings = await this.settingsRepository.find({});
+    if (!allSettings || allSettings.length === 0) {
+      this.logger.info('No settings found in database to cache.');
+      return;
+    }
+
+    const msetPayload: (string | number | Buffer)[] = [];
+    const keysToSetTTL: string[] = [];
+
+    for (const setting of allSettings) {
+      const cacheKey = this.getCacheKey(setting._id);
+      // Ensure value is a string for mset. Objects/arrays are stringified.
+      const valueToCache =
+        typeof setting.value === 'object' && setting.value !== null
+          ? JSON.stringify(setting.value)
+          : String(setting.value);
+
+      msetPayload.push(cacheKey, valueToCache);
+      keysToSetTTL.push(cacheKey);
+    }
+
+    // Use mset for bulk insertion, wrapped in the circuit breaker.
+    await this.redisBreaker.fire('mset', msetPayload);
+
+    // Set TTL for each key individually after successful mset.
+    const ttlPromises = keysToSetTTL.map((key) => {
+      const ttl = this.CACHE_TTL_SECONDS + Math.floor(Math.random() * 300);
+      return this.redisBreaker.fire('expire', key, ttl);
+    });
+    await Promise.all(ttlPromises);
   }
 }
