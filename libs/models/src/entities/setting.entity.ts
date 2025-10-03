@@ -46,6 +46,13 @@ export type SettingValue =
 @Schema({ timestamps: true })
 export class Setting extends Document {
   /**
+   * The unique identifier for the setting, which is a human-readable string.
+   * This is used as the primary key.
+   * @example 'Accounts_Username_MinLength'
+   */
+  @Prop({ type: String, required: true })
+  declare _id: string;
+  /**
    * The type of the setting, which determines its value format and UI rendering.
    * @example 'string', 'boolean', 'int'
    */

@@ -31,4 +31,21 @@ export class SettingsRepository extends BaseRepository<Setting> {
       .findOneAndUpdate({ _id: key }, { value }, { upsert: true, new: true })
       .exec();
   }
+
+  /**
+   * Creates a setting document if one with the same _id does not already exist.
+   * If a document with the same _id exists, it returns the existing document without making any changes.
+   * This is useful for idempotent initialization of default settings.
+   * @param setting The setting data to create.
+   * @returns The created or existing setting document.
+   */
+  async createIfNotExists(setting: Partial<Setting>): Promise<Setting> {
+    return this.model
+      .findOneAndUpdate(
+        { _id: setting._id },
+        { $setOnInsert: setting },
+        { upsert: true, new: true },
+      )
+      .exec();
+  }
 }
