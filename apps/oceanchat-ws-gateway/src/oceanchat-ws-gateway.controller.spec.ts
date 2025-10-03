@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { OceanchatWsGatewayController } from './oceanchat-ws-gateway.controller';
 import { OceanchatWsGatewayService } from './oceanchat-ws-gateway.service';
 
@@ -11,7 +12,9 @@ describe('OceanchatWsGatewayController', () => {
       providers: [OceanchatWsGatewayService],
     }).compile();
 
-    oceanchatWsGatewayController = app.get<OceanchatWsGatewayController>(OceanchatWsGatewayController);
+    oceanchatWsGatewayController = app.get<OceanchatWsGatewayController>(
+      OceanchatWsGatewayController,
+    );
   });
 
   describe('root', () => {
