@@ -13,6 +13,44 @@ export enum UserStatus {
 }
 
 /**
+ * @enum {string}
+ * @description Defines the possible authentication providers for a user.
+ */
+export enum AuthProvider {
+  LOCAL = 'local',
+  // TODO： Implement third-party & email authentication providers
+  GOOGLE = 'google',
+  WECHAT = 'wechat',
+  PHONE = 'phone',
+  EMAIL = 'email',
+}
+
+@Schema({ _id: false })
+class AuthProviders {
+  /**
+   * The authentication provider used by the user.
+   * This field is required and must be one of the values defined in the AuthProvider enum.
+   */
+  @Prop({ type: String, enum: AuthProvider, required: true })
+  provider: AuthProvider;
+
+  /**
+   * The unique identifier provided by the authentication provider.
+   */
+  @Prop({ type: String, required: true })
+  providerId: string; // e.g., username for 'local', Google's ID for 'google'
+
+  /**
+   * `passwordHash` is the hashed password of the user.
+   * It is used for authentication purposes and is not selected by default in queries for security reasons.
+   */
+  @Prop({ type: String, select: false })
+  passwordHash?: string;
+}
+
+const AuthProvidersSchema = SchemaFactory.createForClass(AuthProviders);
+
+/**
  * @class User
  * Represents a user entity in the system.
  * This entity is used to store user-related information.
@@ -79,20 +117,10 @@ export class User extends Document {
   emails?: { address: string; verified: boolean }[];
 
   /**
-   * An object containing the user's authentication credentials.<br />
-   * <ul>
-   *   <li><b>credentials.passwordHash:</b> - The hashed password of the user.</li>
-   * </ul>
+   * The authentication providers associated with the user.
    */
-  @Prop({
-    type: {
-      passwordHash: { type: String, required: true, select: false },
-    },
-    _id: false,
-  })
-  credentials: {
-    passwordHash: string;
-  };
+  @Prop({ type: [AuthProvidersSchema], default: [] })
+  providers: AuthProviders[];
 
   /**
    * The timestamp of the user's last login.
