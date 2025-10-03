@@ -17,6 +17,10 @@ export abstract class BaseRepository<T extends Document>
     return this.model.find(filter).exec();
   }
 
+  async findOne(filter: FilterQuery<T>): Promise<T | null> {
+    return this.model.findOne(filter).exec();
+  }
+
   async findById(id: any): Promise<Partial<T> | null> {
     return this.model.findById(id).exec();
   }
