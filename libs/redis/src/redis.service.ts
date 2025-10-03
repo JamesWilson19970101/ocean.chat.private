@@ -99,4 +99,25 @@ export class RedisService implements OnModuleDestroy {
   async hset(key: RedisKey, field: string, value: RedisValue): Promise<number> {
     return this.redisClient.hset(key, field, value);
   }
+
+  /**
+   * Sets multiple key-value pairs in Redis.
+   * @param args An array of key-value pairs, e.g., ['key1', 'value1', 'key2', 'value2'].
+   * @returns 'OK' if all keys were set successfully.
+   */
+  async mset(args: (RedisKey | RedisValue)[]): Promise<'OK'> {
+    // ioredis's mset expects arguments as (key1, value1, key2, value2, ...)
+    // The spread operator (...) unpacks the array into individual arguments.
+    return this.redisClient.mset(...args);
+  }
+
+  /**
+   * Sets a timeout on key. After the timeout has expired, the key will automatically be deleted.
+   * @param key The key to set the expiration on.
+   * @param seconds The time to live in seconds.
+   * @returns 1 if the timeout was set, 0 if the key does not exist or the timeout could not be set.
+   */
+  async expire(key: RedisKey, seconds: number): Promise<number> {
+    return this.redisClient.expire(key, seconds);
+  }
 }
