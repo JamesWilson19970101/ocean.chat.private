@@ -41,6 +41,22 @@ export default {
         'Cache miss, lock not acquired. Waiting and retrying from cache.',
       Cache_Invalidate_Failed:
         'Failed to invalidate setting cache in Redis after DB update.',
+      USERNAME_ALREADY_EXISTS: 'Username already exists',
+      USER_CREATION_FAILED: 'Failed to create user.',
+      USERNAME_TOO_SHORT:
+        'Username must be at least {{minLength}} characters long.',
+      USERNAME_TOO_LONG:
+        'Username must be no more than {{maxLength}} characters long.',
+      USERNAME_INVALID_CHARACTERS:
+        'Username can only contain letters, numbers, underscores, dots, and hyphens.',
+      PASSWORD_TOO_SHORT: 'Password is too short.',
+      PASSWORD_NO_DIGIT: 'Password must contain at least one digit.',
+      PASSWORD_NO_LOWERCASE:
+        'Password must contain at least one lowercase letter.',
+      PASSWORD_NO_UPPERCASE:
+        'Password must contain at least one uppercase letter.',
+      PASSWORD_NO_SPECIAL_CHAR:
+        'Password must contain at least one special character.',
     },
   },
   zh: {
@@ -78,6 +94,17 @@ export default {
       Cache_Miss_Lock_Not_Acquired:
         '缓存未命中，未获取到锁，等待后从缓存重试。',
       Cache_Invalidate_Failed: '数据库更新后，使 Redis 缓存失效失败。',
+      USERNAME_ALREADY_EXISTS: '用户名已存在',
+      USER_CREATION_FAILED: '创建用户失败。',
+      USERNAME_TOO_SHORT: '用户名至少需要 {{minLength}} 个字符。',
+      USERNAME_TOO_LONG: '用户名最多只能有 {{maxLength}} 个字符。',
+      USERNAME_INVALID_CHARACTERS:
+        '用户名只能包含字母、数字、下划线、点和连字符。',
+      PASSWORD_TOO_SHORT: '密码太短。',
+      PASSWORD_NO_DIGIT: '密码必须包含至少一位数字。',
+      PASSWORD_NO_LOWERCASE: '密码必须包含至少一个小写字母。',
+      PASSWORD_NO_UPPERCASE: '密码必须包含至少一个大写字母。',
+      PASSWORD_NO_SPECIAL_CHAR: '密码必须包含至少一个特殊字符。',
     },
   },
 };
