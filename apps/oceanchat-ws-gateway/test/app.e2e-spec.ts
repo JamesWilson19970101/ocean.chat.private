@@ -1,15 +1,14 @@
-import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
 import * as request from 'supertest';
+import { OceanchatWsGatewayModule } from './../src/oceanchat-ws-gateway.module';
 
-import { OceanchatGatewayModule } from './../src/oceanchat-gateway.module';
-
-describe('OceanchatGatewayController (e2e)', () => {
+describe('OceanchatWsGatewayController (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [OceanchatGatewayModule],
+      imports: [OceanchatWsGatewayModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();

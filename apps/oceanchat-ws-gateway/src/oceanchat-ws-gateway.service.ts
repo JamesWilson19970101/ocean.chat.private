@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class OceanchatGatewayService {
+export class OceanchatWsGatewayService {
   getHello(): string {
     return 'Hello World!';
   }
