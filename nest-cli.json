@@ -35,6 +35,15 @@
         "tsConfigPath": "apps/authorization/tsconfig.app.json"
       }
     },
+    "common-exceptions": {
+      "type": "library",
+      "root": "libs/common-exceptions",
+      "entryFile": "index",
+      "sourceRoot": "libs/common-exceptions/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/common-exceptions/tsconfig.lib.json"
+      }
+    },
     "i18n": {
       "type": "library",
       "root": "libs/i18n",
