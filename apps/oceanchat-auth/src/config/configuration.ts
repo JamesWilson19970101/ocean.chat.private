@@ -3,7 +3,7 @@ import { registerAs } from '@nestjs/config';
 export const databaseConfiguration = registerAs('database', () => ({
   uri: process.env.DATABASE_URI || 'mongodb://localhost:27017',
   name: process.env.DATABASE_NAME || 'oceanchat_development',
-  fullDocument: process.env.DATABASE_FULL_DOCUMENT || 'updateLookup',
+  fullDocument: process.env.DATABASE_FULL_DOCUMENT || 'updateLookup', // after update, return the full modified document rather than the original. Default is 'default' (equivalent to 'whenAvailable'), just inlude the change fields.
 }));
 
 export const redisConfiguration = registerAs('redis', () => ({
