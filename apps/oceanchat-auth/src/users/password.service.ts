@@ -19,11 +19,12 @@ export class PasswordService {
 
   /**
    * Verifies if a plaintext password matches a given hash.
-   * @param hash - The hashed password stored in the database.
    * @param plain - The plaintext password provided by the user.
+   * @param hash - The hashed password stored in the database.
+   
    * @returns A promise that resolves to `true` if the passwords match, otherwise `false`.
    */
-  async verify(hash: string, plain: string): Promise<boolean> {
+  async verify(plain: string, hash: string): Promise<boolean> {
     return argon2.verify(hash, plain);
   }
 }
