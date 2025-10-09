@@ -42,6 +42,11 @@ export abstract class BaseRepository<T extends Document>
     return result.deletedCount > 0;
   }
 
+  async deleteMany(filter: FilterQuery<T>): Promise<number> {
+    const result = await this.model.deleteMany(filter).exec();
+    return result.deletedCount;
+  }
+
   /**
    * This method retrieves the name of the collection that the model is associated with.
    * @returns The name of the collection associated with the model.

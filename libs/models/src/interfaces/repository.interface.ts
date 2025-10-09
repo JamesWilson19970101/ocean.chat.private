@@ -9,4 +9,6 @@ export interface IRepository<T> {
     entity: UpdateQuery<Partial<T>>,
   ): Promise<Partial<T> | null>;
   delete(id: string): Promise<boolean>;
+  deleteMany(filter: FilterQuery<T>): Promise<number>;
+  getCollectionName(): string;
 }
