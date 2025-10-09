@@ -17,4 +17,8 @@ export const validationSchema = Joi.object({
     'number.base': 'REDIS_PORT must be a number',
     'any.required': 'REDIS_PORT is required',
   }),
+  REDIS_DB: Joi.number().required().messages({
+    'number.base': 'REDIS_DB must be a number',
+    'any.required': 'REDIS_DB is required',
+  }),
 });

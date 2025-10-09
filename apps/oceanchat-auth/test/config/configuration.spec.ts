@@ -46,14 +46,15 @@ describe('Test Configuration', () => {
     it('should return values from environment variables', () => {
       process.env.REDIS_HOST = 'env_host';
       process.env.REDIS_PORT = '1234';
+      process.env.REDIS_DB = '15';
 
       const config = redisConfiguration();
-      expect(config).toEqual({ host: 'env_host', port: 1234 });
+      expect(config).toEqual({ host: 'env_host', port: 1234, db: 15 });
     });
 
     it('should return default values and parse port to number', () => {
       const config = redisConfiguration();
-      expect(config).toEqual({ host: '127.0.0.1', port: 6379 });
+      expect(config).toEqual({ host: '127.0.0.1', port: 6379, db: 2 });
     });
   });
 

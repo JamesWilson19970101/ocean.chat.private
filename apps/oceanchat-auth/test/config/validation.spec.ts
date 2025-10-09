@@ -5,10 +5,11 @@ describe('Config Validation Schema', () => {
 
   beforeEach(() => {
     validConfig = {
-      DATABASE_URI: 'mongodb://localhost:27017/test',
+      DATABASE_URI: 'mongodb://localhost:27017',
       DATABASE_NAME: 'oceanchat_test',
       REDIS_HOST: '127.0.0.1',
       REDIS_PORT: 6379,
+      REDIS_DB: 15,
       JWT_SECRET: 'a-very-secret-and-long-key-for-testing',
     };
   });
@@ -29,6 +30,7 @@ describe('Config Validation Schema', () => {
     ['DATABASE_NAME', 'DATABASE_NAME is required'],
     ['REDIS_HOST', 'REDIS_HOST is required'],
     ['REDIS_PORT', 'REDIS_PORT is required'],
+    ['REDIS_DB', 'REDIS_DB is required'],
     ['JWT_SECRET', 'JWT_SECRET is required'],
   ])('should fail if %s is missing', (key, expectedMessage) => {
     delete validConfig[key];

@@ -66,6 +66,7 @@ import { UsersModule } from './users/users.module';
       useFactory: (configService: ConfigService) => ({
         host: configService.get<string>('redis.host'),
         port: configService.get<number>('redis.port'),
+        db: configService.get<number>('redis.db'),
       }),
       inject: [ConfigService],
     }),
