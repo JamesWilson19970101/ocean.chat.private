@@ -34,20 +34,23 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * @param exception the caught exception
    * @param host the arguments host, which provides access to the execution context
    */
-  catch(exception: unknown, host: ArgumentsHost): void {
+  catch(exception: unknown, host: ArgumentsHost): any {
     // Log the exception details for debugging and monitoring
+    // this.logger.error(
+    //   'An exception was caught by AllExceptionsFilter',
+    //   exception,
+    // );
     this.logger.error(
-      'An exception was caught by AllExceptionsFilter:',
-      exception,
+      { err: exception },
+      'An exception was caught by AllExceptionsFilter',
     );
-
     const contextType = host.getType();
 
     // Handle the exception based on the context type
     if (contextType === 'http') {
       this.handleHttpException(exception, host);
     } else if (contextType === 'rpc') {
-      this.handleRpcException(exception, host);
+      return this.handleRpcException(exception, host);
     } else if (contextType === 'ws') {
       this.handleWsException(exception, host);
     } else {

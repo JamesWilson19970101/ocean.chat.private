@@ -13,6 +13,7 @@
     "start:ocean.chat": "NODE_ENV=development nest start ocean.chat --watch",
     "start:authorization": "NODE_ENV=development nest start authorization --watch",
     "start:stream": "NODE_ENV=development nest start stream --watch",
+    "start:oceanchat-auth-for-testing": "NODE_ENV=test nest start oceanchat-auth --watch",
     "start:oceanchat-auth": "NODE_ENV=development nest start oceanchat-auth --watch",
     "start:dev": "concurrently \"yarn start:account\" \"yarn start:ocean.chat\" \"yarn start:authorization\"",
     "start:debug": "nest start --debug --watch",
@@ -23,7 +24,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:app/ocean.chat": "jest --config ./apps/ocean.chat/test/jest-e2e.json",
-    "test:app/oceanchat.auth": "jest --config ./apps/oceanchat-auth/test/jest.config.json",
+    "test:app/oceanchat.auth": "NODE_ENV=test jest --config ./apps/oceanchat-auth/test/jest.config.json",
     "test:app/account": "jest --config ./jest.account.json",
     "test:lib/models": "jest --config ./libs//models/jest.config.json",
     "generatedoc": "typedoc"
