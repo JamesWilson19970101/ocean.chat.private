@@ -3,6 +3,7 @@ import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthGuard } from '@nestjs/passport';
 import { User } from '@ocean.chat/models';
 
+import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import { OceanchatAuthService } from './oceanchat-auth.service';
 
 @Controller()
@@ -16,7 +17,7 @@ export class OceanchatAuthController {
    * @param user - The user object, populated by the LocalStrategy after successful validation.
    * @returns An object containing the access token and user information.
    */
-  @UseGuards(AuthGuard('local'))
+  @UseGuards(LocalAuthGuard)
   @MessagePattern('auth.login')
   async login(@Payload() user: Pick<User, '_id' | 'username'>) {
     return this.oceanchatAuthService.login(user);

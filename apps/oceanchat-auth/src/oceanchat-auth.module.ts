@@ -11,6 +11,7 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { Connection } from 'mongoose';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
+import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import {
   databaseConfiguration,
   redisConfiguration,
@@ -108,6 +109,6 @@ import { UsersModule } from './users/users.module';
     UsersModule,
   ],
   controllers: [OceanchatAuthController],
-  providers: [OceanchatAuthService, LocalStrategy, JwtStrategy],
+  providers: [OceanchatAuthService, LocalStrategy, JwtStrategy, LocalAuthGuard],
 })
 export class OceanchatAuthModule {}
