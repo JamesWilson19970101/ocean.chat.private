@@ -15,6 +15,7 @@ export class RedisModule {
   static register(options: RedisModuleOptions): DynamicModule {
     const providers = createProviders(options);
     return {
+      imports: [],
       module: RedisModule,
       global: true,
       providers: [...providers, RedisService],

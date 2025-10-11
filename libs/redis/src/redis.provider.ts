@@ -12,24 +12,30 @@ export const createProviders = (options: RedisModuleOptions): Provider[] => {
   return [
     {
       provide: REDIS_CLIENT,
-      useFactory: (logger: PinoLogger): RedisClient => {
+      useFactory: (
+        logger: PinoLogger,
+        i18nService: I18nService,
+      ): RedisClient => {
         logger.setContext('redis.provider');
         const client = new Redis(options);
 
         client.on('connect', () => {
-          logger.info('Redis client connected');
+          logger.info(i18nService.translate('Redis_Client_Connected'));
         });
 
         client.on('ready', () => {
-          logger.info('Redis client is ready to use');
+          logger.info(i18nService.translate('Redis_Client_Ready'));
         });
 
         client.on('error', (error) => {
-          logger.error({ err: error }, 'Redis client error');
+          logger.error(
+            { err: error },
+            i18nService.translate('Redis_Client_Error'),
+          );
         });
         return client;
       },
-      inject: [PinoLogger],
+      inject: [PinoLogger, I18nService],
     },
   ];
 };
