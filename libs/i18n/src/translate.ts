@@ -57,6 +57,17 @@ export default {
         'Password must contain at least one uppercase letter.',
       PASSWORD_NO_SPECIAL_CHAR:
         'Password must contain at least one special character.',
+      Cache_Hit: 'Cache hit for key {{key}}.',
+      Initializing_Default_Settings: 'Initializing default settings...',
+      Default_Settings_Initialized: 'Default settings initialized.',
+      Initializing_Settings_Cache: 'Initializing settings cache...',
+      Settings_Cache_Pre_Warming_Completed:
+        'Settings cache pre-warming completed.',
+      Redis_Client_Closing: 'Disconnecting Redis client...',
+      Failed_to_parse_redis_value:
+        'Failed to parse Redis value for key "{{key}}" as JSON. Returning raw string.',
+      Trying_To_Get_Setting_From_DB:
+        'Trying to get setting from DB for key {{key}}',
     },
   },
   zh: {
@@ -105,6 +116,15 @@ export default {
       PASSWORD_NO_LOWERCASE: '密码必须包含至少一个小写字母。',
       PASSWORD_NO_UPPERCASE: '密码必须包含至少一个大写字母。',
       PASSWORD_NO_SPECIAL_CHAR: '密码必须包含至少一个特殊字符。',
+      Cache_Hit: '键 {{key}} 的缓存命中。',
+      Initializing_Default_Settings: '正在初始化默认设置...',
+      Default_Settings_Initialized: '默认设置初始化完成。',
+      Initializing_Settings_Cache: '正在初始化设置缓存...',
+      Settings_Cache_Pre_Warming_Completed: '设置缓存预热完成。',
+      Redis_Client_Closing: '正在断开 Redis 客户端连接...',
+      Failed_to_parse_redis_value:
+        '无法将 Redis 键 "{{key}}" 的值解析为 JSON。返回原始字符串。',
+      Trying_To_Get_Setting_From_DB: '正在尝试从数据库获取键 {{key}} 的设置',
     },
   },
 };
