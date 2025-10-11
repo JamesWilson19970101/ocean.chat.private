@@ -6,6 +6,14 @@ import { Logger } from 'nestjs-pino';
 import { OceanchatAuthModule } from './oceanchat-auth.module';
 
 async function bootstrap() {
+  console.log(`
+   ____   _____ ______          _   _      _____ _    _       _______     _____ __  __ 
+  / __ \\ / ____|  ____|   /\\   | \\ | |    / ____| |  | |   /\\|__   __|   |_   _|  \\/  |
+ | |  | | |    | |__     /  \\  |  \\| |   | |    | |__| |  /  \\  | |        | | | \\  / |
+ | |  | | |    |  __|   / /\\ \\ | . \` |   | |    |  __  | / /\\ \\ | |        | | | |\\/| |
+ | |__| | |____| |____ / ____ \\| |\\  |   | |____| |  | |/ ____ \\| |       _| |_| |  | |
+  \\____/ \\_____|______/_/    \\_\\_| \\_|    \\_____|_|  |_/_/    \\_\\_|      |_____|_|  |_|
+  `);
   // Create a pure microservice that listens on NATS
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     OceanchatAuthModule,
