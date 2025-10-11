@@ -4,7 +4,6 @@ import type { Setting } from '@ocean.chat/models';
 import { SettingsRepository } from '@ocean.chat/models';
 import { RedisService } from '@ocean.chat/redis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import * as CircuitBreaker from 'opossum';
 
 import { DefaultSetting, defaultSettings } from './default-settings';
 
@@ -13,9 +12,7 @@ export class SettingsService implements OnModuleInit {
   private readonly CACHE_KEY_PREFIX = 'setting:';
   // Cache TTLs(time to live) in seconds
   private readonly CACHE_TTL_SECONDS = 3600; // 1 hour
-  private readonly LOCK_TTL_SECONDS = 10; // Lock expires after 10 seconds
   private readonly CACHE_NULL_TTL_SECONDS = 300; // 5 minutes
-  private readonly redisBreaker: CircuitBreaker;
 
   constructor(
     private readonly settingsRepository: SettingsRepository,
@@ -23,37 +20,7 @@ export class SettingsService implements OnModuleInit {
     @InjectPinoLogger('lib.settings.settings.service')
     private readonly logger: PinoLogger,
     private readonly i18nService: I18nService,
-  ) {
-    // Configure the circuit breaker for Redis
-    const options: CircuitBreaker.Options = {
-      timeout: 3000, // If the function does not return in 3 seconds, trigger a failure
-      errorThresholdPercentage: 50, // When 50% of requests fail, open the circuit
-      resetTimeout: 30000, // After 30 seconds in open state, try again (half-open)
-    };
-
-    // We wrap the entire redisService instance.
-    // The action passed to fire() will be the method name we want to call.
-    this.redisBreaker = new CircuitBreaker(
-      (action: keyof RedisService, ...args: any[]) =>
-        (this.redisService[action] as (...a: any[]) => Promise<any>)(...args),
-      options,
-    );
-
-    // Log state changes for observability
-    this.redisBreaker.on('open', () =>
-      this.logger.warn(this.i18nService.translate('Redis_Breaker_Opened')),
-    );
-    this.redisBreaker.on('close', () =>
-      this.logger.info(this.i18nService.translate('Redis_Breaker_Closed')),
-    );
-    this.redisBreaker.on('halfOpen', () =>
-      this.logger.info(
-        this.i18nService.translate('Redis_Breaker_HalfOpen', {
-          resetTimeout: options.resetTimeout,
-        }),
-      ),
-    );
-  }
+  ) {}
 
   /**
    * Initializes default settings when the module is loaded by iterating
