@@ -14,7 +14,7 @@ async function bootstrap() {
       options: {
         servers: [process.env.NATS_URL || 'nats://localhost:4222'],
       },
-      bufferLogs: true,
+      logger: false, // Disable default logger
     },
   );
 
@@ -32,11 +32,6 @@ async function bootstrap() {
 
   // Start the microservice and listen for incoming messages
   await app.listen();
-  app
-    .get(Logger)
-    .log(
-      `Oceanchat-auth microservice is listening on NATS server: ${process.env.NATS_URL || 'nats://localhost:4222'}`,
-    );
 }
 bootstrap().catch((error) => {
   // A basic logger for bootstrap errors, as the main logger might not be available
