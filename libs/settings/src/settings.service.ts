@@ -30,15 +30,23 @@ export class SettingsService implements OnModuleInit {
    */
   async onModuleInit() {
     try {
-      this.logger.info('Initializing default settings...');
+      this.logger.info(
+        this.i18nService.translate('Initializing_Default_Settings'),
+      );
       for (const setting of defaultSettings) {
         await this.createDefaultSetting(setting);
       }
-      this.logger.info('Default settings initialization complete.');
+      this.logger.info(
+        this.i18nService.translate('Default_Settings_Initialized'),
+      );
 
-      this.logger.info('Pre-warming settings cache from database...');
+      this.logger.info(
+        this.i18nService.translate('Initializing_Settings_Cache'),
+      );
       await this._loadAllSettingsToCache();
-      this.logger.info('Settings cache pre-warming complete.');
+      this.logger.info(
+        this.i18nService.translate('Settings_Cache_Pre_Warming_Completed'),
+      );
     } catch (error) {
       this.logger.error(
         { err: error },
@@ -82,99 +90,22 @@ export class SettingsService implements OnModuleInit {
   async getSettingValue(key: string): Promise<Setting['value'] | null> {
     const cacheKey = this.getCacheKey(key);
 
-    try {
-      // 1. Try to get from cache first, wrapped in the circuit breaker
-      const cachedValue = (await this.redisBreaker.fire('get', cacheKey)) as
-        | Setting['value']
-        | null;
-      if (cachedValue) {
-        this.logger.debug(
-          { key },
-          this.i18nService.translate('Cache_Hit_For_Setting'),
-        );
-        return cachedValue;
-      }
-    } catch (error) {
-      this.logger.error(
-        { err: error, key, breakerState: this.redisBreaker.stats },
-        this.i18nService.translate('Cache_Get_Failed_Fallback'),
-      );
-    }
-
-    // 2. Cache miss, try to acquire a distributed lock
-    const lockKey = this.getLockKey(key);
-    let lockAcquired = false;
-    try {
-      // This operation is also wrapped in the breaker
-      const result = await this.redisBreaker.fire(
-        'setnx',
-        lockKey,
-        '1',
-        this.LOCK_TTL_SECONDS,
-      );
-      lockAcquired = result === 'OK';
-    } catch (error) {
-      this.logger.error(
-        { err: error, key, breakerState: this.redisBreaker.stats },
-        this.i18nService.translate('Lock_Acquire_Failed'),
-      );
-      // Fallback: If Redis is down, we can't get a lock.
-      // We proceed as if we got it to ensure the DB is still queried.
-      lockAcquired = true;
-    }
-
-    if (lockAcquired) {
+    const fetcher = async () => {
       this.logger.debug(
         { key },
-        this.i18nService.translate('Cache_Miss_Lock_Acquired'),
+        this.i18nService.translate('Trying_To_Get_Setting_From_DB', { key }),
       );
-      try {
-        // 3. Got the lock, fetch from database
-        const setting = await this.settingsRepository.findByKey(key);
-        const valueToCache = setting ? setting.value : null;
+      const setting = await this.settingsRepository.findByKey(key);
+      return setting ? setting.value : null;
+    };
 
-        // 4. Try to set cache (this will also be protected by the breaker)
-        try {
-          const ttl = setting
-            ? this.CACHE_TTL_SECONDS + Math.floor(Math.random() * 300)
-            : this.CACHE_NULL_TTL_SECONDS;
-          await this.redisBreaker.fire('set', cacheKey, valueToCache, ttl);
-        } catch (error) {
-          this.logger.error(
-            { err: error, key, breakerState: this.redisBreaker.stats },
-            this.i18nService.translate('Cache_Set_Failed_After_DB'),
-          );
-        }
-        return valueToCache;
-      } catch (error) {
-        this.logger.error(
-          { err: error, key },
-          this.i18nService.translate('DB_Fetch_Or_Cache_Set_Error'),
-        );
-        throw error;
-      } finally {
-        // 5. Release the lock (gracefully handle failure)
-        try {
-          // Don't wait for this if the breaker is open, it will fail anyway
-          if (this.redisBreaker.closed) {
-            await this.redisBreaker.fire('del', lockKey);
-          }
-        } catch (error) {
-          this.logger.error(
-            { err: error, key, breakerState: this.redisBreaker.stats },
-            this.i18nService.translate('Lock_Release_Failed'),
-          );
-        }
-      }
-    } else {
-      // 6. Did not get the lock, another process is fetching. Wait and retry.
-      this.logger.debug(
-        { key },
-        this.i18nService.translate('Cache_Miss_Lock_Not_Acquired'),
-      );
-      await new Promise((resolve) => setTimeout(resolve, 100)); // Wait for 100ms
-      return this.getSettingValue(key); // Retry the whole process
-    }
+    return this.redisService.getOrSet(cacheKey, fetcher, {
+      ttl: this.CACHE_TTL_SECONDS,
+      nullTtl: this.CACHE_NULL_TTL_SECONDS,
+      lockTtl: 10, // Lock expires after 10 seconds
+      lockWaitTime: 100, // Wait for 100ms before retrying
+      ttlJitter: 300, // Add up to 5 minutes of jitter
+    });
   }
 
   /**
@@ -193,9 +124,9 @@ export class SettingsService implements OnModuleInit {
 
     // Invalidate cache, but don't let a Redis failure break the whole operation.
     // The breaker will prevent repeated attempts if Redis is down.
-    this.redisBreaker.fire('del', cacheKey).catch((error) => {
+    this.redisService.del(cacheKey).catch((error) => {
       this.logger.error(
-        { err: error, key, breakerState: this.redisBreaker.stats },
+        { err: error, key },
         this.i18nService.translate('Cache_Invalidate_Failed'),
       );
     });
@@ -226,12 +157,12 @@ export class SettingsService implements OnModuleInit {
     }
 
     // Use mset for bulk insertion, wrapped in the circuit breaker.
-    await this.redisBreaker.fire('mset', msetPayload);
+    await this.redisService.mset(msetPayload);
 
     // Set TTL for each key individually after successful mset.
     const ttlPromises = keysToSetTTL.map((key) => {
       const ttl = this.CACHE_TTL_SECONDS + Math.floor(Math.random() * 300);
-      return this.redisBreaker.fire('expire', key, ttl);
+      return this.redisService.expire(key, ttl);
     });
     await Promise.all(ttlPromises);
   }
