@@ -1,12 +1,14 @@
 import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
-import { connect, connection } from 'mongoose';
+import Redis from 'ioredis';
+import { connect, connection, Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 const AUTH_CLIENT = 'AUTH_CLIENT';
 
 describe('OceanchatAuthController (e2e)', () => {
   let client: ClientProxy;
+  let redisClient: Redis;
 
   const testUser = {
     username: 'james',
@@ -32,11 +34,18 @@ describe('OceanchatAuthController (e2e)', () => {
     client = moduleFixture.get<ClientProxy>(AUTH_CLIENT);
     await client.connect();
 
+    redisClient = new Redis({
+      host: process.env.REDIS_HOST || '127.0.0.1',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      db: parseInt(process.env.REDIS_DB_TEST || '15', 10),
+    });
+
     await connect('mongodb://localhost:27017/oceanchat_test');
   });
 
   afterAll(async () => {
     await client.close();
+    await redisClient.quit();
     await connection.close();
   });
 
@@ -47,6 +56,7 @@ describe('OceanchatAuthController (e2e)', () => {
 
     afterEach(async () => {
       await connection.collection('users').deleteMany({});
+      await redisClient.flushdb();
     });
 
     it('should throw an RpcException with wrong password', async () => {
@@ -67,7 +77,7 @@ describe('OceanchatAuthController (e2e)', () => {
       expect(errorDetails.message).toBe('Invalid credentials');
     });
 
-    it('should return an access token with correct credentials', async () => {
+    it('should return access and refresh tokens with correct credentials', async () => {
       const payload = {
         username: testUser.username,
         password: testUser.password,
@@ -76,6 +86,7 @@ describe('OceanchatAuthController (e2e)', () => {
       const response = await firstValueFrom(client.send('auth.login', payload));
 
       expect(response).toHaveProperty('accessToken');
+      expect(response).toHaveProperty('refreshToken');
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(typeof response.accessToken).toBe('string');
       expect(response).toHaveProperty('user');
@@ -88,6 +99,8 @@ describe('OceanchatAuthController (e2e)', () => {
 
   describe("MessagePattern 'auth.token.validate'", () => {
     let accessToken: string;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let refreshToken: string;
 
     beforeEach(async () => {
       // Register and log in to get a valid token
@@ -96,14 +109,17 @@ describe('OceanchatAuthController (e2e)', () => {
         username: testUser.username,
         password: testUser.password,
       };
-      const response = await firstValueFrom<{ accessToken: string }>(
-        client.send('auth.login', loginPayload),
-      );
+      const response = await firstValueFrom<{
+        accessToken: string;
+        refreshToken: string;
+      }>(client.send('auth.login', loginPayload));
       accessToken = response.accessToken;
+      refreshToken = response.refreshToken;
     });
 
     afterEach(async () => {
       await connection.collection('users').deleteMany({});
+      await redisClient.flushdb();
     });
 
     it('should return user payload for a valid token', async () => {
@@ -130,6 +146,122 @@ describe('OceanchatAuthController (e2e)', () => {
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(errorDetails.errorCode).toBe(10030);
+    });
+  });
+
+  describe("MessagePattern 'auth.token.refresh'", () => {
+    let refreshToken: string;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let accessToken: string;
+    let userId: string;
+
+    beforeEach(async () => {
+      // Register and log in to get a valid refresh token
+      await firstValueFrom(client.send('auth.register', testUser));
+      const loginPayload = {
+        username: testUser.username,
+        password: testUser.password,
+      };
+      const response = await firstValueFrom<{
+        refreshToken: string;
+        accessToken: string;
+        user: { _id: string };
+      }>(client.send('auth.login', loginPayload));
+
+      refreshToken = response.refreshToken;
+      accessToken = response.accessToken;
+      userId = response.user._id;
+    });
+
+    afterEach(async () => {
+      await connection.collection('users').deleteMany({});
+      await redisClient.flushdb();
+    });
+
+    it('should return new tokens for a valid refresh token', async () => {
+      const payload = { refreshToken };
+      const response = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
+
+      expect(response).toHaveProperty('accessToken');
+      expect(response).toHaveProperty('refreshToken');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(response.refreshToken).not.toBe(refreshToken); // Should be a new token
+    });
+
+    it('should throw an RpcException for an invalid refresh token', async () => {
+      const payload = { refreshToken: 'invalid.refresh.token' };
+      const response = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
+
+      expect(response).toHaveProperty('error');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+      const errorDetails = JSON.parse(response.error.message);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(errorDetails.message).toBe('UNAUTHORIZED');
+    });
+
+    it('should throw an RpcException for a revoked refresh token', async () => {
+      // Manually revoke the token by deleting its session from Redis
+      const decoded = await firstValueFrom<{ jti: string }>(
+        client.send('auth.token.decode', { token: refreshToken }), // Assuming you have a decode helper or know the structure
+      );
+      await redisClient.del(`refresh-session:${decoded.jti}`);
+
+      const payload = { refreshToken };
+      const response = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
+
+      expect(response).toHaveProperty('error');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+      const errorDetails = JSON.parse(response.error.message);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(errorDetails.message).toBe('UNAUTHORIZED');
+    });
+
+    it('should throw an RpcException if the user does not exist anymore', async () => {
+      // Delete the user from the database
+      await connection.collection('users').deleteOne({
+        _id: new Types.ObjectId(userId),
+      });
+
+      const payload = { refreshToken };
+      const response = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
+
+      expect(response).toHaveProperty('error');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+      const errorDetails = JSON.parse(response.error.message);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(errorDetails.message).toBe('未找到用户');
+    });
+  });
+  // Helper describe block for decoding token to get JTI, assuming no public decode endpoint
+  // This is a bit of a hack for testing. A dedicated `decode` endpoint would be cleaner.
+  describe("MessagePattern 'auth.token.decode'", () => {
+    it('should decode a token', async () => {
+      // First, register the user so we can log in
+      await firstValueFrom(client.send('auth.register', testUser));
+      const loginPayload = {
+        username: testUser.username,
+        password: testUser.password,
+      };
+
+      const response = await firstValueFrom(
+        client.send('auth.login', loginPayload),
+      );
+      expect(response).toHaveProperty('refreshToken');
+      const decoded = await firstValueFrom(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        client.send('auth.token.decode', { token: response.refreshToken }),
+      );
+
+      expect(decoded).toHaveProperty('sub');
+      expect(decoded).toHaveProperty('jti');
     });
   });
 });
