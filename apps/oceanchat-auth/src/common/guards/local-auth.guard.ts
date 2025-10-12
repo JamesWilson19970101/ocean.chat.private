@@ -1,6 +1,7 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
+import { AuthenticatedUser, RequestLike } from '../types/auth.types';
 @Injectable()
 export class LocalAuthGuard extends AuthGuard('local') {
   /**
@@ -14,20 +15,20 @@ export class LocalAuthGuard extends AuthGuard('local') {
     // var username = lookup(req.body, this._usernameField) || lookup(req.query, this._usernameField);
     // var password = lookup(req.body, this._passwordField) || lookup(req.query, this._passwordField);
     // above code from passport-local
-    // So we need to wrap our data into a body property
+    // So I need to wrap our data into a body property
     // Assuming data contains { username, password }
     // If your payload structure is different, adjust accordingly
     // For example, if data is { user: { username, password } }, then do:
     // const requestLike = { body: data.user };
-    // Here we assume data itself has username and password directly
-    const requestLike = { body: data };
+    // Here I assume data itself has username and password directly
+    const requestLike: RequestLike = { body: data };
 
     return requestLike;
   }
 
   /**
    * Override canActivate to add custom logic if needed
-   * calls super.canActivate to get a request-like object, because passport-local is desined to work with HTTP requests, but here we are adapting it to work with RPC
+   * calls super.canActivate to get a request-like object, because passport-local is desined to work with HTTP requests, but here I are adapting it to work with RPC
    * then call getRequest to transform the RPC data into a request-like object
    * then call validate method of LocalStrategy with username and password extracted from the request-like object
    * @param context The execution context
@@ -35,5 +36,38 @@ export class LocalAuthGuard extends AuthGuard('local') {
    */
   canActivate(context: ExecutionContext) {
     return super.canActivate(context);
+  }
+
+  /**
+   * Override handleRequest to manage the result of the authentication attempt.
+   * The default implementation of passport-local attaches the user to `req.user`,
+   * which is not what I want in an RPC context. I want to return the user object directly.
+   * @param err - An error object if authentication fails.
+   * @param user - The user object returned from the LocalStrategy's `validate` method on success.
+   * @returns The user object.
+   * @throws The error if authentication fails.
+   */
+  handleRequest(
+    err: any,
+    user: AuthenticatedUser,
+    info: any,
+    context: ExecutionContext,
+  ): any {
+    if (err || !user) {
+      throw err;
+    }
+
+    const data: AuthenticatedUser = context.switchToRpc().getData();
+
+    // must explicitly found the data properties, because default behavior of passport-local is to attach the user to req.user
+    // but here is a RPC context, I want to return the user object directly
+    // so I copy the properties from user to data;
+    // the user object returned from LocalStrategy.validate is just can be used in http request context
+    // I need to manually attach the user info to the RPC data object
+    delete data['password']; // default behavior of passport-local is to attach the username and password to req.body, but I don't want to return the password for security reason
+    data['username'] = user.username;
+    data['_id'] = user._id;
+
+    return user;
   }
 }
