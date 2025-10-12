@@ -22,7 +22,7 @@ export class UserRepository extends BaseRepository<User> {
   async findOneByUsernameAndProvider(
     username: string,
     provider: AuthProvider,
-  ): Promise<{ [key: string]: any; passwordHash: string } | null> {
+  ): Promise<User | null> {
     const user = await this.model
       .findOne({
         username,
@@ -37,6 +37,6 @@ export class UserRepository extends BaseRepository<User> {
     const localProvider = user.providers.find((p) => p.provider === provider);
     if (!localProvider?.passwordHash) return null;
 
-    return { ...user, passwordHash: localProvider.passwordHash };
+    return { ...user };
   }
 }

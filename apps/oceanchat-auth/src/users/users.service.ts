@@ -60,7 +60,10 @@ export class UsersService {
         ],
       });
 
-      return newUser.toObject() as Partial<User>;
+      // Destructure to exclude the 'providers' array from the returned user object for security reasons.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { providers, ...userObject } = newUser.toObject();
+      return userObject as Partial<User>;
     } catch (error) {
       // If it's a business exception we threw ourselves, re-throw it.
       if (error instanceof BaseRpcException) {
