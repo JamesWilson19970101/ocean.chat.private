@@ -2,7 +2,6 @@ import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisKey, RedisValue } from 'ioredis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import * as CircuitBreaker from 'opossum';
 
 import { REDIS_CLIENT, RedisClient } from './redis.provider';
 
@@ -21,41 +20,11 @@ export interface GetOrSetOptions {
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  private readonly redisBreaker: CircuitBreaker;
-
   constructor(
     @InjectPinoLogger('redis.module') private readonly logger: PinoLogger,
     @Inject(REDIS_CLIENT) private readonly redisClient: RedisClient,
     private readonly i18nService: I18nService,
-  ) {
-    // Configure the circuit breaker for Redis
-    const options: CircuitBreaker.Options = {
-      timeout: 3000, // If the function does not return in 3 seconds, trigger a failure
-      errorThresholdPercentage: 50, // When 50% of requests fail, open the circuit
-      resetTimeout: 30000, // After 30 seconds in open state, try again (half-open)
-    };
-
-    // We wrap all redis.service operations. The action is the method name on RedisService.
-    this.redisBreaker = new CircuitBreaker(
-      (action: keyof RedisClient, ...args: any[]) =>
-        (this.redisClient[action] as (...a: any[]) => Promise<any>)(...args),
-      options,
-    );
-
-    // Log state changes for observability
-    // open means the circuit is now open and calls will be blocked.
-    this.redisBreaker.on('open', () =>
-      this.logger.warn(this.i18nService.translate('Redis_Breaker_Opened')),
-    );
-    // close means the circuit is now closed and calls will be allowed.
-    this.redisBreaker.on('close', () =>
-      this.logger.info(this.i18nService.translate('Redis_Breaker_Closed')),
-    );
-    // halfOpen allows the next request to test if Redis is healthy; if the call is successful, the circuit will be closed; if it fails, the circuit will be opened again.
-    this.redisBreaker.on('halfOpen', () =>
-      this.logger.info(this.i18nService.translate('Redis_Breaker_HalfOpen')),
-    );
-  }
+  ) {}
 
   /**
    * The module is being destroyed.
@@ -63,7 +32,6 @@ export class RedisService implements OnModuleDestroy {
    */
   onModuleDestroy() {
     this.logger?.info(this.i18nService.translate('Redis_Client_Closing'));
-    this.redisBreaker.shutdown(); // Gracefully shutdown the breaker and the underlying client
     this.redisClient.disconnect(); // Then disconnect the Redis client
   }
 
@@ -77,7 +45,7 @@ export class RedisService implements OnModuleDestroy {
    * @returns The value.
    */
   async get<T>(key: RedisKey): Promise<T | null> {
-    const value = (await this.redisBreaker.fire('get', key)) as string | null;
+    const value = await this.redisClient.get(key);
     if (value) {
       try {
         return JSON.parse(value) as T;
@@ -104,15 +72,9 @@ export class RedisService implements OnModuleDestroy {
   async set(key: RedisKey, value: unknown, ttl?: number): Promise<'OK'> {
     const serializedValue = JSON.stringify(value);
     if (ttl) {
-      return (await this.redisBreaker.fire(
-        'set',
-        key,
-        serializedValue,
-        'EX',
-        ttl,
-      )) as 'OK';
+      return this.redisClient.set(key, serializedValue, 'EX', ttl);
     }
-    return (await this.redisBreaker.fire('set', key, serializedValue)) as 'OK';
+    return this.redisClient.set(key, serializedValue);
   }
 
   /**
@@ -129,14 +91,7 @@ export class RedisService implements OnModuleDestroy {
     ttl: number,
   ): Promise<'OK' | null> {
     // Use 'EX' for seconds and 'NX' to set only if the key does not exist.
-    return (await this.redisBreaker.fire(
-      'set',
-      key,
-      value,
-      'EX',
-      ttl,
-      'NX',
-    )) as 'OK' | null;
+    return this.redisClient.set(key, value, 'EX', ttl, 'NX');
   }
 
   /**
@@ -149,7 +104,7 @@ export class RedisService implements OnModuleDestroy {
     if (keys.length === 0) {
       return 0;
     }
-    return (await this.redisBreaker.fire('del', ...keys)) as number;
+    return this.redisClient.del(...keys);
   }
 
   /**
@@ -160,7 +115,7 @@ export class RedisService implements OnModuleDestroy {
    * @returns The number of fields that were added.
    */
   async hset(key: RedisKey, field: string, value: RedisValue): Promise<number> {
-    return (await this.redisBreaker.fire('hset', key, field, value)) as number;
+    return this.redisClient.hset(key, field, value);
   }
 
   /**
@@ -171,7 +126,7 @@ export class RedisService implements OnModuleDestroy {
   async mset(args: (RedisKey | RedisValue)[]): Promise<'OK'> {
     // ioredis's mset expects arguments as (key1, value1, key2, value2, ...)
     // The spread operator (...) unpacks the array into individual arguments.
-    return (await this.redisBreaker.fire('mset', ...args)) as 'OK';
+    return this.redisClient.mset(...args);
   }
 
   /**
@@ -181,7 +136,7 @@ export class RedisService implements OnModuleDestroy {
    * @returns 1 if the timeout was set, 0 if the key does not exist or the timeout could not be set.
    */
   async expire(key: RedisKey, seconds: number): Promise<number> {
-    return (await this.redisBreaker.fire('expire', key, seconds)) as number;
+    return this.redisClient.expire(key, seconds);
   }
 
   /**
