@@ -36,13 +36,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
    */
   catch(exception: unknown, host: ArgumentsHost): any {
     // Log the exception details for debugging and monitoring
-    // this.logger.error(
-    //   'An exception was caught by AllExceptionsFilter',
-    //   exception,
-    // );
     this.logger.error(
       { err: exception },
-      'An exception was caught by AllExceptionsFilter',
+      'An exception was caught by AllExceptionsFilter...',
     );
     const contextType = host.getType();
 
@@ -166,13 +162,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     }
 
     return new ErrorResponseDto({
-      statusCode,
       message,
       errorCode,
+      details,
+      statusCode,
       serviceName: this.serviceName,
       path,
       timestamp: new Date().toISOString(),
-      details,
     });
   }
 }
