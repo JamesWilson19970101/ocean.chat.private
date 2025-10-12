@@ -74,15 +74,6 @@ export class SettingsService implements OnModuleInit {
   }
 
   /**
-   * get setting lock key
-   * @param key setting key
-   * @returns the lock key for the setting
-   */
-  private getLockKey(key: string): string {
-    return `${this.getCacheKey(key)}:lock`;
-  }
-
-  /**
    * Retrieves the value of a setting by its key.
    * It implements the cache-aside pattern with Redis.
    * @param key setting key
