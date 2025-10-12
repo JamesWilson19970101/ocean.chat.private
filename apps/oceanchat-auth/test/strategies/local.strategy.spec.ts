@@ -41,7 +41,11 @@ describe('Test LocalStrategy', () => {
     const userWithPassword = {
       _id: 'userId123',
       username,
-      passwordHash: 'hashedPassword',
+      providers: [
+        {
+          passwordHash: 'hashedPassword',
+        },
+      ],
     };
 
     it('should return user data for valid credentials', async () => {
@@ -57,7 +61,7 @@ describe('Test LocalStrategy', () => {
 
       expect(mockUsersService.verifyPassword).toHaveBeenCalledWith(
         password,
-        userWithPassword.passwordHash,
+        userWithPassword.providers[0].passwordHash,
       );
       expect(result).toEqual({ _id: userWithPassword._id, username });
     });
@@ -94,7 +98,7 @@ describe('Test LocalStrategy', () => {
       ).toHaveBeenCalledWith(username, AuthProvider.LOCAL);
       expect(mockUsersService.verifyPassword).toHaveBeenCalledWith(
         password,
-        userWithPassword.passwordHash,
+        userWithPassword.providers[0].passwordHash,
       );
     });
   });

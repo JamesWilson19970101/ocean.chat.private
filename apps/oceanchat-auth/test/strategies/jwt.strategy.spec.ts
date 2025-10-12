@@ -32,10 +32,10 @@ describe('Test JwtStrategy', () => {
   });
 
   describe('validate JWT', () => {
-    it('should return user data from payload', async () => {
-      const payload = { sub: 'userId123', username: 'testuser' };
-      const result = await strategy.validate(payload);
-      expect(result).toEqual({ _id: 'userId123', username: 'testuser' });
+    it('should return user data from payload', () => {
+      const payload = { username: 'testuser', sub: 'testuser' };
+      const result = strategy.validate(payload);
+      expect(result).toEqual({ username: 'testuser', sub: 'testuser' });
     });
   });
 });

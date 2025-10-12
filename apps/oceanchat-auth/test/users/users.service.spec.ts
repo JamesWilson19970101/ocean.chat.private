@@ -20,13 +20,6 @@ describe('Test UsersService', () => {
     _id: 'some-id',
     username: 'testuser',
     name: 'testuser',
-    providers: [
-      {
-        provider: AuthProvider.LOCAL,
-        providerId: 'testuser',
-        passwordHash: 'hashed-password',
-      },
-    ],
     toObject: () => mockUser as User,
   };
 
