@@ -66,5 +66,70 @@ describe('OceanchatAuthController (e2e)', () => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       expect(errorDetails.message).toBe('Invalid credentials');
     });
+
+    it('should return an access token with correct credentials', async () => {
+      const payload = {
+        username: testUser.username,
+        password: testUser.password,
+      };
+
+      const response = await firstValueFrom(client.send('auth.login', payload));
+
+      expect(response).toHaveProperty('accessToken');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(typeof response.accessToken).toBe('string');
+      expect(response).toHaveProperty('user');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(response.user).toHaveProperty('username', testUser.username);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(response.user).toHaveProperty('_id');
+    });
+  });
+
+  describe("MessagePattern 'auth.token.validate'", () => {
+    let accessToken: string;
+
+    beforeEach(async () => {
+      // Register and log in to get a valid token
+      await firstValueFrom(client.send('auth.register', testUser));
+      const loginPayload = {
+        username: testUser.username,
+        password: testUser.password,
+      };
+      const response = await firstValueFrom<{ accessToken: string }>(
+        client.send('auth.login', loginPayload),
+      );
+      accessToken = response.accessToken;
+    });
+
+    afterEach(async () => {
+      await connection.collection('users').deleteMany({});
+    });
+
+    it('should return user payload for a valid token', async () => {
+      const payload = {
+        token: accessToken,
+      };
+      const response = await firstValueFrom(
+        client.send('auth.token.validate', payload),
+      );
+      expect(response).toHaveProperty('sub'); // user id
+      expect(response).toHaveProperty('username', 'james');
+    });
+
+    it('should throw an RpcException for an invalid token', async () => {
+      const payload = { token: 'invalid.token.string' };
+      const response = await firstValueFrom(
+        client.send('auth.token.validate', payload),
+      );
+      // The error from BaseRpcException is nested inside the 'error' property.
+      expect(response).toHaveProperty('error');
+      // The error message from the microservice is a JSON string, so we need to parse it.
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+      const errorDetails = JSON.parse(response.error.message);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(errorDetails.errorCode).toBe(10030);
+    });
   });
 });
