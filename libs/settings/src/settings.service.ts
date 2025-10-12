@@ -50,8 +50,9 @@ export class SettingsService implements OnModuleInit {
     } catch (error) {
       this.logger.error(
         { err: error },
-        'Failed to initialize settings during onModuleInit.',
+        this.i18nService.translate('Default_Settings_Initialization_Failed'),
       );
+      throw error;
     }
   }
 
