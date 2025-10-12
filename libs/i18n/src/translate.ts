@@ -29,10 +29,8 @@ export default {
       Cache_Get_Failed_Fallback:
         'Failed to get setting from Redis. Falling back to database.',
       Lock_Acquire_Failed:
-        'Failed to acquire Redis lock due to breaker/error. Proceeding without lock.',
+        'Failed to acquire Redis lock. Proceeding without lock.',
       Cache_Miss_Lock_Acquired: 'Cache miss, lock acquired. Fetching from DB.',
-      Cache_Set_Failed_After_DB:
-        'Failed to set cache after DB fetch. Operation still successful.',
       DB_Fetch_Or_Cache_Set_Error:
         'Error fetching from DB or setting cache while holding lock.',
       Lock_Release_Failed:
@@ -68,6 +66,25 @@ export default {
         'Failed to parse Redis value for key "{{key}}" as JSON. Returning raw string.',
       Trying_To_Get_Setting_From_DB:
         'Trying to get setting from DB for key {{key}}',
+      User_not_found: 'User not found',
+      Redis_Down_Fallback_To_DB: 'Redis is down, falling back to DB check',
+      JWT_Revoked: 'JWT token is revoked',
+      User_From_Validate_JWT_But_Not_Found:
+        'User from valid JWT not found in database during fallback. This should not happen.',
+      Cache_Set_Failed: 'Cache sets failed.',
+      Retry_Failed_Fallback_To_Fetcher:
+        'Retry failed. Falling back to fetcher directly.',
+      Cache_Get_Failed: 'Cache get failed.',
+      Cache_Set_Failed_After_DB_Fetch:
+        'Cache set failed after DB update After DB fetch successfully.',
+      Retry_Success_Cache_Hit: 'Retry successfully. Cache hit',
+      Default_Settings_Initialization_Failed:
+        'Default settings initialization failed.',
+      Login_Session_Store_Failed: 'Login session store failed.',
+      Refresh_Token_Failed:
+        'Refresh token verification failed. It might be expired or invalid.',
+      User_Not_Found_With_Valid_Token:
+        'User not found for a valid refresh token. The user may have been deleted.',
     },
   },
   zh: {
@@ -96,10 +113,8 @@ export default {
         'Redis 断路器处于半开状态，将在 {{resetTimeout}} 毫秒后尝试恢复。',
       Cache_Hit_For_Setting: '设置项缓存命中。',
       Cache_Get_Failed_Fallback: '从 Redis 获取设置失败，回退到数据库。',
-      Lock_Acquire_Failed:
-        '因断路器或错误导致获取 Redis 锁失败，无锁继续执行。',
+      Lock_Acquire_Failed: '获取 Redis 锁失败，无锁继续执行。',
       Cache_Miss_Lock_Acquired: '缓存未命中，已获取锁，正在从数据库获取。',
-      Cache_Set_Failed_After_DB: '数据库获取后设置缓存失败，但操作仍成功。',
       DB_Fetch_Or_Cache_Set_Error: '持有锁期间，从数据库获取或设置缓存时出错。',
       Lock_Release_Failed: '释放 Redis 锁失败，锁将自动过期。',
       Cache_Miss_Lock_Not_Acquired:
@@ -125,6 +140,21 @@ export default {
       Failed_to_parse_redis_value:
         '无法将 Redis 键 "{{key}}" 的值解析为 JSON。返回原始字符串。',
       Trying_To_Get_Setting_From_DB: '正在尝试从数据库获取键 {{key}} 的设置',
+      User_not_found: '未找到用户',
+      Redis_Down_Fallback_To_DB: 'Redis 宕机，回退到数据库检查',
+      JWT_Revoked: 'JWT 令牌已撤销',
+      User_From_Validate_JWT_But_Not_Found:
+        '在回退过程中，验证的 JWT 中的用户在数据库中未找到。这不应该发生。',
+      Cache_Set_Failed: '缓存设置失败。',
+      Retry_Failed_Fallback_To_Fetcher: '重试失败，往后直接回退到获取器。',
+      Cache_Get_Failed: '缓存获取失败。',
+      Cache_Set_Failed_After_DB_Fetch: '从数据库成功获取数据后，缓存设置失败。',
+      Retry_Success_Cache_Hit: '重试成功，缓存命中',
+      Default_Settings_Initialization_Failed: '默认设置初始化失败。',
+      Login_Session_Store_Failed: '登录会话存储失败。',
+      Refresh_Token_Failed: '刷新令牌验证失败。它可能已过期或无效。',
+      User_Not_Found_With_Valid_Token:
+        '用户token有效，但是未找到该用户。用户可能已被删除。',
     },
   },
 };
