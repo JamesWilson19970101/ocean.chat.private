@@ -59,9 +59,29 @@ describe('Test Configuration', () => {
   });
 
   describe('jwtConfiguration', () => {
-    it('should return the JWT secret from environment variables', () => {
-      process.env.JWT_SECRET = 'my-secret';
-      expect(jwtConfiguration()).toEqual({ secret: 'my-secret' });
+    it('should return values from environment variables', () => {
+      process.env.JWT_ACCESS_SECRET = 'my-access-secret';
+      process.env.JWT_ACCESS_EXPIRES_IN = '1h';
+      process.env.JWT_REFRESH_SECRET = 'my-refresh-secret';
+      process.env.JWT_REFRESH_EXPIRES_IN = '14d';
+
+      const config = jwtConfiguration();
+      expect(config).toEqual({
+        accessSecret: 'my-access-secret',
+        accessExpiresIn: '1h',
+        refreshSecret: 'my-refresh-secret',
+        refreshExpiresIn: '14d',
+      });
+    });
+
+    it('should return default values for expiry times if environment variables are not set', () => {
+      const config = jwtConfiguration();
+      expect(config).toEqual({
+        accessSecret: undefined,
+        accessExpiresIn: '15Mins',
+        refreshSecret: undefined,
+        refreshExpiresIn: '7Days',
+      });
     });
   });
 });

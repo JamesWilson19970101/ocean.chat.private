@@ -10,7 +10,10 @@ describe('Config Validation Schema', () => {
       REDIS_HOST: '127.0.0.1',
       REDIS_PORT: 6379,
       REDIS_DB: 15,
-      JWT_SECRET: 'a-very-secret-and-long-key-for-testing',
+      JWT_ACCESS_SECRET: 'a-very-secret-and-long-key-for-testing',
+      JWT_ACCESS_EXPIRES_IN: '15Mins',
+      JWT_REFRESH_SECRET: 'another-very-secret-and-long-key-for-testing',
+      JWT_REFRESH_EXPIRES_IN: '7Days',
     };
   });
 
@@ -31,7 +34,8 @@ describe('Config Validation Schema', () => {
     ['REDIS_HOST', 'REDIS_HOST is required'],
     ['REDIS_PORT', 'REDIS_PORT is required'],
     ['REDIS_DB', 'REDIS_DB is required'],
-    ['JWT_SECRET', 'JWT_SECRET is required'],
+    ['JWT_ACCESS_SECRET', 'JWT_ACCESS_SECRET is required'],
+    ['JWT_REFRESH_SECRET', 'JWT_REFRESH_SECRET is required'],
   ])('should fail if %s is missing', (key, expectedMessage) => {
     delete validConfig[key];
     const { error } = validationSchema.validate(validConfig);
@@ -44,7 +48,8 @@ describe('Config Validation Schema', () => {
     ['DATABASE_URI', 'DATABASE_URI is required'],
     ['DATABASE_NAME', 'DATABASE_NAME is required'],
     ['REDIS_HOST', 'REDIS_HOST is required'],
-    ['JWT_SECRET', 'JWT_SECRET is required'],
+    ['JWT_ACCESS_SECRET', 'JWT_ACCESS_SECRET is required'],
+    ['JWT_REFRESH_SECRET', 'JWT_REFRESH_SECRET is required'],
   ])('should fail if %s is an empty string', (key, expectedMessage) => {
     validConfig[key] = '';
     const { error } = validationSchema.validate(validConfig);
@@ -60,5 +65,15 @@ describe('Config Validation Schema', () => {
     });
     expect(error).toBeDefined();
     expect(error?.details[0].message).toBe('REDIS_PORT must be a number');
+  });
+
+  it('should use default values for JWT expiry if not provided', () => {
+    delete validConfig.JWT_ACCESS_EXPIRES_IN;
+    delete validConfig.JWT_REFRESH_EXPIRES_IN;
+    const { value } = validationSchema.validate(validConfig);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(value.JWT_ACCESS_EXPIRES_IN).toBe('15Mins'); // Default from validation.ts
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(value.JWT_REFRESH_EXPIRES_IN).toBe('7Days'); // Default from validation.ts
   });
 });

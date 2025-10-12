@@ -100,9 +100,9 @@ import { UsersModule } from './users/users.module';
       imports: [ConfigModule],
       // eslint-disable-next-line @typescript-eslint/require-await
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('jwt.secret'),
+        secret: configService.get<string>('jwt.accessSecret'),
         signOptions: {
-          expiresIn: configService.get<string>('jwt.expiresIn'),
+          expiresIn: configService.get<string>('jwt.accessExpiresIn'),
         },
       }),
       inject: [ConfigService],
