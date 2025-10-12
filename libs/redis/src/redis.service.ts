@@ -161,14 +161,21 @@ export class RedisService implements OnModuleDestroy {
     options: GetOrSetOptions,
   ): Promise<T | null> {
     const { lockTtl = 10, lockWaitTime = 100, ttlJitter = 0 } = options;
-    // 1. Try to get from cache. If Redis is down, this will throw and fail the operation.
-    const cachedValue = await this.get<T>(key);
-    if (cachedValue !== null && cachedValue !== undefined) {
+    // 1. Try to get from cache.
+    // Use the raw client here to differentiate between a missing key (null)
+    // and a cached null value (the string "null").
+    const rawCachedValue = await this.redisClient.get(key);
+
+    if (rawCachedValue !== null) {
       this.logger.debug(
         { key },
         this.i18nService.translate('Cache_Hit', { key }),
       );
-      return cachedValue;
+      try {
+        return JSON.parse(rawCachedValue) as T;
+      } catch {
+        return rawCachedValue as unknown as T;
+      }
     }
 
     // 2. Cache miss, try to acquire a distributed lock
