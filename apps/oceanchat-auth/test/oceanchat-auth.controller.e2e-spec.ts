@@ -1,5 +1,6 @@
 import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
+import { connect, connection } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 const AUTH_CLIENT = 'AUTH_CLIENT';
@@ -14,10 +15,8 @@ describe('OceanchatAuthController (e2e)', () => {
   };
 
   beforeAll(async () => {
-    // 这个测试模块现在非常小，只包含客户端和数据库连接
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
-        // 1. 注册 NATS 客户端
         ClientsModule.register([
           {
             name: AUTH_CLIENT,
@@ -32,16 +31,23 @@ describe('OceanchatAuthController (e2e)', () => {
 
     client = moduleFixture.get<ClientProxy>(AUTH_CLIENT);
     await client.connect();
+
+    await connect('mongodb://localhost:27017/oceanchat_test');
   });
 
   afterAll(async () => {
     await client.close();
+    await connection.close();
   });
 
   describe("MessagePattern 'auth.login'", () => {
-    // beforeEach(async () => {
-    //   await firstValueFrom(client.send('auth.register', testUser));
-    // });
+    beforeEach(async () => {
+      await firstValueFrom(client.send('auth.register', testUser));
+    });
+
+    afterEach(async () => {
+      await connection.collection('users').deleteMany({});
+    });
 
     it('should throw an RpcException with wrong password', async () => {
       const payload = {

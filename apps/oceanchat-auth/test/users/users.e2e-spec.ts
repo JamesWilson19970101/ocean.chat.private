@@ -1,96 +1,117 @@
-import { INestMicroservice } from '@nestjs/common';
 import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ErrorCodes } from '@ocean.chat/common-exceptions';
+import { ErrorResponseDto } from '@ocean.chat/common-exceptions';
+import { connect, connection } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 import { CreateUserDto } from '../../src/users/dto/create-user.dto';
-import { UsersController } from '../../src/users/users.controller';
-import { UsersService } from '../../src/users/users.service';
 
-describe('UsersController (e2e)', () => {
-  let app: INestMicroservice;
+const AUTH_CLIENT = 'AUTH_CLIENT';
+
+describe("UsersController 'auth.register' (e2e)", () => {
   let client: ClientProxy;
 
-  // Mock UsersService to avoid database connections in this test
-  const mockUsersService = {
-    create: jest.fn(),
+  const baseUser: CreateUserDto = {
+    username: 'testuser',
+    password: 'Password123!',
+    confirmPassword: 'Password123!',
   };
 
-  // Runs once before all tests
   beforeAll(async () => {
-    // 1. Create the NestJS testing module
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      // Import the client module to create a test client
       imports: [
         ClientsModule.register([
           {
-            name: 'AUTH_SERVICE_CLIENT', // A unique name for the client
+            name: AUTH_CLIENT,
             transport: Transport.NATS,
             options: {
-              servers: ['nats://localhost:4222'], // NATS server for the test
+              servers: [process.env.NATS_URL || 'nats://localhost:4222'],
             },
           },
         ]),
       ],
-      controllers: [UsersController],
-      providers: [
-        // Provide the mock service instead of the real one
-        {
-          provide: UsersService,
-          useValue: mockUsersService,
-        },
-      ],
     }).compile();
 
-    // 2. Create and start the microservice application
-    app = moduleFixture.createNestMicroservice({
-      transport: Transport.NATS,
-      options: {
-        servers: ['nats://localhost:4222'],
-      },
-    });
-    await app.listen(); // Start listening for messages
-
-    // 3. Get the client instance from the application context
-    client = app.get('AUTH_SERVICE_CLIENT');
-    await client.connect(); // Connect the client to the NATS server
+    client = moduleFixture.get<ClientProxy>(AUTH_CLIENT);
+    await client.connect();
+    await connect('mongodb://localhost:27017/oceanchat_test');
   });
 
-  // Runs once after all tests
   afterAll(async () => {
+    await connection.collection('users').deleteMany({});
     await client.close();
-    await app.close();
+    await connection.close();
   });
 
-  // Reset mocks before each test
-  beforeEach(() => {
-    mockUsersService.create.mockClear();
-  });
-
-  // The actual test case
-  it("should handle 'auth.register' message and create a user", async () => {
-    // Arrange: Prepare the input data and the expected mock response
-    const createUserDto: CreateUserDto = {
-      username: 'testuser',
-      password: 'Password123!',
-      confirmPassword: 'Password123!',
-    };
-
-    const expectedUser = {
-      _id: 'some-id',
-      username: 'testuser',
-    };
-
-    // Tell the mock service what to return when `create` is called
-    mockUsersService.create.mockResolvedValue(expectedUser);
-
-    // Act: Send the message to the 'auth.register' pattern and wait for the response
-    const result = await firstValueFrom(
-      client.send('auth.register', createUserDto),
-    );
+  it('should create a user successfully with valid data', async () => {
+    const result = await firstValueFrom(client.send('auth.register', baseUser));
 
     // Assert: Check if the response and service calls are correct
-    expect(result).toEqual(expectedUser);
-    expect(mockUsersService.create).toHaveBeenCalledWith(createUserDto);
+    expect(result).toHaveProperty('_id');
+    expect(result).toHaveProperty('username', baseUser.username);
+    expect(result).not.toHaveProperty('providers'); // Ensure sensitive data is not returned
+
+    // Verify in DB
+    const dbUser = await connection
+      .collection('users')
+      .findOne({ username: baseUser.username });
+    expect(dbUser).not.toBeNull();
+    expect(dbUser!.username).toBe(baseUser.username);
+  });
+
+  it('should throw an exception if passwords do not match', async () => {
+    const payload = { ...baseUser, confirmPassword: 'WrongPassword' };
+    const response: { error: { message: string[] } } = await firstValueFrom(
+      client.send('auth.register', payload),
+    );
+
+    expect(response).toHaveProperty('error');
+    expect(response.error.message).toContain('Passwords do not match');
+  });
+
+  it('should throw an exception if username already exists', async () => {
+    // Arrange: create a user first
+    await firstValueFrom(client.send('auth.register', baseUser));
+
+    // Act: try to create the same user again
+    const response: { error: ErrorResponseDto; message: string } =
+      await firstValueFrom(client.send('auth.register', baseUser));
+
+    // Assert
+    expect(response).toHaveProperty('error.message');
+    const errorDetails = JSON.parse(response.error.message as string);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(errorDetails.errorCode).toBe(ErrorCodes.USERNAME_ALREADY_EXISTS);
+  });
+
+  it('should throw an exception for a short username based on settings', async () => {
+    const payload = { ...baseUser, username: 'ww' };
+
+    // Act
+    const response: { error: ErrorResponseDto; message: string } =
+      await firstValueFrom(client.send('auth.register', payload));
+
+    // Assert
+    expect(response).toHaveProperty('error.message');
+    const errorDetails = JSON.parse(response.error.message as string);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(errorDetails.errorCode).toBe(ErrorCodes.USERNAME_TOO_SHORT);
+  });
+
+  it('should throw an exception for a password without a digit based on settings', async () => {
+    const payload = {
+      ...baseUser,
+      password: 'Password!',
+      confirmPassword: 'Password!',
+    };
+
+    const response: { error: ErrorResponseDto; message: string } =
+      await firstValueFrom(client.send('auth.register', payload));
+
+    expect(response).toHaveProperty('error');
+    const errorDetails = JSON.parse(response.error.message as string);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    expect(errorDetails.errorCode).toBe(ErrorCodes.PASSWORD_NO_DIGIT);
   });
 });
