@@ -46,7 +46,7 @@ describe('Test PasswordService', () => {
       // Configure the mock to return true
       (argon2.verify as jest.Mock).mockResolvedValue(true);
 
-      const result = await service.verify(hash, plain);
+      const result = await service.verify(plain, hash);
 
       expect(argon2.verify).toHaveBeenCalledWith(hash, plain);
       expect(result).toBe(true);
