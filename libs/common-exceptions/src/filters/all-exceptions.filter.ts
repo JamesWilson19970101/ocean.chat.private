@@ -85,6 +85,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   private handleRpcException(exception: unknown, host: ArgumentsHost): any {
     const errorResponse = this.createErrorResponse(exception);
+    if (typeof errorResponse.message !== 'string') {
+      errorResponse.message = JSON.stringify(errorResponse.message);
+    }
     return new RpcException(errorResponse);
   }
 
@@ -131,15 +134,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // eg. 400, 401, 403, 404, 500, etc.
       statusCode = exception.getStatus();
       const response = exception.getResponse();
-      message =
-        typeof response === 'string'
-          ? response
-          : typeof response === 'object' &&
-              response !== null &&
-              'message' in response
-            ? ((response as Record<string, any> & { message?: string })
-                .message ?? 'Unknown error')
-            : response;
+      if (typeof response === 'string') {
+        message = response;
+      } else if (
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response
+      ) {
+        const responseMessage = (response as { message: string | string[] })
+          .message;
+        message = {
+          message: Array.isArray(responseMessage)
+            ? responseMessage.join(', ')
+            : responseMessage,
+          errorCode: ErrorCodes.UNEXPECTED_ERROR, // Default error code for standard HttpExceptions
+        };
+      }
     } else if (exception instanceof RpcException) {
       // process RPC exceptions between microservices
       const rpcError = exception.getError();

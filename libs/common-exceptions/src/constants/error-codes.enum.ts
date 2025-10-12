@@ -16,5 +16,8 @@ export enum ErrorCodes {
   // login errors
   INVALID_CREDENTIALS = 10020, // e.g., incorrect username or password
 
+  // authentication errors
+  UNAUTHORIZED = 10030, // e.g., when accessing a protected resource without valid authentication
+
   UNEXPECTED_ERROR = 99999, // e.g., for unexpected errors not covered by other codes
 }
