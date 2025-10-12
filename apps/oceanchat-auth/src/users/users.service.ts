@@ -86,8 +86,17 @@ export class UsersService {
   async findOneByUsernameAndProvider(
     username: string,
     provider: AuthProvider,
-  ): Promise<{ [key: string]: any; passwordHash: string } | null> {
+  ): Promise<User | null> {
     return this.userRepository.findOneByUsernameAndProvider(username, provider);
+  }
+
+  /**
+   * Find a user by their ID.
+   * @param id The user's ID.
+   * @returns The user object, or null if not found.
+   */
+  findOneById(id: string): Promise<Partial<User> | null> {
+    return this.userRepository.findById(id);
   }
 
   /**

@@ -21,8 +21,20 @@ export const validationSchema = Joi.object({
     'number.base': 'REDIS_DB must be a number',
     'any.required': 'REDIS_DB is required',
   }),
-  JWT_SECRET: Joi.string().required().messages({
+  JWT_ACCESS_SECRET: Joi.string().required().messages({
     'string.empty': 'JWT_SECRET is required',
     'any.required': 'JWT_SECRET is required',
+  }),
+  JWT_ACCESS_EXPIRES_IN: Joi.string().default('7d').messages({
+    'string.empty': 'JWT_EXPIRES_IN cannot be empty',
+    'any.required': 'JWT_EXPIRES_IN is required',
+  }),
+  JWT_REFRESH_SECRET: Joi.string().required().messages({
+    'string.empty': 'JWT_REFRESH_SECRET is required',
+    'any.required': 'JWT_REFRESH_SECRET is required',
+  }),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d').messages({
+    'string.empty': 'JWT_REFRESH_EXPIRES_IN cannot be empty',
+    'any.required': 'JWT_REFRESH_EXPIRES_IN is required',
   }),
 });
