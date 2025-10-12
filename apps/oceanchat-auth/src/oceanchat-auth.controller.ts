@@ -51,4 +51,11 @@ export class OceanchatAuthController {
   async refreshToken(@Payload('refreshToken') refreshToken: string) {
     return this.oceanchatAuthService.refreshToken(refreshToken);
   }
+
+  @MessagePattern('auth.token.decode')
+  decodeToken(@Payload('token') token: string) {
+    // Note: This does not verify the token, it only decodes it.
+    // For testing purposes only.
+    return this.oceanchatAuthService.decodeToken(token);
+  }
 }

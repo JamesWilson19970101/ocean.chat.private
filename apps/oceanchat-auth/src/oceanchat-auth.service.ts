@@ -185,4 +185,13 @@ export class OceanchatAuthService {
       return null;
     }
   }
+
+  /**
+   * decode the token
+   * @param token token used for decode
+   * @returns
+   */
+  decodeToken(token: string): Record<string, unknown> | null {
+    return this.jwtService.decode(token);
+  }
 }
