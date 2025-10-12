@@ -160,64 +160,33 @@ export class RedisService implements OnModuleDestroy {
     fetcher: () => Promise<T>,
     options: GetOrSetOptions,
   ): Promise<T | null> {
-    const {
-      ttl,
-      nullTtl = 300,
-      lockTtl = 10,
-      lockWaitTime = 100,
-      ttlJitter = 0,
-    } = options;
-
-    // 1. Try to get from cache first, wrapped in the circuit breaker
-    try {
-      const cachedValue = await this.get<T>(key);
-      if (cachedValue !== null) {
-        this.logger.debug(
-          { key },
-          this.i18nService.translate('Cache_Hit', { key }),
-        );
-        return cachedValue;
-      }
-    } catch (error) {
-      this.logger.error(
-        { err: error, key, breakerState: this.redisBreaker.stats },
-        this.i18nService.translate('Cache_Get_Failed_Fallback'),
+    const { lockTtl = 10, lockWaitTime = 100, ttlJitter = 0 } = options;
+    // 1. Try to get from cache. If Redis is down, this will throw and fail the operation.
+    const cachedValue = await this.get<T>(key);
+    if (cachedValue !== null && cachedValue !== undefined) {
+      this.logger.debug(
+        { key },
+        this.i18nService.translate('Cache_Hit', { key }),
       );
-
-      // If cache read fails, proceed directly to the fetcher, bypassing the lock.
-      // The circuit breaker will prevent hammering a down Redis.
-      return fetcher();
+      return cachedValue;
     }
 
     // 2. Cache miss, try to acquire a distributed lock
     const lockKey = `${key}:lock`;
-    let lockAcquired = false;
-
-    try {
-      const result = await this.setnx(lockKey, '1', lockTtl);
-      lockAcquired = result === 'OK';
-    } catch (error) {
-      this.logger.error(
-        { err: error, key, breakerState: this.redisBreaker.stats },
-        this.i18nService.translate('Lock_Acquire_Failed'),
-      );
-      // Fallback: If Redis is down, we can't get a lock.
-      // Proceed to fetch directly to keep the application functional.
-      return fetcher();
-    }
+    const lockAcquired = (await this.setnx(lockKey, '1', lockTtl)) === 'OK';
 
     if (lockAcquired) {
       this.logger.debug(
         { key },
         this.i18nService.translate('Cache_Miss_Lock_Acquired', { key }),
       );
-
       try {
         // 3. Got the lock, fetch from the data source
         const value = await fetcher();
 
         // 4. Set cache
-        const valueToCache = value ?? null;
+        const { ttl, nullTtl = 300 } = options;
+        const valueToCache = value ?? null; // Keep null as null for serialization
         const effectiveTtl =
           value !== null && value !== undefined
             ? ttl + Math.floor(Math.random() * ttlJitter)
@@ -226,35 +195,40 @@ export class RedisService implements OnModuleDestroy {
         if (effectiveTtl > 0) {
           await this.set(key, valueToCache, effectiveTtl);
         }
-
         return value;
-      } catch (error) {
-        this.logger.error(
-          { err: error, key },
-          this.i18nService.translate('DB_Fetch_Or_Cache_Set_Error'),
-        );
-        // Re-throw the error from the fetcher so the caller can handle it.
-        throw error;
       } finally {
         // Release the lock by deleting the lock key
-        // 5. Release the lock
         await this.del(lockKey).catch((err) =>
           this.logger.error({ err, key }, 'Lock_Release_Failed'),
         );
       }
     } else {
       // 6. Lock not acquired, wait and retry getting from cache
-
       this.logger.debug(
         { key },
         this.i18nService.translate('Cache_Miss_Lock_Not_Acquired', { key }),
       );
 
-      // Wait before retrying to get from cache
-      await new Promise((resolve) => setTimeout(resolve, lockWaitTime));
+      // Bounded retry loop to prevent stack overflow and indefinite waits.
+      const totalWaitTime = lockTtl * 1000 * 0.8; // Wait for max 80% of lock TTL
+      const startTime = Date.now();
 
-      // Retry the whole process
-      return this.getOrSet(key, fetcher, options);
+      while (Date.now() - startTime < totalWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, lockWaitTime));
+
+        const retryValue = await this.get<T>(key).catch(() => null);
+        if (retryValue !== null && retryValue !== undefined) {
+          this.logger.debug({ key }, 'Retry successful, value found in cache.');
+          return retryValue;
+        }
+      }
+
+      // If all retries fail, fetch from the source directly as a last resort.
+      this.logger.warn(
+        { key },
+        this.i18nService.translate('Retry_Failed_Fallback_To_Fetcher'),
+      );
+      return fetcher();
     }
   }
 }
