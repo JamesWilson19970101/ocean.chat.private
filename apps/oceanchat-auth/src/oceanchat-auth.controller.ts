@@ -1,8 +1,12 @@
 import { Controller, UseGuards } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { AuthGuard } from '@nestjs/passport';
 import { User } from '@ocean.chat/models';
 
+import {
+  CurrentUser,
+  validateUser,
+} from './common/decorators/current-user.decorator';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import { OceanchatAuthService } from './oceanchat-auth.service';
 
@@ -19,7 +23,7 @@ export class OceanchatAuthController {
    */
   @UseGuards(LocalAuthGuard)
   @MessagePattern('auth.login')
-  async login(@Payload() user: Pick<User, '_id' | 'username'>) {
+  async login(@CurrentUser() user: Pick<User, 'username' | '_id'>) {
     return this.oceanchatAuthService.login(user);
   }
 
@@ -27,15 +31,24 @@ export class OceanchatAuthController {
    * NATS message handler for validating a JWT.
    * This is protected by the 'jwt' strategy guard.
    * The guard will automatically validate the token using JwtStrategy.
-   * @param payload - The decoded payload from the validated token, attached by Passport.
+   * @param user - The user payload from the validated token, injected by @CurrentUser.
    */
-  @UseGuards(AuthGuard('jwt'))
+  @UseGuards(JwtAuthGuard)
   @MessagePattern('auth.token.validate')
   // eslint-disable-next-line @typescript-eslint/require-await
-  async validateToken(@Payload() payload: any) {
+  async validateToken(@validateUser() user: Pick<User, 'username' | '_id'>) {
     // If the guard succeeds, the payload is already validated by JwtStrategy.
-    // We can simply return it. The guard handles invalid/expired tokens.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return payload;
+    // The @CurrentUser decorator extracts the user info. We simply return it.
+    return user;
+  }
+
+  /**
+   * NATS message handler for refreshing a JWT.
+   * @param payload - The payload containing the refresh token.
+   * @returns A new pair of access and refresh tokens.
+   */
+  @MessagePattern('auth.token.refresh')
+  async refreshToken(@Payload('refreshToken') refreshToken: string) {
+    return this.oceanchatAuthService.refreshToken(refreshToken);
   }
 }

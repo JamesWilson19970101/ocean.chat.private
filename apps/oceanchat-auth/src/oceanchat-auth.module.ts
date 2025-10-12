@@ -11,9 +11,11 @@ import { IncomingMessage, ServerResponse } from 'http';
 import { Connection } from 'mongoose';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import {
   databaseConfiguration,
+  jwtConfiguration,
   redisConfiguration,
 } from './config/configuration';
 import { Env } from './config/env';
@@ -28,7 +30,7 @@ import { UsersModule } from './users/users.module';
   imports: [
     I18nModule.forRoot(),
     ConfigModule.forRoot({
-      load: [databaseConfiguration, redisConfiguration],
+      load: [databaseConfiguration, redisConfiguration, jwtConfiguration],
       validationSchema,
       envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
     }),
@@ -98,9 +100,9 @@ import { UsersModule } from './users/users.module';
       imports: [ConfigModule],
       // eslint-disable-next-line @typescript-eslint/require-await
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'),
+        secret: configService.get<string>('jwt.secret'),
         signOptions: {
-          expiresIn: '3d',
+          expiresIn: configService.get<string>('jwt.expiresIn'),
         },
       }),
       inject: [ConfigService],
@@ -109,6 +111,12 @@ import { UsersModule } from './users/users.module';
     UsersModule,
   ],
   controllers: [OceanchatAuthController],
-  providers: [OceanchatAuthService, LocalStrategy, JwtStrategy, LocalAuthGuard],
+  providers: [
+    OceanchatAuthService,
+    LocalStrategy,
+    JwtStrategy,
+    LocalAuthGuard,
+    JwtAuthGuard,
+  ],
 })
 export class OceanchatAuthModule {}
