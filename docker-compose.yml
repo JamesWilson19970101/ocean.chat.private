@@ -11,6 +11,8 @@ services:
       - '4318:4318' # OTLP HTTP receiver
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoring-net
 
   # Prometheus Collect data
   prometheus:
@@ -18,9 +20,12 @@ services:
     container_name: prometheus
     ports:
       - '9090:9090' # Prometheus UI
-    volumes: -./envConfig/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # mount conf file
+    volumes:
+      - ./envConfig/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # mount conf file
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - monitoring-net
 
   # Grafana UI
   grafana:
@@ -28,7 +33,15 @@ services:
     container_name: grafana
     ports:
       - '3000:3000' # Grafana UI
-    volumes: -./grafana/provisioning/:/etc/grafana/provisioning/ # monut conf file
+    volumes:
+      - ./envConfig/grafana/provisioning/:/etc/grafana/provisioning/ # monut conf file
     depends_on:
       - prometheus
       - jaeger
+    networks:
+      - monitoring-net
+
+networks:
+  monitoring-net:
+    name: oceanchat-monitoring-network
+    driver: bridge
