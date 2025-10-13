@@ -1,13 +1,15 @@
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { startTracing } from '@ocean.chat/tracing';
 import { Logger } from 'nestjs-pino';
 
 import { OceanchatAuthModule } from './oceanchat-auth.module';
 
 async function bootstrap() {
+  startTracing(); // Initialize OpenTelemetry Tracing at the very begining of the application
   console.log(`
-   ____   _____ ______          _   _      _____ _    _       _______     _____ __  __ 
+   ____   _____ ______          _   _      _____ _    _       _______     _____ __  __
   / __ \\ / ____|  ____|   /\\   | \\ | |    / ____| |  | |   /\\|__   __|   |_   _|  \\/  |
  | |  | | |    | |__     /  \\  |  \\| |   | |    | |__| |  /  \\  | |        | | | \\  / |
  | |  | | |    |  __|   / /\\ \\ | . \` |   | |    |  __  | / /\\ \\ | |        | | | |\\/| |
