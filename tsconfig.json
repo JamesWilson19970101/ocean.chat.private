@@ -57,6 +57,12 @@
       ],
       "@ocean.chat/settings/*": [
         "libs/settings/src/*"
+      ],
+      "@ocean.chat/tracing": [
+        "libs/tracing/src"
+      ],
+      "@ocean.chat/tracing/*": [
+        "libs/tracing/src/*"
       ]
     }
   }
