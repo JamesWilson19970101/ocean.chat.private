@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.74.0
+    container_name: jaeger
+    ports:
+      - '16686:16686' # Jaeger UI
+      - '4317:4317' # OTLP gRPC receiver
+      - '4318:4318' # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  # Prometheus Collect data
+  prometheus:
+    image: prom/prometheus:v3.6.0
+    container_name: prometheus
+    ports:
+      - '9090:9090' # Prometheus UI
+    volumes: -./envConfig/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # mount conf file
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  # Grafana UI
+  grafana:
+    image: grafana/grafana:12.3.0-18451604049
+    container_name: grafana
+    ports:
+      - '3000:3000' # Grafana UI
+    volumes: -./grafana/provisioning/:/etc/grafana/provisioning/ # monut conf file
+    depends_on:
+      - prometheus
+      - jaeger
