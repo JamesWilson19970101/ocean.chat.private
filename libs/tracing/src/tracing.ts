@@ -3,10 +3,7 @@ import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK, NodeSDKConfiguration } from '@opentelemetry/sdk-node';
-import {
-  BatchSpanProcessor,
-  ConsoleSpanExporter,
-} from '@opentelemetry/sdk-trace-node';
+import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import {
   ATTR_SERVICE_NAME,
   ATTR_SERVICE_VERSION,
@@ -21,19 +18,17 @@ import {
 export function startTracing() {
   // Define the resource for your service
   const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'yourServiceName',
+    [ATTR_SERVICE_NAME]: 'oceanchat-auth',
     [ATTR_SERVICE_VERSION]: '1.0',
   });
 
   // Configure the trace exporter based on the environment
-  // In production, send traces to Jaeger/SigNoz via OTLP.
-  // In development, print traces to the console for easy debugging.
-  const traceExporter =
-    process.env.NODE_ENV === 'production'
-      ? new OTLPTraceExporter({
-          url: 'http://localhost:4317', // Your Jaeger/Collector OTLP gRPC receiver
-        })
-      : new ConsoleSpanExporter();
+  // Always send traces to an OTLP-compatible receiver (like Jaeger).
+  // The URL can be configured via the OTEL_EXPORTER_OTLP_TRACES_ENDPOINT environment variable.
+  const traceExporter = new OTLPTraceExporter({
+    url:
+      process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || 'http://localhost:4317',
+  });
 
   // Use BatchSpanProcessor for production for better performance
   const spanProcessor = new BatchSpanProcessor(traceExporter);
