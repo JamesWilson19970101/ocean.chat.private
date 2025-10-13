@@ -53,16 +53,20 @@ export function startTracing() {
 
   const sdk = new NodeSDK(sdkConfig);
 
-  // Gracefully shut down the SDK on process exit
-  process.on('SIGTERM', () => {
-    sdk
+  // A separate, explicitly typed function to handle shutdown logic.
+  // This helps to avoid ESLint's type inference issues within the process.on callback.
+  const shutdownHandler = (sdkToShutdown: NodeSDK) => {
+    sdkToShutdown
       .shutdown()
-      .finally(() => process.exit(0))
       .catch((err) => {
         console.error('Error shutting down OpenTelemetry SDK:', err);
         process.exit(1);
-      });
-  });
+      })
+      .finally(() => process.exit(0));
+  };
+
+  process.on('SIGTERM', () => shutdownHandler(sdk));
+  process.on('SIGINT', () => shutdownHandler(sdk));
 
   sdk.start();
   console.log('OpenTelemetry Tracing started');
