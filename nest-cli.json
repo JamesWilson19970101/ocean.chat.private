@@ -62,6 +62,15 @@
         "tsConfigPath": "libs/models/tsconfig.lib.json"
       }
     },
+    "nats-opentelemetry-tracing": {
+      "type": "library",
+      "root": "libs/nats-opentelemetry-tracing",
+      "entryFile": "index",
+      "sourceRoot": "libs/nats-opentelemetry-tracing/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/nats-opentelemetry-tracing/tsconfig.lib.json"
+      }
+    },
     "ocean.chat": {
       "type": "application",
       "root": "apps/ocean.chat",
