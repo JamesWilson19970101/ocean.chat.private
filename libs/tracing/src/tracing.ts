@@ -1,6 +1,12 @@
-import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+// import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
 import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
+import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc';
+import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
+import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
+import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import { resourceFromAttributes } from '@opentelemetry/resources';
 import { NodeSDK, NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
@@ -44,10 +50,12 @@ export function startTracing() {
     spanProcessor,
     metricReader,
     instrumentations: [
-      getNodeAutoInstrumentations({
-        // Optionally disable some instrumentations to reduce noise
-        '@opentelemetry/instrumentation-fs': { enabled: false },
-      }),
+      new HttpInstrumentation(),
+      new ExpressInstrumentation(),
+      new NestInstrumentation(),
+      new GrpcInstrumentation(),
+      new IORedisInstrumentation(),
+      new MongooseInstrumentation(),
     ],
   };
 
