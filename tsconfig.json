@@ -46,6 +46,12 @@
       "@ocean.chat/models/*": [
         "libs/models/src/*"
       ],
+      "@ocean.chat/nats-opentelemetry-tracing": [
+        "libs/nats-opentelemetry-tracing/src"
+      ],
+      "@ocean.chat/nats-opentelemetry-tracing/*": [
+        "libs/nats-opentelemetry-tracing/src/*"
+      ],
       "@ocean.chat/redis": [
         "libs/redis/src"
       ],
