@@ -11,8 +11,8 @@ export class BaseException extends HttpException {
   constructor(
     response: string | Record<string, any>,
     status: number,
-    private readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    private readonly details?: any,
+    public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
+    public readonly details?: any,
   ) {
     super(response, status);
   }
