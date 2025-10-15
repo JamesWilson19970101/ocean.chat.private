@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
+interface HelloReply {
+  message: string;
+}
+
 @Injectable()
 export class OceanchatRouterService {
-  getHello(): string {
-    return 'Hello World!';
+  getHello(): HelloReply {
+    return { message: 'Hello World!' };
   }
 }

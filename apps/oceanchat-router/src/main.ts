@@ -1,10 +1,27 @@
+import { startTracing } from '@ocean.chat/tracing';
+startTracing({ name: 'oceanchat-router' }); // Initialize OpenTelemetry Tracing at the very begining of the application
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { join } from 'path';
 
 import { OceanchatRouterModule } from './oceanchat-router.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(OceanchatRouterModule);
-  await app.listen(process.env.port ?? 3000);
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    OceanchatRouterModule,
+    {
+      transport: Transport.GRPC,
+      options: {
+        package: 'oceanchat_router',
+        protoPath: join(
+          __dirname,
+          '../../../oceanchat_router_assets/oceanchat-router.proto',
+        ),
+        url: process.env.GRPC_URL ?? '0.0.0.0:50051',
+      },
+    },
+  );
+  await app.listen();
 }
 bootstrap().catch((error) => {
   if (error instanceof Error) {

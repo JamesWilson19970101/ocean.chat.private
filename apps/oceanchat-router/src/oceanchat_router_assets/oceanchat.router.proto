@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package oceanchat_router;
+
+service OceanchatRouter {
+  rpc GetHello (HelloRequest) returns (HelloReply) {}
+}
+
+message HelloRequest {}
+
+message HelloReply {
+  string message = 1;
+}
+

@@ -18,8 +18,10 @@ describe('OceanchatRouterController', () => {
   });
 
   describe('root', () => {
-    it('should return "Hello World!"', () => {
-      expect(oceanchatRouterController.getHello()).toBe('Hello World!');
+    it('should return a HelloReply object with "Hello World!"', () => {
+      expect(oceanchatRouterController.getHello()).toEqual({
+        message: 'Hello World!',
+      });
     });
   });
 });

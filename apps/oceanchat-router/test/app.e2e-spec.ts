@@ -1,25 +1,39 @@
-import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
-import * as request from 'supertest';
+import { startTracing } from '@ocean.chat/tracing';
+startTracing({ name: 'oceanchat-router-client' });
+import {
+  ClientGrpc,
+  ClientProxyFactory,
+  Transport,
+} from '@nestjs/microservices';
+import { join } from 'path';
+import { firstValueFrom, Observable } from 'rxjs';
 
-import { OceanchatRouterModule } from './../src/oceanchat-router.module';
+interface OceanchatRouterClient {
+  getHello(request: object): Observable<{ message: string }>;
+}
 
-describe('OceanchatRouterController (e2e)', () => {
-  let app: INestApplication;
+describe('OceanchatRouter (e2e)', () => {
+  let client: ClientGrpc;
+  let service: OceanchatRouterClient;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [OceanchatRouterModule],
-    }).compile();
+  beforeAll(() => {
+    client = ClientProxyFactory.create({
+      transport: Transport.GRPC,
+      options: {
+        package: 'oceanchat_router',
+        protoPath: join(
+          __dirname,
+          '../src/oceanchat_router_assets/oceanchat-router.proto',
+        ),
+        url: '0.0.0.0:50051',
+      },
+    });
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    service = client.getService<OceanchatRouterClient>('OceanchatRouter');
   });
 
-  it('/ (GET)', () => {
-    return request(app.getHttpServer())
-      .get('/')
-      .expect(200)
-      .expect('Hello World!');
+  it('should call GetHello and return "Hello World!"', async () => {
+    const response = await firstValueFrom(service.getHello({}));
+    expect(response).toEqual({ message: 'Hello World!' });
   });
 });

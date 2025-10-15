@@ -1,6 +1,11 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 
 import { OceanchatRouterService } from './oceanchat-router.service';
+
+interface HelloReply {
+  message: string;
+}
 
 @Controller()
 export class OceanchatRouterController {
@@ -8,8 +13,8 @@ export class OceanchatRouterController {
     private readonly oceanchatRouterService: OceanchatRouterService,
   ) {}
 
-  @Get()
-  getHello(): string {
+  @GrpcMethod('OceanchatRouter', 'GetHello')
+  getHello(): HelloReply {
     return this.oceanchatRouterService.getHello();
   }
 }
