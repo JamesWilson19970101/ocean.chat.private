@@ -13,6 +13,10 @@
       {
         "include": "authorization_assets/**/*",
         "outDir": "dist/apps/authorization/src"
+      },
+      {
+        "include": "oceanchat_router_assets/**/*",
+        "outDir": "dist/apps/oceanchat-router"
       }
     ]
   },
