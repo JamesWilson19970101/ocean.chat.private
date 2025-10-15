@@ -1,11 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { ModelsModule } from '@ocean.chat/models';
+import {
+  NatsOpentelemetryTracingModule,
+  NatsTraceInterceptor,
+} from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Connection } from 'mongoose';
@@ -49,6 +54,9 @@ import { UsersModule } from './users/users.module';
           : {}),
         level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
         serializers: {
+          // The 'req' and 'res' serializers are for HTTP context.
+          // For RPC (like NATS), these might not be relevant unless you have a hybrid app.
+          // It's safe to keep them.
           req: (req: IncomingMessage & { id?: number | string }) => {
             // Add type hint for req
             return {
@@ -61,6 +69,12 @@ import { UsersModule } from './users/users.module';
         },
       },
     }),
+    // Import the tracing module. Place it early for clarity.
+    NatsOpentelemetryTracingModule.register({
+      servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+    }),
+    // CommonExceptionsModule should come after tracing so the filter can be injected
+    // into the interceptor if needed in the future.
     CommonExceptionsModule.forRoot({
       serviceName: 'oceanchat-auth',
     }),
@@ -117,6 +131,11 @@ import { UsersModule } from './users/users.module';
     JwtStrategy,
     LocalAuthGuard,
     JwtAuthGuard,
+    // Register NatsTraceInterceptor as a global interceptor.
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: NatsTraceInterceptor,
+    },
   ],
 })
 export class OceanchatAuthModule {}

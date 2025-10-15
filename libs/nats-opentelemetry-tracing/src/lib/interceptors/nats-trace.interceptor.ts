@@ -87,7 +87,7 @@ export class NatsTraceInterceptor implements NestInterceptor {
           span.recordException(error);
           span.setStatus({
             code: SpanStatusCode.ERROR,
-            message: error.message,
+            message: error instanceof Error ? error.message : String(error),
           });
           return throwError(() => error);
         }),

@@ -25,7 +25,7 @@ async function bootstrap() {
       options: {
         servers: [process.env.NATS_URL || 'nats://localhost:4222'],
       },
-      logger: false, // Disable default logger
+      // logger: false, // Disable default logger
     },
   );
 

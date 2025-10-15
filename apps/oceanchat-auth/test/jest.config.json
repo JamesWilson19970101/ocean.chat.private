@@ -16,9 +16,10 @@
     "^@ocean.chat/models(|/.*)$": "<rootDir>/../../libs/models/src/$1",
     "^@ocean.chat/redis(|/.*)$": "<rootDir>/../../libs/redis/src/$1",
     "^@ocean.chat/settings(|/.*)$": "<rootDir>/../../libs/settings/src/$1",
-    "^@ocean.chat/tracing(|/.*)$": "<rootDir>/libs/tracing/src/$1"
-  },
+    "^@ocean.chat/nats-opentelemetry-tracing(|/.*)$": "<rootDir>/../../libs/nats-opentelemetry-tracing/src/$1",
 
+    "^@ocean.chat/tracing(|/.*)$": "<rootDir>/../../libs/tracing/src/$1"
+  },
   "collectCoverage": true,
   "collectCoverageFrom": [
     "<rootDir>/src/**/*.ts",
