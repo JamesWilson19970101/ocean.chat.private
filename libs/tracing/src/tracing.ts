@@ -1,5 +1,4 @@
-// import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
-import { PrometheusExporter } from '@opentelemetry/exporter-prometheus';
+import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { GrpcInstrumentation } from '@opentelemetry/instrumentation-grpc';
@@ -7,7 +6,9 @@ import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { IORedisInstrumentation } from '@opentelemetry/instrumentation-ioredis';
 import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
+import { PinoInstrumentation } from '@opentelemetry/instrumentation-pino';
 import { resourceFromAttributes } from '@opentelemetry/resources';
+import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import { NodeSDK, NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import {
@@ -15,39 +16,41 @@ import {
   ATTR_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 
+const VERSION = '1.0.0';
+
 /**
  * Initializes and starts the OpenTelemetry SDK.
  *
  * This function should be called once, at the very beginning of the application's lifecycle.
  * It sets up the resource, span processors, exporters, and instrumentations.
  */
-export function startTracing() {
+export function startTracing(serviceName: string, serviceInstanceId: string) {
   // Define the resource for your service
   const resource = resourceFromAttributes({
-    [ATTR_SERVICE_NAME]: 'oceanchat-auth',
-    [ATTR_SERVICE_VERSION]: '1.0',
+    [ATTR_SERVICE_NAME]: `${serviceName}-${serviceInstanceId}`,
+    [ATTR_SERVICE_VERSION]: VERSION,
   });
 
+  const collectorOptions = {
+    // url is optional and can be omitted - default is http://localhost:4317
+    url:
+      process.env.OTEL_EXPORTER_OTLP_GRPC_ENDPOINT || 'http://localhost:4317',
+  };
   // Configure the trace exporter based on the environment
   // Always send traces to an OTLP-compatible receiver (like Jaeger).
   // The URL can be configured via the OTEL_EXPORTER_OTLP_TRACES_ENDPOINT environment variable.
-  const traceExporter = new OTLPTraceExporter({
-    url:
-      process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT || 'http://localhost:4317',
-  });
+  const traceExporter = new OTLPTraceExporter(collectorOptions); // default is http://localhost:4317
 
-  // Use BatchSpanProcessor for production for better performance
-  const spanProcessor = new BatchSpanProcessor(traceExporter);
-
-  // Configure the metric reader (exposes metrics to Prometheus)
-  const metricReader = new PrometheusExporter({
-    port: 9464, // Default port for Prometheus scraping
-    endpoint: '/metrics',
+  // Configure the OTLP metric exporter to push metrics to the collector.
+  const metricExporter = new OTLPMetricExporter(collectorOptions); // default is http://localhost:4317
+  const metricReader = new PeriodicExportingMetricReader({
+    exporter: metricExporter,
+    exportIntervalMillis: 10000, // Export metrics every 10 seconds. Adjust as needed.
   });
 
   const sdkConfig: Partial<NodeSDKConfiguration> = {
     resource,
-    spanProcessor,
+    spanProcessor: new BatchSpanProcessor(traceExporter),
     metricReader,
     instrumentations: [
       new HttpInstrumentation(),
@@ -56,6 +59,7 @@ export function startTracing() {
       new GrpcInstrumentation(),
       new IORedisInstrumentation(),
       new MongooseInstrumentation(),
+      new PinoInstrumentation(),
     ],
   };
 

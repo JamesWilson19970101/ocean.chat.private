@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { RedisService } from '@ocean.chat/redis';
+import { Counter, metrics } from '@opentelemetry/api';
 import * as ms from 'ms';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,7 +16,8 @@ import {
 } from './common/utils/session.utils';
 import { UsersService } from './users/users.service';
 @Injectable()
-export class OceanchatAuthService {
+export class OceanchatAuthService implements OnModuleInit {
+  private loginCounter: Counter;
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -25,7 +27,12 @@ export class OceanchatAuthService {
     @InjectPinoLogger('oceanchat.auth.service')
     private readonly logger: PinoLogger,
   ) {}
-
+  onModuleInit() {
+    const meter = metrics.getMeter('oceanchat-auth');
+    this.loginCounter = meter.createCounter('auth.logins.total', {
+      description: 'Total number of successful user logins',
+    });
+  }
   /**
    * Generates a JWT with a jti and store the jti in redis for whitelisting.
    * This is called by the AuthController after the LocalStrategy has successfully validated the user.
@@ -37,6 +44,9 @@ export class OceanchatAuthService {
     refreshToken: string;
     user: Pick<User, 'username' | '_id'>;
   }> {
+    // test logger
+    this.logger.info('Login successful....................');
+    this.loginCounter.add(1, { 'login.method': 'password' });
     const [accessToken, refreshToken] = await this.generateTokens(user);
     return { accessToken, refreshToken, user };
   }
