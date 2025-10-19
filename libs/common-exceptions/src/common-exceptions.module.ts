@@ -4,9 +4,11 @@ import { PinoLogger } from 'nestjs-pino';
 
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 export const SERVICE_NAME = 'SERVICE_NAME';
+export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 
 export interface CommonExceptionModuleOptions {
   serviceName: string;
+  serviceInstanceId: string;
 }
 
 @Module({})
@@ -22,20 +24,34 @@ export class CommonExceptionsModule {
       useValue: options.serviceName || 'UnknownService',
     };
 
+    const serviceInstanceIdProvider: Provider = {
+      provide: SERVICE_INSTANCE_ID,
+      useValue: options.serviceInstanceId,
+    };
+
     return {
       module: CommonExceptionsModule,
       providers: [
         serviceNameProvider,
+        serviceInstanceIdProvider,
         {
           // register a global exception filter
           provide: APP_FILTER,
-          useFactory: (serviceName: string, logger: PinoLogger) => {
-            return new AllExceptionsFilter(serviceName, logger);
+          useFactory: (
+            serviceName: string,
+            serviceInstanceId: string,
+            logger: PinoLogger,
+          ) => {
+            return new AllExceptionsFilter(
+              serviceName,
+              serviceInstanceId,
+              logger,
+            );
           },
-          inject: [SERVICE_NAME, PinoLogger],
+          inject: [SERVICE_NAME, SERVICE_INSTANCE_ID, PinoLogger],
         },
       ],
-      exports: [serviceNameProvider],
+      exports: [serviceNameProvider, serviceInstanceIdProvider],
     };
   }
 }

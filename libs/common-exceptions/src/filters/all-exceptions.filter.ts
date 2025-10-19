@@ -11,7 +11,7 @@ import type { Request, Response } from 'express';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { WebSocket } from 'ws';
 
-import { SERVICE_NAME } from '../common-exceptions.module';
+import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '../common-exceptions.module';
 import { ErrorCodes } from '../constants/error-codes.enum';
 import { ErrorResponseDto } from '../dto/error-response.dto';
 import { BaseException } from '../exceptions/base.exception';
@@ -40,6 +40,8 @@ export type CustomException = {
 export class AllExceptionsFilter implements ExceptionFilter {
   constructor(
     @Inject(SERVICE_NAME) private readonly serviceName: string,
+    @Inject(SERVICE_INSTANCE_ID)
+    private readonly serviceInstanceId: string,
     @InjectPinoLogger('ocean.chat.all.exceptions.filter')
     private readonly logger: PinoLogger,
   ) {}
@@ -199,6 +201,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
       details,
       statusCode,
       serviceName: this.serviceName,
+      serviceInstanceId: this.serviceInstanceId,
       path,
       timestamp: new Date().toISOString(),
     });

@@ -28,6 +28,12 @@ export class ErrorResponseDto {
   serviceName: string;
 
   /**
+   * The uuid of service
+   * @example "ikskhshyfodsniosuydsfnl"
+   */
+  serviceInstanceId: string;
+
+  /**
    * A business-specific error code for precise handling by the client or service caller
    * @example 99999 // e.g., for unexpected errors not covered by other codes
    */
