@@ -83,11 +83,11 @@ export class NatsTraceInterceptor implements NestInterceptor {
     // Active span and run next
     return context.with(trace.setSpan(context.active(), span), () => {
       return next.handle().pipe(
-        catchError((error) => {
+        catchError((error: { message: string; [key: string]: unknown }) => {
           span.recordException(error);
           span.setStatus({
             code: SpanStatusCode.ERROR,
-            message: error instanceof Error ? error.message : String(error),
+            message: error.message,
           });
           return throwError(() => error);
         }),

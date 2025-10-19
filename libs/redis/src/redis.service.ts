@@ -167,10 +167,7 @@ export class RedisService implements OnModuleDestroy {
     const rawCachedValue = await this.redisClient.get(key);
 
     if (rawCachedValue !== null) {
-      this.logger.debug(
-        { key },
-        this.i18nService.translate('Cache_Hit', { key }),
-      );
+      this.logger.debug(this.i18nService.translate('Cache_Hit', { key }));
       try {
         return JSON.parse(rawCachedValue) as T;
       } catch {
@@ -184,7 +181,6 @@ export class RedisService implements OnModuleDestroy {
 
     if (lockAcquired) {
       this.logger.debug(
-        { key },
         this.i18nService.translate('Cache_Miss_Lock_Acquired', { key }),
       );
       try {

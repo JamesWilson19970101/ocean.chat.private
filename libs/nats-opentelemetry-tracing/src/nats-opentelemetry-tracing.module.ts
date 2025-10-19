@@ -26,7 +26,7 @@ export class NatsOpentelemetryTracingModule {
         ]),
       ],
       providers: [NatsTraceInterceptor], // Provide the interceptor so it can be injected
-      exports: [ClientsModule, NatsTraceInterceptor], // Export both the client and the interceptor
+      exports: [NatsTraceInterceptor], // Export both the client and the interceptor
     };
   }
 }
