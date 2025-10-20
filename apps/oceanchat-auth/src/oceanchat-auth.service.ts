@@ -70,15 +70,17 @@ export class OceanchatAuthService implements OnModuleInit {
       payload = await this.jwtService.verifyAsync(oldRefreshToken, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
-    } catch (error) {
+    } catch (err) {
       this.logger.warn(
-        { err: error },
+        { err },
         this.i18nService.translate('Refresh_Token_Failed'),
       );
+
       // If the refresh token is invalid or expired, deny access.
       throw new BaseRpcException(
-        this.i18nService.translate('UNAUTHORIZED'),
-        ErrorCodes.UNAUTHORIZED,
+        // Return a more specific message, but UNAUTHORIZED is standard.
+        this.i18nService.translate('Refresh_Token_Failed'),
+        ErrorCodes.UNAUTHORIZED, // return 'unauthorized' code
       );
     }
 
