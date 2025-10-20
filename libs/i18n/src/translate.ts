@@ -85,6 +85,7 @@ export default {
         'Refresh token verification failed. It might be expired or invalid.',
       User_Not_Found_With_Valid_Token:
         'User not found for a valid refresh token. The user may have been deleted.',
+      User_Login_Successful: 'User {{username}} login successful',
     },
   },
   zh: {
@@ -155,6 +156,7 @@ export default {
       Refresh_Token_Failed: '刷新令牌验证失败。它可能已过期或无效。',
       User_Not_Found_With_Valid_Token:
         '用户token有效，但是未找到该用户。用户可能已被删除。',
+      User_Login_Successful: '用户 {{username}} 登录成功',
     },
   },
 };
