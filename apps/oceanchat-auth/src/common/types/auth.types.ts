@@ -12,3 +12,20 @@ export type AuthenticatedUser = Pick<User, '_id' | 'username'> & {
  * A legacy type used to mimic an HTTP request for passport-local strategy.
  */
 export type RequestLike = { body: { username: string; password: string } };
+
+/**
+ * Result returned when the login request is successful.
+ */
+export type LoginResult = {
+  accessToken: string;
+  refreshToken: string;
+  user: Pick<User, 'username' | '_id'>;
+};
+
+/**
+ * Result returned when the refresh token request is successful.
+ */
+export type RefreshTokenResult = {
+  accessToken: string;
+  refreshToken: string;
+};

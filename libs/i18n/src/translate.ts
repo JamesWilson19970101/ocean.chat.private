@@ -85,6 +85,15 @@ export default {
         'Refresh token verification failed. It might be expired or invalid.',
       User_Not_Found_With_Valid_Token:
         'User not found for a valid refresh token. The user may have been deleted.',
+      INVALID_CREDENTIALS: 'Invalid credentials',
+      UNKNOWN_EXECUTION_CONTEXT_TYPE:
+        'Unknown execution context type-{{contextType}} caught by AllExceptionsFilter',
+      RPC_ERROR_CAUGHT_BY_FILTER: 'RPC Error caught by AllExceptionsFilter',
+      INTERNAL_SERVER_ERROR: 'Internal Server Error',
+      USER_CREATION_ERROR: 'User creation failed',
+      USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY:
+        'Username validation regex not configured successfully.',
+      UNAUTHORIZED: 'Unauthorized',
     },
   },
   zh: {
@@ -155,6 +164,15 @@ export default {
       Refresh_Token_Failed: '刷新令牌验证失败。它可能已过期或无效。',
       User_Not_Found_With_Valid_Token:
         '用户token有效，但是未找到该用户。用户可能已被删除。',
+      INVALID_CREDENTIALS: '凭证无效',
+      UNKNOWN_EXECUTION_CONTEXT_TYPE:
+        'AllExceptionsFilter 捕获到未知执行上下文类型-{{contextType}}',
+      RPC_ERROR_CAUGHT_BY_FILTER: 'RPC 错误被 AllExceptionsFilter 捕获',
+      INTERNAL_SERVER_ERROR: '内部服务器错误',
+      USER_CREATION_ERROR: '创建用户失败',
+      USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY:
+        '用户名验证正则表达式未配置。',
+      UNAUTHORIZED: '未经授权',
     },
   },
 };

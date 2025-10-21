@@ -15,8 +15,10 @@ export enum ErrorCodes {
   PASSWORD_NO_SPECIAL_CHAR = 10014, // e.g., does not contain at least one special character
   // login errors
   INVALID_CREDENTIALS = 10020, // e.g., incorrect username or password
-
+  USER_NOT_FOUND = 10021, // e.g., when a user is requested but does not exist
+  CREATION_ERROR = 10022, // e.g., for general creation failures
   // authentication errors
+
   UNAUTHORIZED = 10030, // e.g., when accessing a protected resource without valid authentication
 
   UNEXPECTED_ERROR = 99999, // e.g., for unexpected errors not covered by other codes

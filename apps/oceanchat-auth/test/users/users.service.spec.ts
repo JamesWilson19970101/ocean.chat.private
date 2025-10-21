@@ -164,10 +164,7 @@ describe('Test UsersService', () => {
       const loggerErrorSpy = jest.spyOn(logger, 'error').mockImplementation();
       // Act & Assert
       await expect(service.create(createUserDto)).rejects.toThrow(
-        new BaseRpcException(
-          'USER_CREATION_FAILED',
-          ErrorCodes.UNEXPECTED_ERROR,
-        ),
+        new BaseRpcException('USER_CREATION_FAILED', ErrorCodes.CREATION_ERROR),
       );
       expect(loggerErrorSpy).toHaveBeenCalledWith(
         { err: dbError },

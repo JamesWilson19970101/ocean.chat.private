@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider, User } from '@ocean.chat/models';
 import { Types } from 'mongoose';
 import { Strategy } from 'passport-local';
@@ -9,7 +10,10 @@ import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly usersService: UsersService) {
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly i18nService: I18nService,
+  ) {
     super();
   }
 
@@ -22,8 +26,8 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 
     if (!userWithPassword) {
       throw new BaseRpcException(
-        'Invalid credentials',
-        ErrorCodes.INVALID_CREDENTIALS,
+        this.i18nService.translate('User_not_found'),
+        ErrorCodes.USER_NOT_FOUND,
       );
     }
 
@@ -34,7 +38,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 
     if (!isPasswordValid) {
       throw new BaseRpcException(
-        'Invalid credentials',
+        this.i18nService.translate('INVALID_CREDENTIALS'),
         ErrorCodes.INVALID_CREDENTIALS,
       );
     }

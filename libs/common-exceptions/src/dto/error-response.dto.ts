@@ -49,7 +49,7 @@ export class ErrorResponseDto {
    * The type of error: 'Business' for predictable business logic errors, 'System' for unexpected system errors
    * @example { "field": "email", "error": "must be a valid email" }
    */
-  details?: any;
+  details?: { [key: string]: any; cause?: Error };
 
   constructor(partial: Partial<ErrorResponseDto>) {
     Object.assign(this, partial);

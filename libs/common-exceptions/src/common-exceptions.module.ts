@@ -1,5 +1,6 @@
 import { DynamicModule, Module, Provider } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
+import { I18nService } from '@ocean.chat/i18n';
 import { PinoLogger } from 'nestjs-pino';
 
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
@@ -41,14 +42,16 @@ export class CommonExceptionsModule {
             serviceName: string,
             serviceInstanceId: string,
             logger: PinoLogger,
+            i18nService: I18nService,
           ) => {
             return new AllExceptionsFilter(
               serviceName,
               serviceInstanceId,
               logger,
+              i18nService,
             );
           },
-          inject: [SERVICE_NAME, SERVICE_INSTANCE_ID, PinoLogger],
+          inject: [SERVICE_NAME, SERVICE_INSTANCE_ID, PinoLogger, I18nService],
         },
       ],
       exports: [serviceNameProvider, serviceInstanceIdProvider],

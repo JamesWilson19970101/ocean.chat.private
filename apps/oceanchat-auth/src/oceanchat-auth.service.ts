@@ -10,11 +10,13 @@ import * as ms from 'ms';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { v4 as uuidv4 } from 'uuid';
 
+import { LoginResult, RefreshTokenResult } from './common/types/auth.types';
 import {
   getAccessSessionKey,
   getRefreshSessionKey,
 } from './common/utils/session.utils';
 import { UsersService } from './users/users.service';
+
 @Injectable()
 export class OceanchatAuthService implements OnModuleInit {
   private loginCounter: Counter;
@@ -33,17 +35,14 @@ export class OceanchatAuthService implements OnModuleInit {
       description: 'Total number of successful user logins',
     });
   }
+
   /**
    * Generates a JWT with a jti and store the jti in redis for whitelisting.
    * This is called by the AuthController after the LocalStrategy has successfully validated the user.
    * @param user The user object, validated by LocalStrategy.
    * @returns An object containing the access token, refresh token, and user information.
    */
-  async login(user: Pick<User, 'username' | '_id'>): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    user: Pick<User, 'username' | '_id'>;
-  }> {
+  async login(user: Pick<User, 'username' | '_id'>): Promise<LoginResult> {
     // test logger
     this.logger.info('Login successful....................');
     this.loginCounter.add(1, { 'login.method': 'password' });
@@ -57,24 +56,18 @@ export class OceanchatAuthService implements OnModuleInit {
    * @param oldRefreshToken The expired or soon-to-expire refresh token.
    * @returns A new pair of access and refresh tokens.
    */
-  async refreshToken(oldRefreshToken: string): Promise<{
-    accessToken: string;
-    refreshToken: string;
-  }> {
+  async refreshToken(oldRefreshToken: string): Promise<RefreshTokenResult> {
     let payload: { sub: string; jti: string };
     try {
       payload = await this.jwtService.verifyAsync(oldRefreshToken, {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
     } catch (error) {
-      this.logger.warn(
-        { err: error },
-        this.i18nService.translate('Refresh_Token_Failed'),
-      );
       // If the refresh token is invalid or expired, deny access.
       throw new BaseRpcException(
         this.i18nService.translate('UNAUTHORIZED'),
         ErrorCodes.UNAUTHORIZED,
+        { cause: error },
       );
     }
 
@@ -97,16 +90,14 @@ export class OceanchatAuthService implements OnModuleInit {
     // Fetch user to generate new tokens
     const user = await this.usersService.findOneById(userId);
     if (!user) {
-      // This is a critical and unexpected situation. A valid refresh token exists for a user
-      // that is no longer in the database. This could happen if a user was deleted but their
-      // sessions were not properly invalidated.
-      this.logger.error(
-        { userId, jti },
-        this.i18nService.translate('User_Not_Found_With_Valid_Token'),
-      );
       throw new BaseRpcException(
         this.i18nService.translate('User_not_found'),
         ErrorCodes.UNAUTHORIZED,
+        {
+          userId,
+          jti,
+          reason: this.i18nService.translate('User_Not_Found_With_Valid_Token'),
+        },
       );
     }
 
@@ -173,12 +164,13 @@ export class OceanchatAuthService implements OnModuleInit {
       ]);
 
       return [accessToken, refreshToken];
-    } catch {
+    } catch (error) {
       // If storing the session in Redis fails, we should not issue the token.
       // This prevents issuing a token that can never be validated.
       throw new BaseRpcException(
         this.i18nService.translate('Login_Session_Store_Failed'),
         ErrorCodes.UNEXPECTED_ERROR,
+        { cause: error },
       );
     }
   }

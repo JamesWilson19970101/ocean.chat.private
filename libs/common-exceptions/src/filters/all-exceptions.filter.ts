@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { RpcException } from '@nestjs/microservices';
 import { WsException } from '@nestjs/websockets';
+import { I18nService } from '@ocean.chat/i18n';
 import type { Request, Response } from 'express';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { WebSocket } from 'ws';
@@ -19,19 +20,6 @@ import { BaseHttpException } from '../exceptions/http.exception';
 import { BaseRpcException } from '../exceptions/rpc.exception';
 import { BaseWsException } from '../exceptions/ws.exception';
 
-export type CustomException = {
-  message: string;
-  errorCode: number;
-  details?: any;
-  error: {
-    message: string;
-    errorCode: number;
-    details?: any;
-    status?: number;
-  };
-  status?: number;
-};
-
 /**
  * global exception filter that catches all unhandled exceptions across different contexts (HTTP, RPC, WebSocket).
  * It standardizes error responses and ensures consistent logging.
@@ -42,8 +30,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     @Inject(SERVICE_NAME) private readonly serviceName: string,
     @Inject(SERVICE_INSTANCE_ID)
     private readonly serviceInstanceId: string,
-    @InjectPinoLogger('ocean.chat.all.exceptions.filter')
+    @InjectPinoLogger('all.exceptions.filter')
     private readonly logger: PinoLogger,
+    private readonly i18nService: I18nService,
   ) {}
 
   /**
@@ -52,11 +41,6 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * @param host the arguments host, which provides access to the execution context
    */
   catch(exception: unknown, host: ArgumentsHost): any {
-    // Log the exception details for debugging and monitoring
-    this.logger.error(
-      { err: exception },
-      'An exception was caught by AllExceptionsFilter...',
-    );
     const contextType = host.getType();
 
     // Handle the exception based on the context type
@@ -69,7 +53,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else {
       // Unknown context type, log a warning
       this.logger.error(
-        `Unknown execution context type: ${String(contextType)}`,
+        { err: exception, contextType: String(contextType) }, // Log the original exception and context type
+        this.i18nService.translate('UNKNOWN_EXECUTION_CONTEXT_TYPE', {
+          contextType: String(contextType),
+        }),
       );
     }
   }
@@ -89,6 +76,24 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const responseBody = this.createErrorResponse(exception, request.url);
 
+    const logPayload = {
+      err: exception, // The original exception object
+      response: responseBody,
+      request: {
+        method: request.method,
+        url: request.url,
+        query: request.query,
+        headers: request.headers,
+      },
+    };
+
+    // Differentiated logging: WARN for 4xx, ERROR for 5xx
+    if (responseBody.statusCode >= 500) {
+      this.logger.error(logPayload, `Error: ${request.method} ${request.url}`);
+    } else {
+      this.logger.warn(logPayload, `Warning: ${request.method} ${request.url}`);
+    }
+
     response.status(responseBody.statusCode).json(responseBody);
   }
 
@@ -101,10 +106,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   private handleRpcException(
     exception: BaseRpcException,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     host: ArgumentsHost,
   ): any {
+    const ctx = host.switchToRpc();
     const errorResponse = this.createErrorResponse(exception);
+    // RPC exceptions are logged as ERROR
+    this.logger.error(
+      {
+        err: exception,
+        response: errorResponse,
+        rpcData: ctx.getData(),
+      },
+      this.i18nService.translate('RPC_ERROR_CAUGHT_BY_FILTER'),
+    );
     if (typeof errorResponse.message !== 'string') {
       errorResponse.message = JSON.stringify(errorResponse.message);
     }
@@ -123,7 +137,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const ctx = host.switchToWs();
     const client = ctx.getClient<WebSocket>();
     const errorResponse = this.createErrorResponse(exception);
-
+    // WS exceptions are logged as ERROR
+    this.logger.error(
+      {
+        err: exception,
+        response: errorResponse,
+        wsData: ctx.getData(),
+      },
+      'WebSocket Error caught by AllExceptionsFilter',
+    );
     // For 'ws' library, use client.send() to transmit data.
     if (client.readyState === WebSocket.OPEN) {
       client.send(JSON.stringify({ event: 'exception', data: errorResponse }));
@@ -142,7 +164,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ): ErrorResponseDto {
     // Default values for an unexpected error
     let statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | object = 'Internal Server Error';
+    let message: string | object = this.i18nService.translate(
+      'INTERNAL_SERVER_ERROR',
+    );
     let errorCode: number = ErrorCodes.UNEXPECTED_ERROR;
     let details: any;
 

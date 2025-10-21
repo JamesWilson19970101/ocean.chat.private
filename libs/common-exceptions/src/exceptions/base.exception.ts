@@ -12,7 +12,7 @@ export class BaseException extends HttpException {
     response: string | Record<string, any>,
     status: number,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly details?: any,
+    public readonly details?: { [key: string]: any; cause?: Error },
   ) {
     super(response, status);
   }
