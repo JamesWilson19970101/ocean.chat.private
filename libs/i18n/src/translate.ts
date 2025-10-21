@@ -94,6 +94,7 @@ export default {
       USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY:
         'Username validation regex not configured successfully.',
       UNAUTHORIZED: 'Unauthorized',
+      User_Login_Successful: 'User {{username}} login successful',
     },
   },
   zh: {
@@ -173,6 +174,7 @@ export default {
       USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY:
         '用户名验证正则表达式未配置。',
       UNAUTHORIZED: '未经授权',
+      User_Login_Successful: '用户 {{username}} 登录成功',
     },
   },
 };

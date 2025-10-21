@@ -43,9 +43,13 @@ export class OceanchatAuthService implements OnModuleInit {
    * @returns An object containing the access token, refresh token, and user information.
    */
   async login(user: Pick<User, 'username' | '_id'>): Promise<LoginResult> {
-    // test logger
-    this.logger.info('Login successful....................');
+    this.logger.info(
+      this.i18nService.translate('User_Login_Successful', {
+        username: user.username,
+      }),
+    );
     this.loginCounter.add(1, { 'login.method': 'password' });
+    // generate accessToken & refreshToken if `@UseGuards(JwtAuthGuard)` runs successfully.
     const [accessToken, refreshToken] = await this.generateTokens(user);
     return { accessToken, refreshToken, user };
   }
