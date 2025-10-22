@@ -1,13 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Strategy } from 'passport-jwt';
 
 import { getAccessSessionKey } from '../common/utils/session.utils';
-import { UsersService } from '../users/users.service';
+
 const fromNatsPayload = (request: unknown): string | null => {
   if (
     request &&
@@ -24,12 +22,8 @@ const fromNatsPayload = (request: unknown): string | null => {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
-    private readonly i18nService: I18nService,
     private readonly configService: ConfigService,
-    @InjectPinoLogger('ocean.chat.auth.jwt.strategy')
-    private readonly logger: PinoLogger,
     private readonly redisService: RedisService,
-    private readonly usersService: UsersService,
   ) {
     super({
       jwtFromRequest: fromNatsPayload,
@@ -55,10 +49,15 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     | boolean
   > {
     const key = getAccessSessionKey(payload.jti);
-    // The `redisService` has a circuit breaker. If Redis is down, `get` will throw an error,
+    // If Redis is down, `get` will throw an error,
     // which will be caught by the `JwtAuthGuard` and result in an authentication failure.
     // This aligns with the strategy of failing the operation if Redis is unavailable.
     const sessionExists = await this.redisService.get(key);
+    // TODO: Event-driven Revocation List
+    // Publish event on user status change: When a user is deleted or disabled, your UsersService (or other relevant service), after completing the database operation, will publish an event via NATS, such as user.revoked, with a payload of { userId: 'some-user-id' }.
+    // Auth service listens for the event: The OceanchatAuthService listens for this user.revoked event.
+    // Add to blacklist: Upon receiving the event, the OceanchatAuthService adds this userId to a "blacklist" Set in Redis and sets a reasonable expiration time (e.g., set it to the expiration time of your longest Refresh Token for automatic cleanup).
+    // JwtStrategy checks the blacklist: Modify the JwtStrategy to add an additional step after checking the whitelist (access-session): check if the token's sub (i.e., the userId) exists in the Redis "blacklist".
     if (sessionExists) {
       // Cache Hit: Token is in the whitelist, validation successful.
       return { sub: payload.sub, username: payload.username };
