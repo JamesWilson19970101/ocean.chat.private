@@ -5,11 +5,11 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
-import { RpcException } from '@nestjs/microservices';
 import { WsException } from '@nestjs/websockets';
 import { I18nService } from '@ocean.chat/i18n';
 import type { Request, Response } from 'express';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { Observable, throwError } from 'rxjs';
 import { WebSocket } from 'ws';
 
 import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '../common-exceptions.module';
@@ -107,7 +107,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private handleRpcException(
     exception: BaseRpcException,
     host: ArgumentsHost,
-  ): any {
+  ): Observable<never> {
     const ctx = host.switchToRpc();
     const errorResponse = this.createErrorResponse(exception);
     // RPC exceptions are logged as ERROR
@@ -122,7 +122,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (typeof errorResponse.message !== 'string') {
       errorResponse.message = JSON.stringify(errorResponse.message);
     }
-    return new RpcException(errorResponse);
+    // Previously, the `handleRpcException` method in `AllExceptionsFilter` would
+    // return a new `RpcException(...)` object.
+
+    // When this filter caught an error originating from an interceptor's RxJS
+    // stream (like `NatsTraceInterceptor`'s `catchError`), returning a plain
+    // object broke the observable chain.
+    return throwError(() => errorResponse);
   }
 
   /**
@@ -158,7 +164,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * @param path optional request path
    * @returns standardized error response DTO
    */
-  private createErrorResponse(
+  public createErrorResponse(
     exception: BaseHttpException | BaseRpcException | WsException | Error,
     path?: string,
   ): ErrorResponseDto {
