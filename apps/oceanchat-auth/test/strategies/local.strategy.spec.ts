@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider } from '@ocean.chat/models';
 
 import { LocalStrategy } from '../../src/strategies/local.strategy';
@@ -22,6 +23,10 @@ describe('Test LocalStrategy', () => {
         {
           provide: UsersService,
           useValue: mockUsersService,
+        },
+        {
+          provide: I18nService,
+          useValue: { translate: jest.fn((key: string) => key) },
         },
       ],
     }).compile();
@@ -70,10 +75,7 @@ describe('Test LocalStrategy', () => {
       mockUsersService.findOneByUsernameAndProvider.mockResolvedValue(null);
 
       await expect(strategy.validate(username, password)).rejects.toThrow(
-        new BaseRpcException(
-          'Invalid credentials',
-          ErrorCodes.INVALID_CREDENTIALS,
-        ),
+        new BaseRpcException('User_not_found', ErrorCodes.INVALID_CREDENTIALS),
       );
       expect(
         mockUsersService.findOneByUsernameAndProvider,
@@ -89,7 +91,7 @@ describe('Test LocalStrategy', () => {
 
       await expect(strategy.validate(username, password)).rejects.toThrow(
         new BaseRpcException(
-          'Invalid credentials',
+          'INVALID_CREDENTIALS',
           ErrorCodes.INVALID_CREDENTIALS,
         ),
       );

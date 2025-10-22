@@ -1,6 +1,7 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { I18nService } from '@ocean.chat/i18n';
 
 import { AuthenticatedUser } from '../types/auth.types';
 /**
@@ -9,6 +10,9 @@ import { AuthenticatedUser } from '../types/auth.types';
  */
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
+  constructor(private readonly i18nService: I18nService) {
+    super();
+  }
   /**
    * Overrides the default getRequest method to extract data from an RPC context.
    * The JwtStrategy is configured to extract the token from this data object.
@@ -33,7 +37,8 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // In either case, authentication has failed.
     if (err || !user) {
       // wrap the original error message or provide a generic one in our custom exception.
-      const message = (err as Error)?.message || 'Unauthorized';
+      const message =
+        (err as Error)?.message || this.i18nService.translate('UNAUTHORIZED');
       throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED);
     }
 

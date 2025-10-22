@@ -1,10 +1,22 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { ClientProxy, ClientsModule, Transport } from '@nestjs/microservices';
+import { ClientProxy } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  NATS_CLIENT_INJECTION_TOKEN,
+  NatsOpentelemetryTracingModule,
+} from '@ocean.chat/nats-opentelemetry-tracing';
 import Redis from 'ioredis';
 import { connect, connection, Types } from 'mongoose';
 import { catchError, firstValueFrom, of } from 'rxjs';
-const AUTH_CLIENT = 'AUTH_CLIENT';
+
+import { ErrorResponseDto } from '../../../libs/common-exceptions/src/dto/error-response.dto';
+import {
+  LoginResult,
+  RefreshTokenResult,
+} from '..//src/common/types/auth.types';
+type RpcError = {
+  error: ErrorResponseDto;
+  message: string;
+};
 
 describe('OceanchatAuthController (e2e)', () => {
   let client: ClientProxy;
@@ -19,19 +31,13 @@ describe('OceanchatAuthController (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
-        ClientsModule.register([
-          {
-            name: AUTH_CLIENT,
-            transport: Transport.NATS,
-            options: {
-              servers: [process.env.NATS_URL || 'nats://localhost:4222'],
-            },
-          },
-        ]),
+        NatsOpentelemetryTracingModule.register({
+          servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+        }),
       ],
     }).compile();
 
-    client = moduleFixture.get<ClientProxy>(AUTH_CLIENT);
+    client = moduleFixture.get<ClientProxy>(NATS_CLIENT_INJECTION_TOKEN);
     await client.connect();
 
     redisClient = new Redis({
@@ -49,56 +55,64 @@ describe('OceanchatAuthController (e2e)', () => {
     await connection.close();
   });
 
-  // describe("MessagePattern 'auth.login'", () => {
-  //   beforeEach(async () => {
-  //     await firstValueFrom(client.send('auth.register', testUser));
-  //   });
+  describe("MessagePattern 'auth.login'", () => {
+    beforeEach(async () => {
+      await firstValueFrom(client.send('auth.register', testUser));
+    });
 
-  //   afterEach(async () => {
-  //     await connection.collection('users').deleteMany({});
-  //     await redisClient.flushdb();
-  //   });
+    afterEach(async () => {
+      await connection.collection('users').deleteMany({});
+      // login will set access-session & refresh-session
+      const accessKeys = await redisClient.keys('access-session:*');
+      const refreshKeys = await redisClient.keys('refresh-session:*');
+      const allSessionKeys = [...accessKeys, ...refreshKeys];
+      if (allSessionKeys.length > 0) {
+        await redisClient.del(allSessionKeys);
+      }
+    });
 
-  //   it('should throw an RpcException with wrong password', async () => {
-  //     const payload = {
-  //       username: testUser.username,
-  //       password: 'WrongPassword',
-  //     };
+    it('should throw an RpcException with wrong password', async () => {
+      const payload = {
+        username: testUser.username,
+        password: 'WrongPassword',
+      };
 
-  //     const response = await firstValueFrom(client.send('auth.login', payload));
+      const rpcEerror: RpcError = await firstValueFrom(
+        client.send('auth.login', payload),
+      );
 
-  //     // The error from BaseRpcException is nested inside the 'error' property.
-  //     expect(response).toHaveProperty('error');
-  //     // The error message from the microservice is a JSON string, so we need to parse it.
+      // The error from BaseRpcException is nested inside the 'error' property.
+      expect(rpcEerror).toHaveProperty('error');
+      // The error message from the microservice is a JSON string, so we need to parse it.
+      expect(rpcEerror.error.errorCode).toBe(10020);
+    });
 
-  //     const errorDetails = JSON.parse(response.error.message);
+    it('should return access and refresh tokens with correct credentials', async () => {
+      const payload = {
+        username: testUser.username,
+        password: testUser.password,
+      };
 
-  //     expect(errorDetails.message).toBe('Invalid credentials');
-  //   });
+      const response: LoginResult = await firstValueFrom(
+        client.send('auth.login', payload),
+      );
 
-  //   it('should return access and refresh tokens with correct credentials', async () => {
-  //     const payload = {
-  //       username: testUser.username,
-  //       password: testUser.password,
-  //     };
+      expect(response).toHaveProperty('accessToken');
+      expect(response).toHaveProperty('refreshToken');
 
-  //     const response = await firstValueFrom(client.send('auth.login', payload));
+      expect(typeof response.accessToken).toBe('string');
+      expect(response).toHaveProperty('user');
 
-  //     expect(response).toHaveProperty('accessToken');
-  //     expect(response).toHaveProperty('refreshToken');
+      expect(response.user).toHaveProperty('username', testUser.username);
 
-  //     expect(typeof response.accessToken).toBe('string');
-  //     expect(response).toHaveProperty('user');
-
-  //     expect(response.user).toHaveProperty('username', testUser.username);
-
-  //     expect(response.user).toHaveProperty('_id');
-  //   });
-  // });
+      expect(response.user).toHaveProperty('_id');
+    });
+  });
 
   describe("MessagePattern 'auth.token.validate'", () => {
     let accessToken: string;
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     let refreshToken: string;
 
     beforeEach(async () => {
@@ -111,6 +125,7 @@ describe('OceanchatAuthController (e2e)', () => {
       const response = await firstValueFrom<{
         accessToken: string;
         refreshToken: string;
+        [key: string]: any;
       }>(client.send('auth.login', loginPayload));
       accessToken = response.accessToken;
       refreshToken = response.refreshToken;
@@ -118,31 +133,33 @@ describe('OceanchatAuthController (e2e)', () => {
 
     afterEach(async () => {
       await connection.collection('users').deleteMany({});
-      await redisClient.flushdb();
+      // login will set access-session & refresh-session
+      const accessKeys = await redisClient.keys('access-session:*');
+      const refreshKeys = await redisClient.keys('refresh-session:*');
+      const allSessionKeys = [...accessKeys, ...refreshKeys];
+      if (allSessionKeys.length > 0) {
+        await redisClient.del(allSessionKeys);
+      }
     });
 
-    // it('should return user payload for a valid token', async () => {
-    //   const payload = {
-    //     token: accessToken,
-    //   };
-    //   const response = await firstValueFrom(
-    //     client.send('auth.token.validate', payload),
-    //   );
-    //   expect(response).toHaveProperty('sub'); // user id
-    //   expect(response).toHaveProperty('username', 'james');
-    // });
+    it('should return user payload for a valid token', async () => {
+      const payload = {
+        token: accessToken,
+      };
+      const response = await firstValueFrom(
+        client.send('auth.token.validate', payload),
+      );
+      expect(response).toHaveProperty('sub'); // user id
+      expect(response).toHaveProperty('username', 'james');
+    });
 
     it('should throw an RpcException for an invalid token', async () => {
       const payload = { token: 'invalid.token.string' };
-      const errorDetails = await firstValueFrom(
-        client
-          .send('auth.token.validate', payload)
-          .pipe(catchError((err) => of(err))),
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.validate', payload),
       );
-      console.log(errorDetails);
-      expect(errorDetails).toHaveProperty('error');
-      const message = JSON.parse(errorDetails.error.message);
-      expect(message.message).toBe('Unauthorized');
+      expect(rpcError).toHaveProperty('error');
+      expect(rpcError.error.errorCode).toBe(10030);
     });
   });
 
@@ -172,12 +189,17 @@ describe('OceanchatAuthController (e2e)', () => {
 
     afterEach(async () => {
       await connection.collection('users').deleteMany({});
-      await redisClient.flushdb();
+      const accessKeys = await redisClient.keys('access-session:*');
+      const refreshKeys = await redisClient.keys('refresh-session:*');
+      const allSessionKeys = [...accessKeys, ...refreshKeys];
+      if (allSessionKeys.length > 0) {
+        await redisClient.del(allSessionKeys);
+      }
     });
 
     // it('should return new tokens for a valid refresh token', async () => {
     //   const payload = { refreshToken };
-    //   const response = await firstValueFrom(
+    //   const response: RefreshTokenResult = await firstValueFrom(
     //     client.send('auth.token.refresh', payload),
     //   );
 
@@ -187,18 +209,16 @@ describe('OceanchatAuthController (e2e)', () => {
     //   expect(response.refreshToken).not.toBe(refreshToken); // Should be a new token
     // });
 
-    // it('should throw an RpcException for an invalid refresh token', async () => {
-    //   const payload = { refreshToken: 'invalid.refresh.token' };
-    //   const response = await firstValueFrom(
-    //     client.send('auth.token.refresh', payload),
-    //   );
+    it('should throw an RpcException for an invalid refresh token', async () => {
+      const payload = { refreshToken: 'invalid.refresh.token' };
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
+      console.log('rpcError11111111111111111111111', rpcError);
+      expect(rpcError).toHaveProperty('error');
 
-    //   expect(response).toHaveProperty('error');
-
-    //   const errorDetails = JSON.parse(response.error.message);
-
-    //   expect(errorDetails.message).toBe('UNAUTHORIZED');
-    // });
+      expect(rpcError.error.errorCode).toBe(10030);
+    });
 
     // it('should throw an RpcException for a revoked refresh token', async () => {
     //   // Manually revoke the token by deleting its session from Redis

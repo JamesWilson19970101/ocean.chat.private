@@ -20,7 +20,7 @@ export class BaseWsException extends WsException {
   constructor(
     public readonly message: string,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly details?: any,
+    public readonly details?: { [key: string]: any; cause?: Error },
   ) {
     super({ message, errorCode, details });
   }

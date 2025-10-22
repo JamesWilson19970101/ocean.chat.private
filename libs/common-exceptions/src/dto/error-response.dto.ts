@@ -28,6 +28,12 @@ export class ErrorResponseDto {
   serviceName: string;
 
   /**
+   * The uuid of service
+   * @example "ikskhshyfodsniosuydsfnl"
+   */
+  serviceInstanceId: string;
+
+  /**
    * A business-specific error code for precise handling by the client or service caller
    * @example 99999 // e.g., for unexpected errors not covered by other codes
    */
@@ -43,7 +49,7 @@ export class ErrorResponseDto {
    * The type of error: 'Business' for predictable business logic errors, 'System' for unexpected system errors
    * @example { "field": "email", "error": "must be a valid email" }
    */
-  details?: any;
+  details?: { [key: string]: any; cause?: Error };
 
   constructor(partial: Partial<ErrorResponseDto>) {
     Object.assign(this, partial);

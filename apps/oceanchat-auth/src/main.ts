@@ -1,5 +1,8 @@
 import { startTracing } from '@ocean.chat/tracing';
-startTracing(); // Initialize OpenTelemetry Tracing at the very begining of the application
+import { randomUUID } from 'crypto';
+const serviceName = 'oceanchat-auth';
+const serviceInstanceId = randomUUID();
+startTracing(serviceName, serviceInstanceId); // Initialize OpenTelemetry Tracing at the very begining of the application
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
@@ -19,13 +22,16 @@ async function bootstrap() {
   `);
   // Create a pure microservice that listens on NATS
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
-    OceanchatAuthModule,
+    OceanchatAuthModule.forRoot({
+      serviceName,
+      serviceInstanceId,
+    }),
     {
       transport: Transport.NATS,
       options: {
         servers: [process.env.NATS_URL || 'nats://localhost:4222'],
       },
-      // logger: false, // Disable default logger
+      bufferLogs: true,
     },
   );
 

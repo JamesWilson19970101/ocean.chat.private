@@ -22,7 +22,7 @@ export class BaseHttpException extends BaseException {
     message: string,
     status: HttpStatus,
     errorCode: number,
-    details?: any,
+    details?: { [key: string]: any; cause?: Error },
   ) {
     super(message, status, errorCode, details);
   }

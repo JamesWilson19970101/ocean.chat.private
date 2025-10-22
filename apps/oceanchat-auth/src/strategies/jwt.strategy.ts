@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -48,10 +47,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     sub: string;
     jti: string;
     iat: number;
-  }): Promise<{
-    username: string;
-    sub: string;
-  }> {
+  }): Promise<
+    | {
+        username: string;
+        sub: string;
+      }
+    | boolean
+  > {
     const key = getAccessSessionKey(payload.jti);
     // The `redisService` has a circuit breaker. If Redis is down, `get` will throw an error,
     // which will be caught by the `JwtAuthGuard` and result in an authentication failure.
@@ -61,9 +63,6 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       // Cache Hit: Token is in the whitelist, validation successful.
       return { sub: payload.sub, username: payload.username };
     }
-    throw new BaseRpcException(
-      this.i18nService.translate('JWT_Revoked'),
-      ErrorCodes.UNAUTHORIZED,
-    );
+    return false;
   }
 }

@@ -1,0 +1,35 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+    sending_queue:
+      batch:
+  debug:
+    verbosity: detailed
+  prometheus:
+    # Wait for scraping from promethues
+    endpoint: '0.0.0.0:8889'
+
+service:
+  telemetry:
+    logs:
+      level: 'debug'
+  pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+    traces:
+      receivers: [otlp]
+      exporters: [otlp/jaeger, debug]

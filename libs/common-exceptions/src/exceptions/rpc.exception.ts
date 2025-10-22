@@ -20,13 +20,13 @@ export class BaseRpcException extends RpcException {
   constructor(
     public readonly message: string,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly details?: any,
+    public readonly details?: { [key: string]: any; cause?: Error },
   ) {
     // RpcException typically wraps an error object or message.
     super({
       message,
       errorCode,
-      details,
+      details: details || {},
     });
   }
 }

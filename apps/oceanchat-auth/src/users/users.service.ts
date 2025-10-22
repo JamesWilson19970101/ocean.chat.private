@@ -69,10 +69,13 @@ export class UsersService {
       if (error instanceof BaseRpcException) {
         throw error;
       }
-      // Otherwise, treat it as an internal server error.
-      const errorMessage = this.i18nService.translate('USER_CREATION_FAILED');
-      this.logger.error({ err: error }, errorMessage);
-      throw new BaseRpcException(errorMessage, ErrorCodes.UNEXPECTED_ERROR);
+      // For any other unexpected error, wrap it in a standard application exception.
+      // This ensures that we don't leak implementation details and that the boundary
+      // logger has a consistent error object to work with.
+      const errorMessage = this.i18nService.translate('USER_CREATION_ERROR');
+      throw new BaseRpcException(errorMessage, ErrorCodes.CREATION_ERROR, {
+        cause: error,
+      });
     }
   }
 
@@ -165,7 +168,9 @@ export class UsersService {
     }
     if (typeof usernameRegexString !== 'string') {
       throw new BaseRpcException(
-        'Username validation regex is not configured.',
+        this.i18nService.translate(
+          'USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY',
+        ),
         ErrorCodes.UNEXPECTED_ERROR,
       );
     }
