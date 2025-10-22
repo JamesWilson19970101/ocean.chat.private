@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ClientProxy } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
 import {
@@ -6,6 +7,7 @@ import {
 } from '@ocean.chat/nats-opentelemetry-tracing';
 import Redis from 'ioredis';
 import { connect, connection, Types } from 'mongoose';
+import * as ms from 'ms';
 import { catchError, firstValueFrom, of } from 'rxjs';
 
 import { ErrorResponseDto } from '../../../libs/common-exceptions/src/dto/error-response.dto';
@@ -27,6 +29,9 @@ describe('OceanchatAuthController (e2e)', () => {
     password: 'James123456',
     confirmPassword: 'James123456',
   };
+
+  const TEST_ACCESS_TOKEN_EXPIRES_IN_MS = ms('1s');
+  const TEST_REFRESH_TOKEN_EXPIRES_IN_MS = ms('2s');
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -78,7 +83,11 @@ describe('OceanchatAuthController (e2e)', () => {
       };
 
       const rpcEerror: RpcError = await firstValueFrom(
-        client.send('auth.login', payload),
+        client.send('auth.login', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
       );
 
       // The error from BaseRpcException is nested inside the 'error' property.
@@ -94,7 +103,11 @@ describe('OceanchatAuthController (e2e)', () => {
       };
 
       const response: LoginResult = await firstValueFrom(
-        client.send('auth.login', payload),
+        client.send('auth.login', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
       );
 
       expect(response).toHaveProperty('accessToken');
@@ -107,12 +120,29 @@ describe('OceanchatAuthController (e2e)', () => {
 
       expect(response.user).toHaveProperty('_id');
     });
+
+    it('should throw an RpcException for a non-existent username', async () => {
+      const payload = {
+        username: 'nonexistentuser',
+        password: testUser.password,
+      };
+
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.login', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
+
+      expect(rpcError).toHaveProperty('error');
+      expect(rpcError.error.errorCode).toBe(10021);
+    });
   });
 
   describe("MessagePattern 'auth.token.validate'", () => {
     let accessToken: string;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    let userId: string;
     let refreshToken: string;
 
     beforeEach(async () => {
@@ -122,11 +152,9 @@ describe('OceanchatAuthController (e2e)', () => {
         username: testUser.username,
         password: testUser.password,
       };
-      const response = await firstValueFrom<{
-        accessToken: string;
-        refreshToken: string;
-        [key: string]: any;
-      }>(client.send('auth.login', loginPayload));
+      const response: LoginResult = await firstValueFrom<LoginResult>(
+        client.send('auth.login', loginPayload),
+      );
       accessToken = response.accessToken;
       refreshToken = response.refreshToken;
     });
@@ -156,7 +184,11 @@ describe('OceanchatAuthController (e2e)', () => {
     it('should throw an RpcException for an invalid token', async () => {
       const payload = { token: 'invalid.token.string' };
       const rpcError: RpcError = await firstValueFrom(
-        client.send('auth.token.validate', payload),
+        client.send('auth.token.validate', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
       );
       expect(rpcError).toHaveProperty('error');
       expect(rpcError.error.errorCode).toBe(10030);
@@ -166,7 +198,6 @@ describe('OceanchatAuthController (e2e)', () => {
   describe("MessagePattern 'auth.token.refresh'", () => {
     let refreshToken: string;
 
-    let accessToken: string;
     let userId: string;
 
     beforeEach(async () => {
@@ -183,7 +214,7 @@ describe('OceanchatAuthController (e2e)', () => {
       }>(client.send('auth.login', loginPayload));
 
       refreshToken = response.refreshToken;
-      accessToken = response.accessToken;
+      // accessToken = response.accessToken;
       userId = response.user._id;
     });
 
@@ -197,89 +228,71 @@ describe('OceanchatAuthController (e2e)', () => {
       }
     });
 
-    // it('should return new tokens for a valid refresh token', async () => {
-    //   const payload = { refreshToken };
-    //   const response: RefreshTokenResult = await firstValueFrom(
-    //     client.send('auth.token.refresh', payload),
-    //   );
+    it('should return new tokens for a valid refresh token', async () => {
+      const payload = { refreshToken };
+      const response: RefreshTokenResult = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
 
-    //   expect(response).toHaveProperty('accessToken');
-    //   expect(response).toHaveProperty('refreshToken');
+      expect(response).toHaveProperty('accessToken');
+      expect(response).toHaveProperty('refreshToken');
 
-    //   expect(response.refreshToken).not.toBe(refreshToken); // Should be a new token
-    // });
+      expect(response.refreshToken).not.toBe(refreshToken); // Should be a new token
+    });
 
     it('should throw an RpcException for an invalid refresh token', async () => {
       const payload = { refreshToken: 'invalid.refresh.token' };
       const rpcError: RpcError = await firstValueFrom(
-        client.send('auth.token.refresh', payload),
+        client.send('auth.token.refresh', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
       );
-      console.log('rpcError11111111111111111111111', rpcError);
       expect(rpcError).toHaveProperty('error');
 
       expect(rpcError.error.errorCode).toBe(10030);
     });
 
-    // it('should throw an RpcException for a revoked refresh token', async () => {
-    //   // Manually revoke the token by deleting its session from Redis
-    //   const decoded = await firstValueFrom<{ jti: string }>(
-    //     client.send('auth.token.decode', { token: refreshToken }), // Assuming you have a decode helper or know the structure
-    //   );
-    //   await redisClient.del(`refresh-session:${decoded.jti}`);
+    it('should throw an RpcException for a revoked refresh token', async () => {
+      // Manually revoke the token by deleting its session from Redis
+      const decoded = await firstValueFrom<{ jti: string }>(
+        client.send('auth.token.decode', { token: refreshToken }), // Assuming you have a decode helper or know the structure
+      );
+      await redisClient.del(`refresh-session:${decoded.jti}`);
 
-    //   const payload = { refreshToken };
-    //   const response = await firstValueFrom(
-    //     client.send('auth.token.refresh', payload),
-    //   );
+      const payload = { refreshToken };
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.refresh', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
 
-    //   console.log('Response:', response);
+      expect(rpcError).toHaveProperty('error');
 
-    //   expect(response).toHaveProperty('error');
+      expect(rpcError.error.errorCode).toBe(10030);
+    });
 
-    //   const errorDetails = JSON.parse(response.error.message);
+    it('should throw an RpcException if the user does not exist anymore', async () => {
+      // Delete the user from the database
+      await connection.collection('users').deleteOne({
+        _id: new Types.ObjectId(userId),
+      });
 
-    //   expect(errorDetails.message).toBe('UNAUTHORIZED');
-    // });
+      const payload = { refreshToken };
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.refresh', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
 
-    // it('should throw an RpcException if the user does not exist anymore', async () => {
-    //   // Delete the user from the database
-    //   await connection.collection('users').deleteOne({
-    //     _id: new Types.ObjectId(userId),
-    //   });
+      expect(rpcError).toHaveProperty('error');
 
-    //   const payload = { refreshToken };
-    //   const response = await firstValueFrom(
-    //     client.send('auth.token.refresh', payload),
-    //   );
-
-    //   expect(response).toHaveProperty('error');
-
-    //   const errorDetails = JSON.parse(response.error.message);
-
-    //   expect(errorDetails.message).toBe('未找到用户');
-    // });
+      expect(rpcError.error.errorCode).toBe(10030);
+    });
   });
-  // Helper describe block for decoding token to get JTI, assuming no public decode endpoint
-  // This is a bit of a hack for testing. A dedicated `decode` endpoint would be cleaner.
-  // describe("MessagePattern 'auth.token.decode'", () => {
-  //   it('should decode a token', async () => {
-  //     // First, register the user so we can log in
-  //     await firstValueFrom(client.send('auth.register', testUser));
-  //     const loginPayload = {
-  //       username: testUser.username,
-  //       password: testUser.password,
-  //     };
-
-  //     const response = await firstValueFrom(
-  //       client.send('auth.login', loginPayload),
-  //     );
-  //     expect(response).toHaveProperty('refreshToken');
-  //     const decoded = await firstValueFrom(
-  //       client.send('auth.token.decode', { token: response.refreshToken }),
-  //     );
-
-  //     expect(decoded).toHaveProperty('sub');
-  //     expect(decoded).toHaveProperty('jti');
-  //   });
-  // });
 });
