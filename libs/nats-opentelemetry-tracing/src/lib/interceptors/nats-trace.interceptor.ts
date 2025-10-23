@@ -13,7 +13,7 @@ import {
   TextMapGetter,
   trace,
 } from '@opentelemetry/api';
-import { Observable, of } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 
 export type NatsHeaderCarrier = Record<string, unknown>;
@@ -89,7 +89,7 @@ export class NatsTraceInterceptor implements NestInterceptor {
             code: SpanStatusCode.ERROR,
             message: error.message,
           });
-          return of(error);
+          return throwError(() => error);
         }),
         finalize(() => {
           span.end();
