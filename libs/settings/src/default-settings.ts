@@ -71,7 +71,7 @@ export const defaultSettings: DefaultSetting[] = [
   },
   {
     _id: 'Accounts_Password_RequireSpecialChar',
-    value: false,
+    value: true,
     type: 'boolean',
     group: 'Accounts',
     i18nLabel: 'Accounts_Password_RequireSpecialChar',

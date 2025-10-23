@@ -9,7 +9,7 @@ import { DefaultSetting, defaultSettings } from './default-settings';
 
 @Injectable()
 export class SettingsService implements OnModuleInit {
-  private readonly CACHE_KEY_PREFIX = 'setting:';
+  private readonly CACHE_KEY_PREFIX = 'settings:';
   // Cache TTLs(time to live) in seconds
   private readonly CACHE_TTL_SECONDS = 3600; // 1 hour
   private readonly CACHE_NULL_TTL_SECONDS = 300; // 5 minutes
