@@ -2,9 +2,11 @@ import {
   ArgumentsHost,
   Catch,
   ExceptionFilter,
+  HttpException,
   HttpStatus,
   Inject,
 } from '@nestjs/common';
+import { RpcException } from '@nestjs/microservices';
 import { WsException } from '@nestjs/websockets';
 import { I18nService } from '@ocean.chat/i18n';
 import type { Request, Response } from 'express';
@@ -16,7 +18,6 @@ import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '../common-exceptions.module';
 import { ErrorCodes } from '../constants/error-codes.enum';
 import { ErrorResponseDto } from '../dto/error-response.dto';
 import { BaseException } from '../exceptions/base.exception';
-import { BaseHttpException } from '../exceptions/http.exception';
 import { BaseRpcException } from '../exceptions/rpc.exception';
 import { BaseWsException } from '../exceptions/ws.exception';
 
@@ -45,11 +46,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     // Handle the exception based on the context type
     if (contextType === 'http') {
-      this.handleHttpException(exception as BaseHttpException, host);
+      this.handleHttpException(exception as HttpException, host);
     } else if (contextType === 'rpc') {
-      return this.handleRpcException(exception as BaseRpcException, host);
+      return this.handleRpcException(exception as RpcException, host);
     } else if (contextType === 'ws') {
-      this.handleWsException(exception as BaseWsException, host);
+      this.handleWsException(exception as WsException, host);
     } else {
       // Unknown context type, log a warning
       this.logger.error(
@@ -67,7 +68,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * @param host arguments host
    */
   private handleHttpException(
-    exception: BaseHttpException,
+    exception: HttpException | Error,
     host: ArgumentsHost,
   ): void {
     const ctx = host.switchToHttp();
@@ -105,7 +106,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
    */
 
   private handleRpcException(
-    exception: BaseRpcException,
+    exception: RpcException | Error,
     host: ArgumentsHost,
   ): Observable<never> {
     const ctx = host.switchToRpc();
@@ -137,7 +138,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * @param host arguments host
    */
   private handleWsException(
-    exception: BaseWsException,
+    exception: WsException | Error,
     host: ArgumentsHost,
   ): void {
     const ctx = host.switchToWs();
@@ -165,7 +166,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
    * @returns standardized error response DTO
    */
   public createErrorResponse(
-    exception: BaseHttpException | BaseRpcException | WsException | Error,
+    exception: HttpException | RpcException | WsException | Error,
     path?: string,
   ): ErrorResponseDto {
     // Default values for an unexpected error
@@ -177,52 +178,80 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let details: any;
 
     if (exception instanceof BaseException) {
-      // process custom base exceptions
-      statusCode = exception.getStatus();
-      message = exception.getResponse();
-      errorCode = exception.getErrorCode();
-      details = exception.getDetails();
-    } else if (exception instanceof BaseHttpException) {
       // process NestJS built-in HTTP exceptions
       // eg. 400, 401, 403, 404, 500, etc.
       statusCode = exception.getStatus();
+      errorCode = exception.getErrorCode();
+      details = exception.getDetails();
       const response = exception.getResponse();
       if (typeof response === 'string') {
         message = response;
       } else if (
         typeof response === 'object' &&
         response !== null &&
-        'message' in response
+        'message' in response // process the case of error returned by ValidationPipe
       ) {
         const responseMessage = (response as { message: string | string[] })
           .message;
-        if (exception?.errorCode) {
-          errorCode = exception?.errorCode;
-        }
-        message = {
-          message: Array.isArray(responseMessage)
-            ? responseMessage.join(', ')
-            : responseMessage,
-          errorCode: errorCode, // Default error code for standard HttpExceptions
-        };
+        message = Array.isArray(responseMessage)
+          ? responseMessage.join(', ')
+          : responseMessage;
+      } else if (typeof response === 'object' && response !== null) {
+        message = response;
+      }
+    } else if (exception instanceof HttpException) {
+      statusCode = exception.getStatus();
+      const response = exception.getResponse();
+      errorCode = statusCode;
+      if (typeof response === 'string') {
+        message = response;
+      } else if (
+        typeof response === 'object' &&
+        response !== null &&
+        'message' in response // process the case of error returned by ValidationPipe
+      ) {
+        const responseMessage = (response as { message: string | string[] })
+          .message;
+        message = Array.isArray(responseMessage)
+          ? responseMessage.join(', ')
+          : responseMessage;
+      } else if (typeof response === 'object' && response !== null) {
+        message = response;
       }
     } else if (exception instanceof BaseRpcException) {
-      if (exception?.errorCode) {
-        errorCode = exception?.errorCode;
-      }
-
-      // process RPC exceptions between microservices
+      message = exception.message;
+      errorCode = exception.getErrorCode();
+      details = exception.getDetails();
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    } else if (exception instanceof RpcException) {
+      // process NestJS built-in RPC exceptions
       const rpcError = exception.getError();
       message =
         typeof rpcError === 'string' ? rpcError : JSON.stringify(rpcError);
+      errorCode = ErrorCodes.UNEXPECTED_ERROR;
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    } else if (exception instanceof BaseWsException) {
+      // process custom WebSocket exceptions
+      message = exception.message;
+      errorCode = exception.getErrorCode();
+      details = exception.getDetails();
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     } else if (exception instanceof WsException) {
-      // process WebSocket exceptions
+      // process NestJS built-in WebSocket exceptions
       const wsError = exception.getError();
       message = typeof wsError === 'string' ? wsError : JSON.stringify(wsError);
-    } else if (exception instanceof Error) {
-      // process native JS errors
-      // eg. ReferenceError, TypeError, SyntaxError, etc.
-      message = exception.message;
+      errorCode = ErrorCodes.UNEXPECTED_ERROR;
+      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    } else {
+      // Fallback for any other type of error, including native JS errors and non-Error objects.
+      if (exception instanceof Error) {
+        // Process native JS errors (e.g., ReferenceError, TypeError)
+        message = exception.message;
+      } else {
+        // Handle cases where a non-Error object (e.g., a string or plain object) is thrown.
+        // This ensures that no thrown value is ever lost.
+        message = JSON.stringify(exception);
+      }
     }
 
     return new ErrorResponseDto({

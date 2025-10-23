@@ -19,8 +19,8 @@ describe("UsersController 'auth.register' (e2e)", () => {
 
   const baseUser: CreateUserDto = {
     username: 'testuser',
-    password: 'Password123!',
-    confirmPassword: 'Password123!',
+    password: '#Password123!',
+    confirmPassword: '#Password123!',
   };
 
   beforeAll(async () => {
@@ -79,11 +79,8 @@ describe("UsersController 'auth.register' (e2e)", () => {
         .pipe(catchError((error) => of({ error }))),
     );
 
-    console.log(rpcError);
     expect(rpcError).toHaveProperty('error');
-    expect(rpcError.error.message).toContain(
-      'confirmPassword must match password',
-    );
+    expect(rpcError.error.message).toContain('Passwords do not match');
   });
 
   it('should throw an exception if username already exists', async () => {

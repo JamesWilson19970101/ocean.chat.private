@@ -26,8 +26,8 @@ describe('OceanchatAuthController (e2e)', () => {
 
   const testUser = {
     username: 'james',
-    password: 'James123456',
-    confirmPassword: 'James123456',
+    password: '@James123456',
+    confirmPassword: '@James123456',
   };
 
   const TEST_ACCESS_TOKEN_EXPIRES_IN_MS = ms('1s');
