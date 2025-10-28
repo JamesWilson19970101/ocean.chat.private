@@ -44,6 +44,7 @@ export class OceanchatAuthService implements OnModuleInit {
    */
   async login(user: Pick<User, 'username' | '_id'>): Promise<LoginResult> {
     this.logger.info(
+      { userId: user._id },
       this.i18nService.translate('User_Login_Successful', {
         username: user.username,
       }),
