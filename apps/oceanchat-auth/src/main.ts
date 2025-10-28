@@ -30,6 +30,7 @@ async function bootstrap() {
       transport: Transport.NATS,
       options: {
         servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+        queue: 'oceanchat-auth',
       },
       bufferLogs: true,
     },

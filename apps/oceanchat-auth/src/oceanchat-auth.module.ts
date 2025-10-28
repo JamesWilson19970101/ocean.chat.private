@@ -7,6 +7,7 @@ import { PassportModule } from '@nestjs/passport';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { ModelsModule } from '@ocean.chat/models';
+import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provisioner';
 import {
   NatsOpentelemetryTracingModule,
   NatsTraceInterceptor,
@@ -14,6 +15,7 @@ import {
 import { RedisModule } from '@ocean.chat/redis';
 import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
+import { RetentionPolicy, StorageType } from 'nats';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -30,7 +32,6 @@ import { OceanchatAuthService } from './oceanchat-auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from './users/users.module';
-
 // map SeverityNumber
 // https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
 const PinoLevelToSeverityNumber = {
@@ -155,13 +156,43 @@ export class OceanchatAuthModule {
               onConnectionCreate: (connection: Connection) => {
                 connection.on('connected', () => {
                   logger.setContext('database.module');
-                  logger.info(i18nService.translate('Database_Connected'));
+                  logger.info(
+                    { dbName: configService.get<string>('database.name') },
+                    i18nService.translate('Database_Connected'),
+                  );
                 });
                 return connection;
               },
             };
           },
           inject: [ConfigService, PinoLogger, I18nService],
+        }),
+        NatsJetStreamProvisionerModule.forRootAsync({
+          useFactory: () => {
+            const isProduction = process.env.NODE_ENV === 'production';
+            return {
+              // NATS server URL, configurable via environment variables.
+              natsUrl: process.env.NATS_URL || 'nats://localhost:4222',
+              streamConfig: {
+                // The unique name for the Stream.
+                name: 'AUTH',
+                // Capture all subjects starting with 'auth.' to aggregate all auth-related messages.
+                subjects: ['auth.>'],
+                // Retention policy: 'Limits' for production (for auditing/replay), 'Workqueue' for development (for efficiency).
+                retention: isProduction
+                  ? RetentionPolicy.Limits
+                  : RetentionPolicy.Workqueue,
+                // Persist messages to disk to ensure no data loss.
+                storage: StorageType.File,
+                // Number of replicas for high availability: 3 recommended for a production cluster, 1 for a single-node dev environment.
+                replicas: isProduction ? 3 : 1,
+                // In production, retain messages for 24 hours even after consumption. 0 means no time limit.
+                max_age: isProduction ? 24 * 60 * 60 * 1_000_000_000 : 0, // 24 hours in nanoseconds
+                // Provide a human-readable description for the stream for easier operations.
+                description: `Stream for the oceanchat-auth microservice (${isProduction ? 'Production' : 'Development'})`,
+              },
+            };
+          },
         }),
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({

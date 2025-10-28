@@ -66,6 +66,15 @@
         "tsConfigPath": "libs/models/tsconfig.lib.json"
       }
     },
+    "nats-jetstream-provisioner": {
+      "type": "library",
+      "root": "libs/nats-jetstream-provisioner",
+      "entryFile": "index",
+      "sourceRoot": "libs/nats-jetstream-provisioner/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/nats-jetstream-provisioner/tsconfig.lib.json"
+      }
+    },
     "nats-opentelemetry-tracing": {
       "type": "library",
       "root": "libs/nats-opentelemetry-tracing",

@@ -46,6 +46,12 @@
       "@ocean.chat/models/*": [
         "libs/models/src/*"
       ],
+      "@ocean.chat/nats-jetstream-provisioner": [
+        "libs/nats-jetstream-provisioner/src"
+      ],
+      "@ocean.chat/nats-jetstream-provisioner/*": [
+        "libs/nats-jetstream-provisioner/src/*"
+      ],
       "@ocean.chat/nats-opentelemetry-tracing": [
         "libs/nats-opentelemetry-tracing/src"
       ],

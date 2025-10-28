@@ -158,6 +158,7 @@
       "^@ocean.chat/common-exceptions(|/.*)$": "<rootDir>/libs/common-exceptions/src/$1",
       "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
       "^@ocean.chat/models(|/.*)$": "<rootDir>/libs/models/src/$1",
+      "^@ocean.chat/nats-jetstream-provisioner(|/.*)$": "<rootDir>/libs/nats-jetstream-provisioner/src/$1",
       "^@ocean.chat/nats-opentelemetry-tracing(|/.*)$": "<rootDir>/libs/nats-opentelemetry-tracing/src/$1",
       "^@ocean.chat/redis(|/.*)$": "<rootDir>/libs/redis/src/$1",
       "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1",
