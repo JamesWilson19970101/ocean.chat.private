@@ -95,6 +95,19 @@ export default {
         'Username validation regex not configured successfully.',
       UNAUTHORIZED: 'Unauthorized',
       User_Login_Successful: 'User {{username}} login successful',
+      NATS_STREAM_NAME_REQUIRED: 'Stream name is required in streamConfig.',
+      NATS_CONNECTING_TO_PROVISION_STREAM:
+        "Connecting to NATS at {{natsUrl}} to provision stream '{{streamName}}'...",
+      NATS_STREAM_FOUND_UPDATING:
+        "Stream '{{streamName}}' found. Updating configuration...",
+      NATS_STREAM_NOT_FOUND_CREATING:
+        "Stream '{{streamName}}' not found. Creating...",
+      NATS_STREAM_PROVISIONED_SUCCESSFULLY:
+        "Stream '{{streamName}}' provisioned successfully.",
+      NATS_STREAM_DESCRIPTION:
+        'Stream for the {{serviceName}} microservice ({{environment}})',
+      ENVIRONMENT_PRODUCTION: 'Production',
+      ENVIRONMENT_DEVELOPMENT: 'Development',
     },
   },
   zh: {
@@ -175,6 +188,16 @@ export default {
         '用户名验证正则表达式未配置。',
       UNAUTHORIZED: '未经授权',
       User_Login_Successful: '用户 {{username}} 登录成功',
+      NATS_STREAM_NAME_REQUIRED: 'Stream 配置中缺少流名称。',
+      NATS_CONNECTING_TO_PROVISION_STREAM:
+        "正在连接到 NATS 服务器 {{natsUrl}} 以配置流 '{{streamName}}'...",
+      NATS_STREAM_FOUND_UPDATING: "已找到流 '{{streamName}}'。正在更新配置...",
+      NATS_STREAM_NOT_FOUND_CREATING: "未找到流 '{{streamName}}'。正在创建...",
+      NATS_STREAM_PROVISIONED_SUCCESSFULLY: "流 '{{streamName}}' 配置成功。",
+      NATS_STREAM_DESCRIPTION:
+        '用于 {{serviceName}} 微服务的流 ({{environment}})',
+      ENVIRONMENT_PRODUCTION: '生产环境',
+      ENVIRONMENT_DEVELOPMENT: '开发环境',
     },
   },
 };

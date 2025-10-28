@@ -1,4 +1,5 @@
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { I18nService } from '@ocean.chat/i18n';
 import { connect, JetStreamManager, NatsConnection } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
@@ -12,6 +13,7 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
     private readonly options: NatsJetStreamProvisionerOptions,
     @InjectPinoLogger('nats-jetstream-provisioner.module')
     private readonly logger: PinoLogger,
+    private readonly i18nService: I18nService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -23,7 +25,7 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
     const streamName = streamConfig.name;
 
     if (!streamName) {
-      const errorMsg = 'Stream name is required in streamConfig.';
+      const errorMsg = this.i18nService.translate('NATS_STREAM_NAME_REQUIRED');
       this.logger.error({ streamName: null }, errorMsg);
       throw new Error(errorMsg);
     }
@@ -35,8 +37,11 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
         {
           natsUrl,
           streamName,
-        },
-        `Connecting to NATS at ${natsUrl} to provision stream '${streamName}'...`,
+        }, // Pass context for logging
+        this.i18nService.translate('NATS_CONNECTING_TO_PROVISION_STREAM', {
+          natsUrl,
+          streamName,
+        }),
       );
 
       nc = await connect({ servers: natsUrl });
@@ -44,17 +49,30 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
       const streamInfo = await jsm.streams.info(streamName).catch(() => null);
       if (streamInfo) {
         this.logger.info(
-          streamInfo,
-          `Stream '${streamName}' found. Updating configuration...`,
+          { description: streamInfo.config.description },
+          this.i18nService.translate('NATS_STREAM_FOUND_UPDATING', {
+            streamName,
+          }),
         );
         await jsm.streams.update(streamName, streamConfig);
       } else {
         this.logger.info(
           { streamInfo: null },
-          `Stream '${streamName}' not found. Creating...`,
+          this.i18nService.translate('NATS_STREAM_NOT_FOUND_CREATING', {
+            streamName,
+          }),
         );
         await jsm.streams.add(streamConfig);
       }
+      this.logger.info(
+        {
+          natsUrl,
+          streamName,
+        },
+        this.i18nService.translate('NATS_STREAM_PROVISIONED_SUCCESSFULLY', {
+          streamName,
+        }),
+      );
     } catch (error) {
       this.logger.error(
         { error },

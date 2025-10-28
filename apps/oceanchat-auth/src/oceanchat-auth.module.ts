@@ -168,8 +168,12 @@ export class OceanchatAuthModule {
           inject: [ConfigService, PinoLogger, I18nService],
         }),
         NatsJetStreamProvisionerModule.forRootAsync({
-          useFactory: () => {
+          inject: [I18nService],
+          useFactory: (i18nService: I18nService) => {
             const isProduction = process.env.NODE_ENV === 'production';
+            const environment = isProduction
+              ? i18nService.translate('ENVIRONMENT_PRODUCTION')
+              : i18nService.translate('ENVIRONMENT_DEVELOPMENT');
             return {
               // NATS server URL, configurable via environment variables.
               natsUrl: process.env.NATS_URL || 'nats://localhost:4222',
@@ -189,7 +193,10 @@ export class OceanchatAuthModule {
                 // In production, retain messages for 24 hours even after consumption. 0 means no time limit.
                 max_age: isProduction ? 24 * 60 * 60 * 1_000_000_000 : 0, // 24 hours in nanoseconds
                 // Provide a human-readable description for the stream for easier operations.
-                description: `Stream for the oceanchat-auth microservice (${isProduction ? 'Production' : 'Development'})`,
+                description: i18nService.translate('NATS_STREAM_DESCRIPTION', {
+                  serviceName: 'oceanchat-auth',
+                  environment,
+                }),
               },
             };
           },
