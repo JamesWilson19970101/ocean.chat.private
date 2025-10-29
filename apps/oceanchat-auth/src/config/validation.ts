@@ -37,4 +37,8 @@ export const validationSchema = Joi.object({
     'string.empty': 'JWT_REFRESH_EXPIRES_IN cannot be empty',
     'any.required': 'JWT_REFRESH_EXPIRES_IN is required',
   }),
+  NATS_URL: Joi.string().default('nats://localhost:4222').messages({
+    'string.empty': 'NATS_URL cannot be empty',
+    'any.required': 'NATS_URL is required',
+  }),
 });

@@ -23,6 +23,7 @@ import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import {
   databaseConfiguration,
   jwtConfiguration,
+  natsConfiguration,
   redisConfiguration,
 } from './config/configuration';
 import { Env } from './config/env';
@@ -69,7 +70,12 @@ export class OceanchatAuthModule {
       imports: [
         I18nModule.forRoot(),
         ConfigModule.forRoot({
-          load: [databaseConfiguration, redisConfiguration, jwtConfiguration],
+          load: [
+            databaseConfiguration,
+            redisConfiguration,
+            jwtConfiguration,
+            natsConfiguration,
+          ],
           validationSchema,
           envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
         }),
@@ -124,8 +130,12 @@ export class OceanchatAuthModule {
           }),
         }),
         // Import the tracing module. Place it early for clarity.
-        NatsOpentelemetryTracingModule.register({
-          servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+        NatsOpentelemetryTracingModule.registerAsync({
+          imports: [ConfigModule],
+          useFactory: (configService: ConfigService) => ({
+            servers: [configService.get<string>('nats.url') as string],
+          }),
+          inject: [ConfigService],
         }),
         // CommonExceptionsModule should come after tracing so the filter can be injected
         // into the interceptor if needed in the future.

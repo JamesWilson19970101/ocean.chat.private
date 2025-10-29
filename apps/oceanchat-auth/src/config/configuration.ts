@@ -18,3 +18,7 @@ export const jwtConfiguration = registerAs('jwt', () => ({
   refreshSecret: process.env.JWT_REFRESH_SECRET,
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7Days',
 }));
+
+export const natsConfiguration = registerAs('nats', () => ({
+  url: process.env.NATS_URL || 'nats://localhost:4222',
+}));
