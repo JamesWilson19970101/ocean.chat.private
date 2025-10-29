@@ -5,7 +5,12 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
-import { connect, JetStreamManager, NatsConnection } from 'nats';
+import {
+  connect,
+  JetStreamClient,
+  JetStreamManager,
+  NatsConnection,
+} from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { NATS_JETSTREAM_PROVISIONER_OPTIONS } from './constants';
@@ -16,6 +21,7 @@ export class NatsJetStreamProvisionerService
   implements OnModuleInit, OnModuleDestroy
 {
   private nc: NatsConnection | undefined;
+  private js: JetStreamClient | undefined;
 
   constructor(
     @Inject(NATS_JETSTREAM_PROVISIONER_OPTIONS)
@@ -24,6 +30,14 @@ export class NatsJetStreamProvisionerService
     private readonly logger: PinoLogger,
     private readonly i18nService: I18nService,
   ) {}
+
+  getNatsConnection(): NatsConnection | undefined {
+    return this.nc;
+  }
+
+  getJetStreamClient(): JetStreamClient | undefined {
+    return this.js;
+  }
 
   async onModuleInit(): Promise<void> {
     await this.ensureStream();
@@ -56,6 +70,7 @@ export class NatsJetStreamProvisionerService
       );
 
       this.nc = await connect({ servers: natsUrl });
+      this.js = this.nc.jetstream();
       const jsm: JetStreamManager = await this.nc.jetstreamManager();
       const streamInfo = await jsm.streams.info(streamName).catch(() => null);
       if (streamInfo) {
