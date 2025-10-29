@@ -191,7 +191,7 @@ export class OceanchatAuthModule {
                 // The unique name for the Stream.
                 name: 'AUTH',
                 // Capture all subjects starting with 'auth.' to aggregate all auth-related messages.
-                subjects: ['auth.>'],
+                subjects: ['auth.event.>'],
                 // Retention policy: 'Limits' for production (for auditing/replay), 'Workqueue' for development (for efficiency).
                 retention: isProduction
                   ? RetentionPolicy.Limits
