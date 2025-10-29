@@ -1,4 +1,9 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+} from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import { connect, JetStreamManager, NatsConnection } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -7,7 +12,11 @@ import { NATS_JETSTREAM_PROVISIONER_OPTIONS } from './constants';
 import { NatsJetStreamProvisionerOptions } from './interfaces/nats-jetstream-provisioner-options.interface';
 
 @Injectable()
-export class NatsJetStreamProvisionerService implements OnModuleInit {
+export class NatsJetStreamProvisionerService
+  implements OnModuleInit, OnModuleDestroy
+{
+  private nc: NatsConnection | undefined;
+
   constructor(
     @Inject(NATS_JETSTREAM_PROVISIONER_OPTIONS)
     private readonly options: NatsJetStreamProvisionerOptions,
@@ -20,17 +29,19 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
     await this.ensureStream();
   }
 
+  async onModuleDestroy(): Promise<void> {
+    await this.nc?.close();
+  }
+
   private async ensureStream(): Promise<void> {
     const { natsUrl, streamConfig } = this.options;
     const streamName = streamConfig.name;
 
     if (!streamName) {
       const errorMsg = this.i18nService.translate('NATS_STREAM_NAME_REQUIRED');
-      this.logger.error({ streamName: null }, errorMsg);
+      this.logger.error({ streamName }, errorMsg);
       throw new Error(errorMsg);
     }
-
-    let nc: NatsConnection | undefined;
 
     try {
       this.logger.info(
@@ -44,12 +55,12 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
         }),
       );
 
-      nc = await connect({ servers: natsUrl });
-      const jsm: JetStreamManager = await nc.jetstreamManager();
+      this.nc = await connect({ servers: natsUrl });
+      const jsm: JetStreamManager = await this.nc.jetstreamManager();
       const streamInfo = await jsm.streams.info(streamName).catch(() => null);
       if (streamInfo) {
         this.logger.info(
-          { description: streamInfo.config.description },
+          { streamName, description: streamInfo.config.description },
           this.i18nService.translate('NATS_STREAM_FOUND_UPDATING', {
             streamName,
           }),
@@ -57,7 +68,7 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
         await jsm.streams.update(streamName, streamConfig);
       } else {
         this.logger.info(
-          { streamInfo: null },
+          { streamName, streamInfo: null },
           this.i18nService.translate('NATS_STREAM_NOT_FOUND_CREATING', {
             streamName,
           }),
@@ -75,12 +86,10 @@ export class NatsJetStreamProvisionerService implements OnModuleInit {
       );
     } catch (error) {
       this.logger.error(
-        { error },
+        { streamName, error },
         `Failed to provision JetStream stream '${streamName}'.`,
       );
       throw error;
-    } finally {
-      await nc?.close();
     }
   }
 }
