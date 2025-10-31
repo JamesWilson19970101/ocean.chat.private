@@ -108,6 +108,8 @@ export default {
         'Stream for the {{serviceName}} microservice ({{environment}})',
       ENVIRONMENT_PRODUCTION: 'Production',
       ENVIRONMENT_DEVELOPMENT: 'Development',
+      REFRESH_TOKEN_REUSED_OR_REVOKED:
+        'Refresh token is either reused or revoked.',
     },
   },
   zh: {
@@ -198,6 +200,7 @@ export default {
         '用于 {{serviceName}} 微服务的流 ({{environment}})',
       ENVIRONMENT_PRODUCTION: '生产环境',
       ENVIRONMENT_DEVELOPMENT: '开发环境',
+      REFRESH_TOKEN_REUSED_OR_REVOKED: '刷新令牌已使用或已撤销。',
     },
   },
 };

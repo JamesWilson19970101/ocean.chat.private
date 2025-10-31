@@ -79,18 +79,41 @@ export class OceanchatAuthService implements OnModuleInit {
     const { sub: userId, jti } = payload;
     const sessionKey = getRefreshSessionKey(jti);
 
-    // Check if the refresh token is in our whitelist (i.e., it's valid and not used)
-    const sessionExists = await this.redisService.get(sessionKey);
-    if (!sessionExists) {
-      // If not in Redis, it's been revoked, used, or expired.
+    // Atomically get the session value and delete the key using a Lua script.
+    // This prevents the race condition you identified, where multiple concurrent requests
+    // could use the same refresh token. The first request will get the session and
+    // delete the key. Any subsequent requests will get `nil` and be rejected.
+    const LUA_SCRIPT_GET_AND_DELETE = `
+      local value = redis.call('get', KEYS[1])
+      if value then
+        redis.call('del', KEYS[1])
+      end
+      return value
+    `;
+
+    const storedValue = await this.redisService.eval(
+      LUA_SCRIPT_GET_AND_DELETE,
+      [sessionKey], // KEYS array
+      [], // ARGV array
+    );
+
+    if (!storedValue) {
+      // If the token is not in Redis, it means it has been used by a concurrent request,
+      // revoked, or the session has expired from Redis TTL.
+      // I return a specific error code to differentiate this from a fundamentally invalid token
+      // (which fails at the jwt.verifyAsync step).
+      // This allows the frontend to handle race conditions gracefully (e.g., by ignoring this
+      // specific error and waiting for the successful concurrent request's response)
+      // instead of logging the user out immediately.
       throw new BaseRpcException(
-        this.i18nService.translate('UNAUTHORIZED'),
-        ErrorCodes.UNAUTHORIZED,
+        this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
+        ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+        {
+          userId,
+          jti,
+        },
       );
     }
-
-    // Sliding Session: Invalidate the old refresh token immediately.
-    await this.redisService.del(sessionKey);
 
     // Fetch user to generate new tokens
     const user = await this.usersService.findOneById(userId);
@@ -170,7 +193,7 @@ export class OceanchatAuthService implements OnModuleInit {
 
       return [accessToken, refreshToken];
     } catch (error) {
-      // If storing the session in Redis fails, we should not issue the token.
+      // If storing the session in Redis fails, I should not issue the token.
       // This prevents issuing a token that can never be validated.
       throw new BaseRpcException(
         this.i18nService.translate('Login_Session_Store_Failed'),

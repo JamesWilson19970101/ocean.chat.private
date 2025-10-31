@@ -20,6 +20,7 @@ export enum ErrorCodes {
   // authentication errors
 
   UNAUTHORIZED = 10030, // e.g., when accessing a protected resource without valid authentication
+  REFRESH_TOKEN_REUSED_OR_REVOKED = 10031, // e.g., when a refresh token is used more than once or its session is not found in Redis
 
   UNEXPECTED_ERROR = 99999, // e.g., for unexpected errors not covered by other codes
 }

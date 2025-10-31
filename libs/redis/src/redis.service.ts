@@ -108,6 +108,23 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Executes a Lua script. This is useful for performing atomic operations.
+   * @param script The Lua script to execute.
+   * @param keys An array of key names, accessible in Lua via the KEYS table.
+   * @param args An array of argument values, accessible in Lua via the ARGV table.
+   * @returns The result of the script execution.
+   */
+  async eval(
+    script: string,
+    keys: (string | Buffer)[],
+    args: (string | Buffer | number)[],
+  ): Promise<unknown> {
+    // ioredis's eval signature is: eval(script, numberOfKeys, key1, key2, ..., arg1, arg2, ...)
+    // We use the spread operator to pass keys and args correctly.
+    return this.redisClient.eval(script, keys.length, ...keys, ...args);
+  }
+
+  /**
    * hset a field in a hash.
    * @param key The key of the hash.
    * @param field The field to set.
