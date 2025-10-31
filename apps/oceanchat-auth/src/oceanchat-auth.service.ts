@@ -175,21 +175,28 @@ export class OceanchatAuthService implements OnModuleInit {
     ]);
 
     try {
-      // Store both tokens' JTIs in Redis for whitelisting
+      // Atomically store both tokens' JTIs in Redis using a transaction (MULTI/EXEC).
+      // This ensures that either both keys are set successfully, or neither is,
+      // preventing a partial state where only one token is valid.
       const accessExpiresInSeconds = ms(accessExpiresIn) / 1000;
       const refreshExpiresInSeconds = ms(refreshExpiresIn) / 1000;
-      await Promise.all([
-        this.redisService.set(
+
+      await this.redisService
+        .getClient()
+        .multi()
+        .set(
           getAccessSessionKey(accessJti),
           userId,
+          'EX',
           accessExpiresInSeconds,
-        ),
-        this.redisService.set(
+        )
+        .set(
           getRefreshSessionKey(refreshJti),
           userId,
+          'EX',
           refreshExpiresInSeconds,
-        ),
-      ]);
+        )
+        .exec();
 
       return [accessToken, refreshToken];
     } catch (error) {
