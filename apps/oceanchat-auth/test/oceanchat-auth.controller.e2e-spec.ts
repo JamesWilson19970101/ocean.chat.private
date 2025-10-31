@@ -92,7 +92,7 @@ describe('OceanchatAuthController (e2e)', () => {
 
       // The error from BaseRpcException is nested inside the 'error' property.
       expect(rpcEerror).toHaveProperty('error');
-      // The error message from the microservice is a JSON string, so we need to parse it.
+      // The error message from the microservice is a JSON string, so I need to parse it.
       expect(rpcEerror.error.errorCode).toBe(10020);
     });
 

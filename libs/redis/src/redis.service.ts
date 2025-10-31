@@ -120,7 +120,7 @@ export class RedisService implements OnModuleDestroy {
     args: (string | Buffer | number)[],
   ): Promise<unknown> {
     // ioredis's eval signature is: eval(script, numberOfKeys, key1, key2, ..., arg1, arg2, ...)
-    // We use the spread operator to pass keys and args correctly.
+    // I use the spread operator to pass keys and args correctly.
     return this.redisClient.eval(script, keys.length, ...keys, ...args);
   }
 

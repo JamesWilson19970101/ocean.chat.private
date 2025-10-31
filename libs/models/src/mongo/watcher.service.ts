@@ -39,7 +39,7 @@ export class DatabaseWatcher extends EventEmitter implements OnModuleInit {
       );
       const db: Db = this.connection.db as unknown as Db;
       // Use the injected collections. It can be a single string or an array of strings.
-      // We ensure it's always an array and remove duplicates.
+      // I ensure it's always an array and remove duplicates.
       const collectionsInput = this.collectionsToWatch || [];
       const collections = Array.isArray(collectionsInput)
         ? [...new Set(collectionsInput)]

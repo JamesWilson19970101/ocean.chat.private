@@ -60,7 +60,7 @@ describe('Config Validation Schema', () => {
   it('should fail if REDIS_PORT is not a number', () => {
     validConfig.REDIS_PORT = 'not-a-number';
     const { error } = validationSchema.validate(validConfig, {
-      // Joi by default tries to convert, we need to check the base type
+      // Joi by default tries to convert, I need to check the base type
       convert: false,
     });
     expect(error).toBeDefined();

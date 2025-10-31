@@ -98,7 +98,7 @@ export class AppExceptionsFilter implements ExceptionFilter {
       response.status(status).json(errorResponse);
     } else if (requestType === 'ws') {
       // WebSocket request
-      // For WS, we don't "respond", but "emit" an event
+      // For WS, I don't "respond", but "emit" an event
       const client = host.switchToWs().getClient<WebSocket>();
       if (client.readyState === WebSocket.OPEN) {
         // before sending, ensure the connection is still open

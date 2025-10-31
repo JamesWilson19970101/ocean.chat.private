@@ -13,7 +13,7 @@ export class BusinessException extends HttpException {
 
   constructor(message: string, errorCode: number) {
     // It's recommended to use a unified HTTP status for business exceptions, like 200 or a specific 4xx code.
-    // Here we use HttpStatus.OK (200), indicating the request was processed successfully, but the business logic failed.
+    // Here I use HttpStatus.OK (200), indicating the request was processed successfully, but the business logic failed.
     // The client should use the 'errorCode' in the response body to determine the specific type of business error.
     super(message, HttpStatus.OK);
     this.errorCode = errorCode;
