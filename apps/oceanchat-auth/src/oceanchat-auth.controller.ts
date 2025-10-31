@@ -38,7 +38,7 @@ export class OceanchatAuthController {
   // eslint-disable-next-line @typescript-eslint/require-await
   async validateToken(@validateUser() user: Pick<User, 'username' | '_id'>) {
     // If the guard succeeds, the payload is already validated by JwtStrategy.
-    // The @CurrentUser decorator extracts the user info. We simply return it.
+    // The @CurrentUser decorator extracts the user info. I simply return it.
     return user;
   }
 

@@ -50,7 +50,7 @@ describe('Test CreateUserDto', () => {
       const dto = createDto({ password: 123 as any });
       const errors = await validate(dto);
       expect(errors.length).toBeGreaterThan(0);
-      // The 'match' constraint on confirmPassword will also fail, so we need to find the specific error for 'password'
+      // The 'match' constraint on confirmPassword will also fail, so I need to find the specific error for 'password'
       const passwordError = errors.find((e) => e.property === 'password');
       expect(passwordError).toBeDefined();
       expect(passwordError!.constraints).toHaveProperty('isString');

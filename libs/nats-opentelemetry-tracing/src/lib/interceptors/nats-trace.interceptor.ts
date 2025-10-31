@@ -30,7 +30,7 @@ class NatsHeaderGetter implements TextMapGetter<NatsHeaderCarrier> {
   }
   get(carrier: NatsHeaderCarrier, key: string): string | undefined {
     const value = carrier[key];
-    // NATS headers are an array of strings. We only need the first one.
+    // NATS headers are an array of strings. I only need the first one.
     return Array.isArray(value) && value.length > 0
       ? (value[0] as string)
       : undefined;

@@ -29,7 +29,7 @@ export class UsersService {
    */
   async create(createUserDto: CreateUserDto): Promise<Partial<User>> {
     // Destructure username and password from the DTO
-    // DTO has validated this password and confirmPassword match, so here we can safely use username and password
+    // DTO has validated this password and confirmPassword match, so here I can safely use username and password
     const { username, password } = createUserDto;
 
     try {
@@ -65,12 +65,12 @@ export class UsersService {
       const { providers, ...userObject } = newUser.toObject();
       return userObject as Partial<User>;
     } catch (error) {
-      // If it's a business exception we threw ourselves, re-throw it.
+      // If it's a business exception I threw ourselves, re-throw it.
       if (error instanceof BaseRpcException) {
         throw error;
       }
       // For any other unexpected error, wrap it in a standard application exception.
-      // This ensures that we don't leak implementation details and that the boundary
+      // This ensures that I don't leak implementation details and that the boundary
       // logger has a consistent error object to work with.
       const errorMessage = this.i18nService.translate('USER_CREATION_ERROR');
       throw new BaseRpcException(errorMessage, ErrorCodes.CREATION_ERROR, {
