@@ -78,6 +78,7 @@ export class OceanchatAuthModule {
           ],
           validationSchema,
           envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
+          isGlobal: true,
         }),
         LoggerModule.forRootAsync({
           providers: [

@@ -1,4 +1,4 @@
-import { DynamicModule, Module, Provider } from '@nestjs/common';
+import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { I18nService } from '@ocean.chat/i18n';
 import { PinoLogger } from 'nestjs-pino';
@@ -12,6 +12,7 @@ export interface CommonExceptionModuleOptions {
   serviceInstanceId: string;
 }
 
+@Global()
 @Module({})
 export class CommonExceptionsModule {
   /**
