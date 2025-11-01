@@ -50,14 +50,16 @@ export class RedisService implements OnModuleDestroy {
       try {
         return JSON.parse(value) as T;
       } catch (error) {
-        this.logger?.warn(
-          { key, error: (error as Error).message },
+        // If a value exists but is not valid JSON, it's a potential data corruption.
+        // Log it as an error for better visibility.
+        this.logger?.error(
+          { key, value, err: error },
           this.i18nService.translate('Failed_to_parse_redis_value', {
             key: Buffer.isBuffer(key) ? key.toString() : key,
           }),
         );
-        // if JSON.parse fails, return the raw value
-        return value as unknown as T;
+        // Return null to ensure type safety for the caller, as the stored value is not the expected type T.
+        return null;
       }
     }
     return null;
