@@ -55,12 +55,12 @@ bootstrap().catch((error) => {
   // A basic logger for bootstrap errors, as the main logger might not be available
   if (error instanceof Error) {
     console.error(
-      `[Bootstrap Error] Failed to start microservice: ${error.message}`,
+      `[Bootstrap Error][${serviceName}::${serviceInstanceId}] Failed to start microservice: ${error.message}`,
       error.stack,
     );
   } else {
     console.error(
-      '[Bootstrap Error] Failed to start microservice with a non-error:',
+      `[Bootstrap Error][${serviceName}::${serviceInstanceId}] Failed to start microservice with a non-error:`,
       error,
     );
   }
