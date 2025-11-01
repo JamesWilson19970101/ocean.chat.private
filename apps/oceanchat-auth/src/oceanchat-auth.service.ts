@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
+import { NatsJetStreamProvisionerService } from '@ocean.chat/nats-jetstream-provisioner';
 import { RedisService } from '@ocean.chat/redis';
 import { Counter, metrics } from '@opentelemetry/api';
 import * as ms from 'ms';
@@ -25,6 +26,7 @@ export class OceanchatAuthService implements OnModuleInit {
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
     private readonly configService: ConfigService,
+    private readonly natsProvisioner: NatsJetStreamProvisionerService,
     private readonly i18nService: I18nService,
     @InjectPinoLogger('oceanchat.auth.service')
     private readonly logger: PinoLogger,
@@ -52,6 +54,30 @@ export class OceanchatAuthService implements OnModuleInit {
     this.loginCounter.add(1, { 'login.method': 'password' });
     // generate accessToken & refreshToken if `@UseGuards(JwtAuthGuard)` runs successfully.
     const [accessToken, refreshToken] = await this.generateTokens(user);
+
+    // Publish a domain event to NATS JetStream for other services to consume.
+    const js = this.natsProvisioner.getJetStreamClient();
+    if (js) {
+      // Fire-and-forget: publish the event but don't await it.
+      // Attach a .catch() to handle potential errors (e.g., NATS server is down)
+      // and prevent an unhandled promise rejection, while not blocking the login response.
+      void js
+        .publish(
+          'auth.event.user.loggedIn',
+          JSON.stringify({
+            userId: user._id,
+            loginTime: new Date().toISOString(),
+          }),
+        )
+        .catch((err) => {
+          // TODO: Set up a logging system and record the error.
+          // This exception will not be caught by AllExceptionsFilter. Since it occurs in a separate, unawaited Promise chain, it becomes a detached unhandledRejection, which is exactly what we want to avoid.
+          this.logger.error(
+            { userId: user._id, err },
+            this.i18nService.translate('FAILED_TO_PUBLISH_LOGGEDIN_EVENT'),
+          );
+        });
+    }
     return { accessToken, refreshToken, user };
   }
 

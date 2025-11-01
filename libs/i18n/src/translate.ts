@@ -110,6 +110,8 @@ export default {
       ENVIRONMENT_DEVELOPMENT: 'Development',
       REFRESH_TOKEN_REUSED_OR_REVOKED:
         'Refresh token is either reused or revoked.',
+      FAILED_TO_PUBLISH_LOGGEDIN_EVENT:
+        'Failed to publish user.loggedIn event to NATS JetStream',
     },
   },
   zh: {
@@ -201,6 +203,8 @@ export default {
       ENVIRONMENT_PRODUCTION: '生产环境',
       ENVIRONMENT_DEVELOPMENT: '开发环境',
       REFRESH_TOKEN_REUSED_OR_REVOKED: '刷新令牌已使用或已撤销。',
+      FAILED_TO_PUBLISH_LOGGEDIN_EVENT:
+        '发布 user.loggedIn 事件到 NATS JetStream 失败',
     },
   },
 };
