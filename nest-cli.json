@@ -120,6 +120,15 @@
         "tsConfigPath": "apps/oceanchat-router/tsconfig.app.json"
       }
     },
+    "oceanchat-user": {
+      "type": "application",
+      "root": "apps/oceanchat-user",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-user/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-user/tsconfig.app.json"
+      }
+    },
     "oceanchat-ws-gateway": {
       "type": "application",
       "root": "apps/oceanchat-ws-gateway",
