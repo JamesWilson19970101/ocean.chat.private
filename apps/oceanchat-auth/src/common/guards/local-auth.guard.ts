@@ -1,9 +1,15 @@
 import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { I18nService } from '@ocean.chat/i18n';
 
 import { AuthenticatedUser, RequestLike } from '../types/auth.types';
 @Injectable()
 export class LocalAuthGuard extends AuthGuard('local') {
+  constructor(private readonly i18nService: I18nService) {
+    super();
+  }
+
   /**
    * override getRequest to extract username and password from the RPC context
    * @param context The execution context
@@ -54,7 +60,11 @@ export class LocalAuthGuard extends AuthGuard('local') {
     context: ExecutionContext,
   ): any {
     if (err || !user) {
-      throw err;
+      const message =
+        (err as Error)?.message || this.i18nService.translate('UNAUTHORIZED');
+      throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED, {
+        cause: err,
+      });
     }
 
     const data: AuthenticatedUser = context.switchToRpc().getData();

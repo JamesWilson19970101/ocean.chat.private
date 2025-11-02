@@ -39,7 +39,9 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       // wrap the original error message or provide a generic one in our custom exception.
       const message =
         (err as Error)?.message || this.i18nService.translate('UNAUTHORIZED');
-      throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED);
+      throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED, {
+        cause: err,
+      });
     }
 
     return user;
