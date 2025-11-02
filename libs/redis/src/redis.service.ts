@@ -44,7 +44,7 @@ export class RedisService implements OnModuleDestroy {
    * @param key The key.
    * @returns The value.
    */
-  async get<T>(key: RedisKey): Promise<T | null> {
+  async get<T>(key: RedisKey): Promise<T | null | string> {
     const value = await this.redisClient.get(key);
     if (value) {
       try {
@@ -58,8 +58,8 @@ export class RedisService implements OnModuleDestroy {
             key: Buffer.isBuffer(key) ? key.toString() : key,
           }),
         );
-        // Return null to ensure type safety for the caller, as the stored value is not the expected type T.
-        return null;
+        // If the value is simply a string, JSON.parse(value) will encounter an error during execution, but normally it should return the string to the client.
+        return value;
       }
     }
     return null;
@@ -178,7 +178,7 @@ export class RedisService implements OnModuleDestroy {
     key: string,
     fetcher: () => Promise<T>,
     options: GetOrSetOptions,
-  ): Promise<T | null> {
+  ): Promise<T | null | string> {
     const { lockTtl = 10, lockWaitTime = 100, ttlJitter = 0 } = options;
     // 1. Try to get from cache.
     // Use the raw client here to differentiate between a missing key (null)
