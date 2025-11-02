@@ -60,8 +60,7 @@ export class LocalAuthGuard extends AuthGuard('local') {
     context: ExecutionContext,
   ): any {
     if (err || !user) {
-      const message =
-        (err as Error)?.message || this.i18nService.translate('UNAUTHORIZED');
+      const message = this.i18nService.translate('UNAUTHORIZED');
       throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED, {
         cause: err,
       });
