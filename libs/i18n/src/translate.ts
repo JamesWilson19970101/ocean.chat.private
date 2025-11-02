@@ -112,6 +112,7 @@ export default {
         'Refresh token is either reused or revoked.',
       FAILED_TO_PUBLISH_LOGGEDIN_EVENT:
         'Failed to publish user.loggedIn event to NATS JetStream',
+      SERVICE_ERROR: 'Service thrown an error when call {{method}}',
     },
   },
   zh: {
@@ -205,6 +206,7 @@ export default {
       REFRESH_TOKEN_REUSED_OR_REVOKED: '刷新令牌已使用或已撤销。',
       FAILED_TO_PUBLISH_LOGGEDIN_EVENT:
         '发布 user.loggedIn 事件到 NATS JetStream 失败',
+      SERVICE_ERROR: '当调用 {{method}} 的时候，服务抛出错误',
     },
   },
 };
