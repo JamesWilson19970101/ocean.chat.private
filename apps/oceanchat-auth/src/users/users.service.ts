@@ -1,228 +1,96 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider, User } from '@ocean.chat/models';
-import { UserRepository } from '@ocean.chat/models';
-import { SettingsService } from '@ocean.chat/settings';
+import { NATS_CLIENT_INJECTION_TOKEN } from '@ocean.chat/nats-opentelemetry-tracing';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-
-import { CreateUserDto } from './dto/create-user.dto';
-import { PasswordService } from './password.service';
+import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
 @Injectable()
 export class UsersService {
   constructor(
+    @Inject(NATS_CLIENT_INJECTION_TOKEN)
+    private readonly userClient: ClientProxy,
+    // Inject I18nService for user-friendly error messages
     private readonly i18nService: I18nService,
-    @InjectPinoLogger('ocean.chat.auth.users.service')
+    // Inject PinoLogger for structured logging
+    @InjectPinoLogger('oceanchat.auth.users.service')
     private readonly logger: PinoLogger,
-    private readonly userRepository: UserRepository,
-    private readonly passwordService: PasswordService,
-    private readonly settingsService: SettingsService,
   ) {}
 
-  /**
-   * Create a new user with the provided details.
-   * @param createUserDto data transfer object containing user creation info
-   * @returns the created user object (partial)
-   * @throws BusinessException if the username already exists
-   * @throws InternalServerErrorException for other unexpected errors
-   */
-  async create(createUserDto: CreateUserDto): Promise<Partial<User>> {
-    // Destructure username and password from the DTO
-    // DTO has validated this password and confirmPassword match, so here I can safely use username and password
-    const { username, password } = createUserDto;
-
-    try {
-      // Perform dynamic validation using settings
-      await this.validateCreateUserDto(username, password);
-
-      // check if the username already exists
-      const existingUser = await this.userRepository.findOne({
-        username,
-        'providers.provider': AuthProvider.LOCAL,
-      });
-
-      if (existingUser) {
-        throw new BaseRpcException(
-          this.i18nService.translate('USERNAME_ALREADY_EXISTS'),
-          ErrorCodes.USERNAME_ALREADY_EXISTS,
-        );
-      }
-
-      // Hash the password before saving
-      const passwordHash = await this.passwordService.hash(password);
-      // Create a new user entity
-      const newUser = await this.userRepository.create({
-        username,
-        name: username, // Default name to username
-        providers: [
-          { provider: AuthProvider.LOCAL, providerId: username, passwordHash },
-        ],
-      });
-
-      // Destructure to exclude the 'providers' array from the returned user object for security reasons.
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { providers, ...userObject } = newUser.toObject();
-      return userObject as Partial<User>;
-    } catch (error) {
-      // If it's a business exception I threw ourselves, re-throw it.
-      if (error instanceof BaseRpcException) {
-        throw error;
-      }
-      // For any other unexpected error, wrap it in a standard application exception.
-      // This ensures that I don't leak implementation details and that the boundary
-      // logger has a consistent error object to work with.
-      const errorMessage = this.i18nService.translate('USER_CREATION_ERROR');
-      throw new BaseRpcException(errorMessage, ErrorCodes.CREATION_ERROR, {
-        cause: error,
-      });
-    }
-  }
-
-  /**
-   * Find a user by their username and authentication provider.
-   * @param username username to search for
-   * @param provider authentication provider (e.g., LOCAL)
-   * @returns user object with passwordHash included, or null if not found
-   * @throws InternalServerErrorException for unexpected errors
-   */
   async findOneByUsernameAndProvider(
     username: string,
     provider: AuthProvider,
   ): Promise<User | null> {
-    return this.userRepository.findOneByUsernameAndProvider(username, provider);
-  }
-
-  /**
-   * Find a user by their ID.
-   * @param id The user's ID.
-   * @returns The user object, or null if not found.
-   */
-  findOneById(id: string): Promise<Partial<User> | null> {
-    return this.userRepository.findById(id);
-  }
-
-  /**
-   * Verify a plain text password against a hashed password.
-   * @param plain password in plain text
-   * @param hash hashed password from the database
-   * @returns true if the password matches, false otherwise
-   */
-  async verifyPassword(plain: string, hash: string): Promise<boolean> {
-    return this.passwordService.verify(plain, hash);
-  }
-
-  /**
-   * Validates the CreateUserDto against dynamic settings.
-   * @param username The username to validate.
-   * @param password The password to validate.
-   * @throws BusinessException if any validation rule is violated.
-   */
-  private async validateCreateUserDto(username: string, password: string) {
-    // Fetch all validation settings in parallel for efficiency
-    const [
-      usernameMinLength,
-      usernameMaxLength,
-      usernameRegexString,
-      passwordMinLength,
-      passwordRequireDigit,
-      passwordRequireLowercase,
-      passwordRequireUppercase,
-      passwordRequireSpecialChar,
-    ] = await Promise.all([
-      this.settingsService.getSettingValue('Accounts_Username_MinLength'),
-      this.settingsService.getSettingValue('Accounts_Username_MaxLength'),
-      this.settingsService.getSettingValue('Accounts_Username_Regex'),
-      this.settingsService.getSettingValue('Accounts_Password_MinLength'),
-      this.settingsService.getSettingValue('Accounts_Password_RequireDigit'),
-      this.settingsService.getSettingValue(
-        'Accounts_Password_RequireLowercase',
-      ),
-      this.settingsService.getSettingValue(
-        'Accounts_Password_RequireUppercase',
-      ),
-      this.settingsService.getSettingValue(
-        'Accounts_Password_RequireSpecialChar',
-      ),
-    ]);
-
-    // Username validation
-    // Add type checks for robustness in case a setting is missing or has the wrong type.
-    if (
-      typeof usernameMinLength !== 'number' ||
-      username.length < usernameMinLength
-    ) {
-      throw new BaseRpcException(
-        this.i18nService.translate('USERNAME_TOO_SHORT', {}),
-        ErrorCodes.USERNAME_TOO_SHORT,
-      );
-    }
-    if (
-      typeof usernameMaxLength !== 'number' ||
-      username.length > usernameMaxLength
-    ) {
-      throw new BaseRpcException(
-        this.i18nService.translate('USERNAME_TOO_LONG', {}),
-        ErrorCodes.USERNAME_TOO_LONG,
-      );
-    }
-    if (typeof usernameRegexString !== 'string') {
-      throw new BaseRpcException(
-        this.i18nService.translate(
-          'USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY',
+    // Delegate user lookup to the user-service
+    return firstValueFrom(
+      this.userClient
+        .send<User | null>('user.query.byUsername', { username, provider })
+        .pipe(
+          timeout(5000),
+          catchError((err) => {
+            const message = this.i18nService.translate('SERVICE_ERROR', {
+              method: 'user.query.byUsername',
+            });
+            // Wrap the original error in a business-specific exception
+            return throwError(
+              () =>
+                new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
+                  cause: err,
+                }),
+            );
+          }),
         ),
-        ErrorCodes.UNEXPECTED_ERROR,
-      );
-    }
-    const usernameRegex = new RegExp(usernameRegexString);
-    if (!usernameRegex.test(username)) {
-      throw new BaseRpcException(
-        this.i18nService.translate('USERNAME_INVALID_CHARACTERS'),
-        ErrorCodes.USERNAME_INVALID_CHARACTERS,
-      );
-    }
+    );
+  }
 
-    // Password validation
-    if (
-      typeof passwordMinLength !== 'number' ||
-      password.length < passwordMinLength
-    ) {
-      throw new BaseRpcException(
-        this.i18nService.translate('PASSWORD_TOO_SHORT', {}),
-        ErrorCodes.PASSWORD_TOO_SHORT,
-      );
-    }
+  findOneById(id: string): Promise<Partial<User> | null> {
+    // Delegate user lookup to the user-service
+    return firstValueFrom(
+      this.userClient
+        .send<Partial<User> | null>('user.query.profile', { userId: id })
+        .pipe(
+          timeout(5000),
+          catchError((err) => {
+            const message = this.i18nService.translate('SERVICE_ERROR', {
+              method: 'user.query.profile',
+            });
+            return throwError(
+              () =>
+                new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
+                  cause: err,
+                }),
+            );
+          }),
+        ),
+    );
+  }
 
-    if (passwordRequireDigit && !/\d/.test(password)) {
-      throw new BaseRpcException(
-        this.i18nService.translate('PASSWORD_NO_DIGIT'),
-        ErrorCodes.PASSWORD_NO_DIGIT,
-      );
-    }
-
-    if (passwordRequireLowercase && !/[a-z]/.test(password)) {
-      throw new BaseRpcException(
-        this.i18nService.translate('PASSWORD_NO_LOWERCASE'),
-        ErrorCodes.PASSWORD_NO_LOWERCASE,
-      );
-    }
-
-    if (passwordRequireUppercase && !/[A-Z]/.test(password)) {
-      throw new BaseRpcException(
-        this.i18nService.translate('PASSWORD_NO_UPPERCASE'),
-        ErrorCodes.PASSWORD_NO_UPPERCASE,
-      );
-    }
-
-    // Using a common regex for special characters
-    if (
-      passwordRequireSpecialChar &&
-      !/[!@#$%^&*(),.?":{}|<>]/.test(password)
-    ) {
-      throw new BaseRpcException(
-        this.i18nService.translate('PASSWORD_NO_SPECIAL_CHAR'),
-        ErrorCodes.PASSWORD_NO_SPECIAL_CHAR,
-      );
-    }
+  async validatePassword(
+    username: string,
+    password: string,
+  ): Promise<Partial<User> | null> {
+    return firstValueFrom(
+      this.userClient
+        .send<Partial<User> | null>('user.validate.password', {
+          username,
+          password,
+        })
+        .pipe(
+          timeout(5000),
+          catchError((err) => {
+            const message = this.i18nService.translate('SERVICE_ERROR', {
+              method: 'user.validate.password',
+            });
+            return throwError(
+              () =>
+                new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
+                  cause: err,
+                }),
+            );
+          }),
+        ),
+    );
   }
 }

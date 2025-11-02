@@ -1,14 +1,55 @@
+import { startTracing } from '@ocean.chat/tracing';
 import { randomUUID } from 'crypto';
 const serviceName = 'oceanchat-user';
 const serviceInstanceId = randomUUID();
+startTracing(serviceName, serviceInstanceId); // Initialize OpenTelemetry Tracing at the very begining of the application
 
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
+import { Logger } from 'nestjs-pino';
 
 import { OceanchatUserModule } from './oceanchat-user.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(OceanchatUserModule);
-  await app.listen(process.env.port ?? 3000);
+  console.log(`
+   ____   _____ ______          _   _      _____ _    _       _______     _____ __  __
+  / __ \\ / ____|  ____|   /\\   | \\ | |    / ____| |  | |   /\\|__   __|   |_   _|  \\/  |
+ | |  | | |    | |__     /  \\  |  \\| |   | |    | |__| |  /  \\  | |        | | | \\  / |
+ | |  | | |    |  __|   / /\\ \\ | . \` |   | |    |  __  | / /\\ \\ | |        | | | |\\/| |
+ | |__| | |____| |____ / ____ \\| |\\  |   | |____| |  | |/ ____ \\| |       _| |_| |  | |
+  \\____/ \\_____|______/_/    \\_\\_| \\_|    \\_____|_|  |_/_/    \\_\\_|      |_____|_|  |_|
+  `);
+  // Create a pure microservice that listens on NATS
+  const app = await NestFactory.createMicroservice<MicroserviceOptions>(
+    OceanchatUserModule.forRoot({
+      serviceName,
+      serviceInstanceId,
+    }),
+    {
+      transport: Transport.NATS,
+      options: {
+        servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+        queue: 'oceanchat-user',
+      },
+      bufferLogs: true,
+    },
+  );
+
+  // Use the Pino logger instance from the app container
+  app.useLogger(app.get(Logger));
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  // Start the microservice and listen for incoming messages
+  await app.listen();
 }
 bootstrap().catch((error) => {
   // A basic logger for bootstrap errors, as the main logger might not be available
