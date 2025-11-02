@@ -57,7 +57,19 @@ export class NatsTraceInterceptor implements NestInterceptor {
     const natsContext = rpcContext.getContext<NatsContext>();
 
     const subject = natsContext.getSubject();
-    const headers = natsContext.getHeaders() ?? {};
+
+    // After extracting headers for tracing, we must remove them from the payload.
+    // This prevents validation errors in downstream pipes (like `ValidationPipe`)
+    // when `forbidNonWhitelisted: true` is enabled. This is a common issue with
+    // NestJS v11 where `forbidNonWhitelisted` runs before stripping.
+    const data = rpcContext.getData();
+    const headers =
+      typeof data === 'object' && data !== null && 'headers' in data
+        ? ((data as { headers?: unknown }).headers as NatsHeaderCarrier)
+        : {};
+    if (typeof data === 'object' && data !== null && 'headers' in data) {
+      delete (data as { headers?: unknown }).headers;
+    }
 
     // extract context
     const parentContext = propagation.extract(

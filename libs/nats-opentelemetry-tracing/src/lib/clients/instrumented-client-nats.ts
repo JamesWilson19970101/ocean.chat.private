@@ -16,7 +16,10 @@ import {
 
 class NatsHeaderSetter implements TextMapSetter<NatsHeaderCarrier> {
   set(carrier: NatsHeaderCarrier, key: string, value: string): void {
-    carrier[key] = value;
+    // NATS headers expect values to be an array of strings.
+    // To ensure compatibility with the NatsHeaderGetter on the receiving side,
+    // which expects an array, we wrap the value in an array.
+    carrier[key] = [value];
   }
 }
 
@@ -34,26 +37,25 @@ export class InstrumentedClientNats extends ClientNats {
     pattern: any,
     data: TInput,
   ): Observable<TResult> {
-    const operation = () => super.emit(pattern, data);
-    return this.traceableCall('PUBLISH', pattern, operation, data);
+    // Pass the super.emit method bound to `this` context.
+    return this.traceableCall('PUBLISH', pattern, super.emit.bind(this), data);
   }
 
   public send<TResult = any, TInput = any>(
     pattern: any,
     data: TInput,
   ): Observable<TResult> {
-    const operation = () => super.send(pattern, data);
-    return this.traceableCall('REQUEST', pattern, operation, data);
+    // Pass the super.send method bound to `this` context.
+    return this.traceableCall('REQUEST', pattern, super.send.bind(this), data);
   }
 
   private traceableCall<TResult = any, TInput = any>(
     operation: 'PUBLISH' | 'REQUEST',
     pattern: any,
-    callSuper: () => Observable<any>,
+    superMethod: (pattern: any, data: TInput) => Observable<any>,
     data: TInput,
   ): Observable<TResult> {
-    const subject =
-      typeof pattern === 'object' ? JSON.stringify(pattern) : pattern;
+    const subject = this.normalizePattern(pattern);
     const spanName = `NATS ${operation} ${subject}`;
 
     // get current active context as parent, it's the key of call chain
@@ -70,35 +72,37 @@ export class InstrumentedClientNats extends ClientNats {
     });
 
     return context.with(trace.setSpan(parentContext, span), () => {
+      // Create a mutable copy of data if it's an object, otherwise use it as is.
+      // This prevents side effects on the original data object passed by the caller.
       const newData =
         typeof data === 'object' && data !== null ? { ...data } : data;
 
+      // Ensure headers object exists for context injection.
+      // If newData is an object, we can potentially add/modify its headers.
       const headers =
         typeof newData === 'object' && newData !== null && 'headers' in newData
-          ? (newData as { headers?: any }).headers || {}
+          ? (newData as { headers?: NatsHeaderCarrier }).headers || {}
           : {};
-      // inject header into context
-      propagation.inject(
-        trace.setSpan(context.active(), span),
-        headers,
-        setter,
-      );
+
+      // Inject the active span's context into the headers.
+      // The first argument should be the active context.
+      propagation.inject(context.active(), headers, setter);
+
+      // Re-assign the (potentially modified) headers back to the data payload if it's an object.
       if (typeof newData === 'object' && newData !== null) {
-        (newData as { headers?: {} & Record<string, unknown> }).headers =
-          headers;
+        (newData as { headers?: NatsHeaderCarrier }).headers = headers;
       }
 
-      const resultObservable = callSuper.apply({
-        ...this,
-        data: newData,
-      }) as Observable<any>;
-
+      const resultObservable = superMethod(
+        pattern,
+        newData,
+      ) as Observable<TResult>;
       // make sure span will be ended
       return resultObservable.pipe(
         finalize(() => {
           span.end();
         }),
       );
-    }) as Observable<TResult>;
+    });
   }
 }

@@ -2012,6 +2012,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@opentelemetry/core@npm:^2.2.0":
+  version: 2.2.0
+  resolution: "@opentelemetry/core@npm:2.2.0"
+  dependencies:
+    "@opentelemetry/semantic-conventions": "npm:^1.29.0"
+  peerDependencies:
+    "@opentelemetry/api": ">=1.0.0 <1.10.0"
+  checksum: 10c0/f618b63f2f560d052791d2406b1411722aa4b0585031242e6906f869f0a707ffe725c4b29bf18aed1f202e1ab5dfc3a9f769c517ac8521338b33ac8c4265fba9
+  languageName: node
+  linkType: hard
+
 "@opentelemetry/exporter-logs-otlp-grpc@npm:0.206.0, @opentelemetry/exporter-logs-otlp-grpc@npm:^0.206.0":
   version: 0.206.0
   resolution: "@opentelemetry/exporter-logs-otlp-grpc@npm:0.206.0"
@@ -9043,6 +9054,7 @@ __metadata:
     "@ocean.chat/casbin-ioredis-adapter": "npm:^1.0.0"
     "@opentelemetry/api": "npm:^1.9.0"
     "@opentelemetry/auto-instrumentations-node": "npm:^0.65.0"
+    "@opentelemetry/core": "npm:^2.2.0"
     "@opentelemetry/exporter-logs-otlp-grpc": "npm:^0.206.0"
     "@opentelemetry/exporter-metrics-otlp-grpc": "npm:^0.206.0"
     "@opentelemetry/exporter-prometheus": "npm:^0.206.0"
