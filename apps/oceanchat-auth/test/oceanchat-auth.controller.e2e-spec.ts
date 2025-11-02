@@ -62,7 +62,7 @@ describe('OceanchatAuthController (e2e)', () => {
 
   describe("MessagePattern 'auth.login'", () => {
     beforeEach(async () => {
-      await firstValueFrom(client.send('auth.register', testUser));
+      await firstValueFrom(client.send('user.create', testUser));
     });
 
     afterEach(async () => {
@@ -93,7 +93,7 @@ describe('OceanchatAuthController (e2e)', () => {
       // The error from BaseRpcException is nested inside the 'error' property.
       expect(rpcEerror).toHaveProperty('error');
       // The error message from the microservice is a JSON string, so I need to parse it.
-      expect(rpcEerror.error.errorCode).toBe(10020);
+      expect(rpcEerror.error.errorCode).toBe(10030);
     });
 
     it('should return access and refresh tokens with correct credentials', async () => {
@@ -136,7 +136,7 @@ describe('OceanchatAuthController (e2e)', () => {
       );
 
       expect(rpcError).toHaveProperty('error');
-      expect(rpcError.error.errorCode).toBe(10021);
+      expect(rpcError.error.errorCode).toBe(10030);
     });
   });
 
@@ -147,7 +147,7 @@ describe('OceanchatAuthController (e2e)', () => {
 
     beforeEach(async () => {
       // Register and log in to get a valid token
-      await firstValueFrom(client.send('auth.register', testUser));
+      await firstValueFrom(client.send('user.create', testUser));
       const loginPayload = {
         username: testUser.username,
         password: testUser.password,
@@ -202,7 +202,7 @@ describe('OceanchatAuthController (e2e)', () => {
 
     beforeEach(async () => {
       // Register and log in to get a valid refresh token
-      await firstValueFrom(client.send('auth.register', testUser));
+      await firstValueFrom(client.send('user.create', testUser));
       const loginPayload = {
         username: testUser.username,
         password: testUser.password,
@@ -272,7 +272,7 @@ describe('OceanchatAuthController (e2e)', () => {
 
       expect(rpcError).toHaveProperty('error');
 
-      expect(rpcError.error.errorCode).toBe(10030);
+      expect(rpcError.error.errorCode).toBe(10031);
     });
 
     it('should throw an RpcException if the user does not exist anymore', async () => {
