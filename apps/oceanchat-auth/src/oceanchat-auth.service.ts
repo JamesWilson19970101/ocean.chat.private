@@ -106,22 +106,11 @@ export class OceanchatAuthService implements OnModuleInit {
     const sessionKey = getRefreshSessionKey(jti);
 
     // Atomically get the session value and delete the key using a Lua script.
-    // This prevents the race condition you identified, where multiple concurrent requests
+    // This prevents the race condition where multiple concurrent requests
     // could use the same refresh token. The first request will get the session and
     // delete the key. Any subsequent requests will get `nil` and be rejected.
-    const LUA_SCRIPT_GET_AND_DELETE = `
-      local value = redis.call('get', KEYS[1])
-      if value then
-        redis.call('del', KEYS[1])
-      end
-      return value
-    `;
-
-    const storedValue = await this.redisService.eval(
-      LUA_SCRIPT_GET_AND_DELETE,
-      [sessionKey], // KEYS array
-      [], // ARGV array
-    );
+    const storedValue =
+      await this.redisService.getAndDelete<string>(sessionKey);
 
     if (!storedValue) {
       // If the token is not in Redis, it means it has been used by a concurrent request,

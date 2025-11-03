@@ -110,6 +110,25 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Atomically gets the value of a key and then deletes the key.
+   * Useful for implementing one-time-use tokens or locks.
+   * @param key The key to get and delete.
+   * @returns The value of the key, or null if the key does not exist.
+   */
+  async getAndDelete<T>(key: RedisKey): Promise<T | null> {
+    // This Lua script ensures atomicity of the GET and DEL operations.
+    const LUA_SCRIPT_GET_AND_DELETE = `
+      local value = redis.call('get', KEYS[1])
+      if value then
+        redis.call('del', KEYS[1])
+      end
+      return value
+    `;
+    const result = await this.eval(LUA_SCRIPT_GET_AND_DELETE, [key], []);
+    return result as T | null;
+  }
+
+  /**
    * Executes a Lua script. This is useful for performing atomic operations.
    * @param script The Lua script to execute.
    * @param keys An array of key names, accessible in Lua via the KEYS table.
