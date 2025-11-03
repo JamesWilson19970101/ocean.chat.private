@@ -26,22 +26,10 @@ export class OceanchatUserService {
       // Perform dynamic validation using settings
       await this.validateCreateUserDto(username, password);
 
-      // check if the username already exists
-      const existingUser = await this.userRepository.findOne({
-        username,
-        'providers.provider': AuthProvider.LOCAL,
-      });
-
-      if (existingUser) {
-        throw new BaseRpcException(
-          this.i18nService.translate('USERNAME_ALREADY_EXISTS'),
-          ErrorCodes.USERNAME_ALREADY_EXISTS,
-        );
-      }
-
       // Hash the password before saving
       const passwordHash = await this.passwordService.hash(password);
       // Create a new user entity
+      // I added an index to username, so if the username is the same, the creation will fail.
       const newUser = await this.userRepository.create({
         username,
         name: username, // Default name to username
@@ -55,6 +43,20 @@ export class OceanchatUserService {
       const { providers, ...userObject } = newUser.toObject();
       return userObject as Partial<User>;
     } catch (error) {
+      // Handle MongoDB duplicate key error (code 11000)
+      // This is a more robust way to handle race conditions during user creation
+      // across multiple service instances.
+      if (
+        error instanceof Error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 11000
+      ) {
+        throw new BaseRpcException(
+          this.i18nService.translate('USERNAME_ALREADY_EXISTS'),
+          ErrorCodes.USERNAME_ALREADY_EXISTS,
+        );
+      }
       // If it's a business exception I threw ourselves, re-throw it.
       if (error instanceof BaseRpcException) {
         throw error;
