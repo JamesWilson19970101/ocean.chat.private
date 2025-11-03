@@ -9,7 +9,7 @@ import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject('USER-SERVICE')
+    @Inject('USER_SERVICE')
     private readonly userClient: ClientProxy,
     // Inject I18nService for user-friendly error messages
     private readonly i18nService: I18nService,
