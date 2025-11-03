@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
@@ -16,6 +17,7 @@ import {
 } from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
+import { IdempotencyInterceptor } from './idempotency/idempotency.interceptor';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
@@ -169,6 +171,14 @@ export class OceanchatApiGatewayModule {
             inject: [ConfigService],
           },
         ]),
+      ],
+      providers: [
+        // Register the IdempotencyInterceptor as a global interceptor.
+        // NestJS will handle its instantiation and dependency injection.
+        {
+          provide: APP_INTERCEPTOR,
+          useClass: IdempotencyInterceptor,
+        },
       ],
     };
   }
