@@ -44,7 +44,7 @@ export class RedisService implements OnModuleDestroy {
    * @param key The key.
    * @returns The value.
    */
-  async get<T>(key: RedisKey): Promise<T | null | string> {
+  async get<T>(key: RedisKey): Promise<T | null> {
     const value = await this.redisClient.get(key);
     if (value) {
       try {
@@ -59,7 +59,7 @@ export class RedisService implements OnModuleDestroy {
           }),
         );
         // If the value is simply a string, JSON.parse(value) will encounter an error during execution, but normally it should return the string to the client.
-        return value;
+        return value as T;
       }
     }
     return null;
@@ -71,12 +71,21 @@ export class RedisService implements OnModuleDestroy {
    * @param value The value.
    * @param ttl The time to live in seconds.
    */
-  async set(key: RedisKey, value: unknown, ttl?: number): Promise<'OK'> {
-    const serializedValue = JSON.stringify(value);
-    if (ttl) {
-      return this.redisClient.set(key, serializedValue, 'EX', ttl);
+  async set<T>(key: RedisKey, value: T, ttl?: number): Promise<'OK'> {
+    let valueToStore: RedisValue;
+
+    if (typeof value === 'string' || Buffer.isBuffer(value)) {
+      // For strings and Buffers, store them directly.
+      valueToStore = value;
+    } else {
+      // For objects, arrays, etc., JSON.stringify them.
+      valueToStore = JSON.stringify(value);
     }
-    return this.redisClient.set(key, serializedValue);
+
+    if (ttl) {
+      return this.redisClient.set(key, valueToStore, 'EX', ttl);
+    }
+    return this.redisClient.set(key, valueToStore);
   }
 
   /**
