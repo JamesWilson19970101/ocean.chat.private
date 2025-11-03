@@ -8,10 +8,7 @@ import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { ModelsModule } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provisioner';
-import {
-  NatsOpentelemetryTracingModule,
-  NatsTraceInterceptor,
-} from '@ocean.chat/nats-opentelemetry-tracing';
+import { NatsTraceInterceptor } from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
 import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
@@ -130,18 +127,10 @@ export class OceanchatAuthModule {
             },
           }),
         }),
-        // Import the tracing module. Place it early for clarity.
-        NatsOpentelemetryTracingModule.registerAsync({
-          imports: [ConfigModule],
-          useFactory: (configService: ConfigService) => ({
-            servers: [configService.get<string>('nats.url') as string],
-          }),
-          inject: [ConfigService],
-        }),
         // CommonExceptionsModule should come after tracing so the filter can be injected
         // into the interceptor if needed in the future.
         CommonExceptionsModule.forRoot({
-          serviceName: 'oceanchat-auth',
+          serviceName: options.serviceName,
           serviceInstanceId: options.serviceInstanceId,
         }),
         RedisModule.registerAsync({

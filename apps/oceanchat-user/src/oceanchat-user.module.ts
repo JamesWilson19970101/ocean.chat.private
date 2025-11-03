@@ -121,17 +121,20 @@ export class OceanchatUserModule {
           }),
         }),
         // Import the tracing module. Place it early for clarity.
-        NatsOpentelemetryTracingModule.registerAsync({
-          imports: [ConfigModule],
-          useFactory: (configService: ConfigService) => ({
-            servers: [configService.get<string>('nats.url') as string],
-          }),
-          inject: [ConfigService],
-        }),
+        NatsOpentelemetryTracingModule.registerAsync([
+          {
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+              servers: [configService.get<string>('nats.url') as string],
+            }),
+            inject: [ConfigService],
+            name: 'AUTH_SERVICE',
+          },
+        ]),
         // CommonExceptionsModule should come after tracing so the filter can be injected
         // into the interceptor if needed in the future.
         CommonExceptionsModule.forRoot({
-          serviceName: 'oceanchat-auth',
+          serviceName: options.serviceName,
           serviceInstanceId: options.serviceInstanceId,
         }),
         RedisModule.registerAsync({

@@ -3,14 +3,13 @@ import { ClientProxy } from '@nestjs/microservices';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider, User } from '@ocean.chat/models';
-import { NATS_CLIENT_INJECTION_TOKEN } from '@ocean.chat/nats-opentelemetry-tracing';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @Inject(NATS_CLIENT_INJECTION_TOKEN)
+    @Inject('USER-SERVICE')
     private readonly userClient: ClientProxy,
     // Inject I18nService for user-friendly error messages
     private readonly i18nService: I18nService,

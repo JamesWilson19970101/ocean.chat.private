@@ -9,13 +9,16 @@ import { UsersService } from './users.service';
     // Use NatsOpentelemetryTracingModule to get an
     // instrumented NATS client that supports distributed tracing.
     // This module exports the client, making it available for injection.
-    NatsOpentelemetryTracingModule.registerAsync({
-      useFactory: (configService: ConfigService) => ({
-        // The factory returns the options for the underlying NATS client
-        servers: [configService.get<string>('nats.url') as string],
-      }),
-      inject: [ConfigService], // Inject ConfigService into the factory
-    }),
+    NatsOpentelemetryTracingModule.registerAsync([
+      {
+        useFactory: (configService: ConfigService) => ({
+          // The factory returns the options for the underlying NATS client
+          servers: [configService.get<string>('nats.url') as string],
+        }),
+        inject: [ConfigService], // Inject ConfigService into the factory
+        name: 'USER_SERVICE',
+      },
+    ]),
   ],
   providers: [UsersService],
   exports: [UsersService],
