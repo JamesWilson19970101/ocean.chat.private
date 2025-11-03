@@ -79,25 +79,49 @@ export class SettingsService implements OnModuleInit {
    * @param key setting key
    * @returns The value of the setting associated with the provided key, or null if no such setting exists.
    */
-  async getSettingValue(key: string): Promise<Setting['value'] | null> {
-    const cacheKey = this.getCacheKey(key);
+  async getSettingValue(
+    key: string,
+    retryOptions = { retries: 3, delay: 150 },
+  ): Promise<Setting['value'] | null> {
+    for (let i = 0; i < retryOptions.retries; i++) {
+      const cacheKey = this.getCacheKey(key);
 
-    const fetcher = async () => {
-      this.logger.debug(
-        { key },
-        this.i18nService.translate('Trying_To_Get_Setting_From_DB', { key }),
+      const fetcher = async () => {
+        this.logger.debug(
+          { key, attempt: i + 1 },
+          this.i18nService.translate('Trying_To_Get_Setting_From_DB', { key }),
+        );
+        const setting = await this.settingsRepository.findByKey(key);
+        return setting ? setting.value : null;
+      };
+
+      const result = await this.redisService.getOrSet(cacheKey, fetcher, {
+        ttl: this.CACHE_TTL_SECONDS,
+        nullTtl: this.CACHE_NULL_TTL_SECONDS,
+        lockTtl: 10, // Lock expires after 10 seconds
+        lockWaitTime: 100, // Wait for 100ms before retrying
+        ttlJitter: 300, // Add up to 5 minutes of jitter
+      });
+
+      if (result !== null) {
+        return result;
+      }
+
+      this.logger.warn(
+        { key, attempt: i + 1, delay: retryOptions.delay },
+        this.i18nService.translate('GET_OR_SET_RETURNED_NULL_RETRYING', {
+          delay: retryOptions.delay,
+        }),
       );
-      const setting = await this.settingsRepository.findByKey(key);
-      return setting ? setting.value : null;
-    };
-
-    return this.redisService.getOrSet(cacheKey, fetcher, {
-      ttl: this.CACHE_TTL_SECONDS,
-      nullTtl: this.CACHE_NULL_TTL_SECONDS,
-      lockTtl: 10, // Lock expires after 10 seconds
-      lockWaitTime: 100, // Wait for 100ms before retrying
-      ttlJitter: 300, // Add up to 5 minutes of jitter
-    });
+      await new Promise((resolve) =>
+        setTimeout(resolve, retryOptions.delay * (i + 1)),
+      ); // Exponential backoff
+    }
+    this.logger.error(
+      { key },
+      this.i18nService.translate('GET_SETTING_VALUE_FAILED_AFTER_RETRIES'),
+    );
+    return null;
   }
 
   /**

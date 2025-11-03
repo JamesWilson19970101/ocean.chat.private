@@ -74,6 +74,7 @@ export default {
       Cache_Set_Failed: 'Cache sets failed.',
       Retry_Failed_Fallback_To_Fetcher:
         'Retry failed. Falling back to fetcher directly.',
+      Retry_Failed_Fallback_To_Null: 'Retry failed. Falling back to null.',
       Cache_Get_Failed: 'Cache get failed.',
       Cache_Set_Failed_After_DB_Fetch:
         'Cache set failed after DB update After DB fetch successfully.',
@@ -113,6 +114,10 @@ export default {
       FAILED_TO_PUBLISH_LOGGEDIN_EVENT:
         'Failed to publish user.loggedIn event to NATS JetStream',
       SERVICE_ERROR: 'Service thrown an error when call {{method}}',
+      GET_OR_SET_RETURNED_NULL_RETRYING:
+        'getOrSet returned null. Retrying after {{delay}}ms...',
+      GET_SETTING_VALUE_FAILED_AFTER_RETRIES:
+        'Failed to get setting value after multiple retries.',
     },
   },
   zh: {
@@ -175,6 +180,7 @@ export default {
         '在回退过程中，验证的 JWT 中的用户在数据库中未找到。这不应该发生。',
       Cache_Set_Failed: '缓存设置失败。',
       Retry_Failed_Fallback_To_Fetcher: '重试失败，往后直接回退到获取器。',
+      Retry_Failed_Fallback_To_Null: '重试失败，返回 null。',
       Cache_Get_Failed: '缓存获取失败。',
       Cache_Set_Failed_After_DB_Fetch: '从数据库成功获取数据后，缓存设置失败。',
       Retry_Success_Cache_Hit: '重试成功，缓存命中',
@@ -207,6 +213,9 @@ export default {
       FAILED_TO_PUBLISH_LOGGEDIN_EVENT:
         '发布 user.loggedIn 事件到 NATS JetStream 失败',
       SERVICE_ERROR: '当调用 {{method}} 的时候，服务抛出错误',
+      GET_OR_SET_RETURNED_NULL_RETRYING:
+        'getOrSet 返回了 null。将在 {{delay}}ms 后重试...',
+      GET_SETTING_VALUE_FAILED_AFTER_RETRIES: '多次重试后未能获取设置值。',
     },
   },
 };

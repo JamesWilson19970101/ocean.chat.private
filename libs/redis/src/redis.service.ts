@@ -248,9 +248,9 @@ export class RedisService implements OnModuleDestroy {
       // If all retries fail, fetch from the source directly as a last resort.
       this.logger.warn(
         { key },
-        this.i18nService.translate('Retry_Failed_Fallback_To_Fetcher'),
+        this.i18nService.translate('Retry_Failed_Fallback_To_Null'),
       );
-      return fetcher();
+      return null;
     }
   }
 }
