@@ -1,15 +1,50 @@
-import { NestFactory } from '@nestjs/core';
+import { startTracing } from '@ocean.chat/tracing';
+import { propagation } from '@opentelemetry/api';
+import { W3CTraceContextPropagator } from '@opentelemetry/core';
+import { randomUUID } from 'crypto';
+const serviceName = 'oceanchat-api-gateway';
+const serviceInstanceId = randomUUID();
+startTracing(serviceName, serviceInstanceId); // Initialize OpenTelemetry Tracing at the very begining of the application
+propagation.setGlobalPropagator(new W3CTraceContextPropagator()); // This ensures that all OpenTelemetry API calls (such as inject and extract) use W3C standards.
 
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { Logger } from 'nestjs-pino';
+
 import { OceanchatApiGatewayModule } from './oceanchat-api-gateway.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(OceanchatApiGatewayModule);
-  // Set the JwtAuthGuard as a global guard.
-  // All endpoints will be protected by default.
-  app.useGlobalGuards(app.get(JwtAuthGuard));
+  console.log(`
+   ____   _____ ______          _   _      _____ _    _       _______     _____ __  __
+  / __ \\ / ____|  ____|   /\\   | \\ | |    / ____| |  | |   /\\|__   __|   |_   _|  \\/  |
+ | |  | | |    | |__     /  \\  |  \\| |   | |    | |__| |  /  \\  | |        | | | \\  / |
+ | |  | | |    |  __|   / /\\ \\ | . \` |   | |    |  __  | / /\\ \\ | |        | | | |\\/| |
+ | |__| | |____| |____ / ____ \\| |\\  |   | |____| |  | |/ ____ \\| |       _| |_| |  | |
+  \\____/ \\_____|______/_/    \\_\\_| \\_|    \\_____|_|  |_/_/    \\_\\_|      |_____|_|  |_|
+  `);
 
-  await app.listen(process.env.OCEANCHAT_API_GATEWAY_PORT ?? 3000);
+  const app = await NestFactory.create(
+    OceanchatApiGatewayModule.forRoot({
+      serviceName,
+      serviceInstanceId,
+    }),
+    {
+      bufferLogs: true,
+    },
+  );
+
+  app.useLogger(app.get(Logger));
+
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  );
+
+  await app.listen(process.env.OCEANCHAT_API_GATEWAY_PORT ?? 8888);
 }
 bootstrap().catch((error) => {
   if (error instanceof Error) {
