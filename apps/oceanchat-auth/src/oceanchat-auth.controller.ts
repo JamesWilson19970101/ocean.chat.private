@@ -28,10 +28,25 @@ export class OceanchatAuthController {
   }
 
   /**
-   * NATS message handler for validating a JWT.
-   * This is protected by the 'jwt' strategy guard.
-   * The guard will automatically validate the token using JwtStrategy.
-   * @param user - The user payload from the validated token, injected by @CurrentUser.
+   * NATS message handler for validating a JWT. This provides a centralized,
+   * authoritative validation endpoint for internal microservices. It is protected
+   * by the 'jwt' strategy guard, which handles the actual validation logic.
+   *
+   * Use Cases:
+   * 1.  **WebSocket Gateway (`oceanchat-ws-gateway`)**:
+   *     - Used for one-time authentication when a client establishes a WebSocket connection.
+   *     - The performance overhead of an RPC call is acceptable here because it happens only once per connection lifecycle.
+   *     - This approach enhances security by not requiring the `ws-gateway` to hold the JWT secret.
+   *
+   * 2.  **High-Security Business Operations (Optional)**:
+   *     - Internal services (e.g., `account-service`) can call this for a final, real-time check before executing critical operations (like account deletion).
+   *     - This is a trade-off: it ensures the token is valid at the exact moment of the operation, at the cost of an extra network call.
+   *
+   * Note: This endpoint is NOT intended for high-frequency use by services like the `oceanchat-api-gateway`,
+   * which should perform local JWT validation for every HTTP request to maintain low latency.
+   *
+   * @param user - The user payload from the validated token, injected by the @validateUser decorator after the guard runs.
+   * @returns The user's basic information if the token is valid.
    */
   @UseGuards(JwtAuthGuard)
   @MessagePattern('auth.token.validate')
