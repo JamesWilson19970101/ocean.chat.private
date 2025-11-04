@@ -2,10 +2,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ErrorCodes } from '@ocean.chat/common-exceptions';
 import { User } from '@ocean.chat/models';
-import {
-  NATS_CLIENT_INJECTION_TOKEN,
-  NatsOpentelemetryTracingModule,
-} from '@ocean.chat/nats-opentelemetry-tracing';
+import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
 import { connect, connection } from 'mongoose';
 import { catchError, firstValueFrom, of } from 'rxjs';
 
@@ -28,13 +25,18 @@ describe('OceanchatUserController (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
-        NatsOpentelemetryTracingModule.register({
-          servers: [process.env.NATS_URL || 'nats://localhost:4222'],
-        }),
+        NatsOpentelemetryTracingModule.registerAsync([
+          {
+            useFactory: () => ({
+              servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+            }),
+            name: 'USER_SERVICE_TEST',
+          },
+        ]),
       ],
     }).compile();
 
-    client = moduleFixture.get<ClientProxy>(NATS_CLIENT_INJECTION_TOKEN);
+    client = moduleFixture.get<ClientProxy>('USER_SERVICE_TEST');
     await client.connect();
 
     await connect('mongodb://localhost:27017/oceanchat_test');
