@@ -193,8 +193,15 @@ export class OceanchatAuthService implements OnModuleInit {
       // Atomically store both tokens' JTIs in Redis using a transaction (MULTI/EXEC).
       // This ensures that either both keys are set successfully, or neither is,
       // preventing a partial state where only one token is valid.
-      const accessExpiresInSeconds = ms(accessExpiresIn) / 1000;
-      const refreshExpiresInSeconds = ms(refreshExpiresIn) / 1000;
+      const accessTtl = ms(accessExpiresIn) / 1000;
+      const refreshTtl = ms(refreshExpiresIn) / 1000;
+
+      // Add jitter to TTLs to prevent mass expiry (cache avalanche)
+      // e.g., add up to 10% of the original TTL as random jitter.
+      const accessExpiresInSeconds =
+        accessTtl + Math.floor(Math.random() * accessTtl * 0.1);
+      const refreshExpiresInSeconds =
+        refreshTtl + Math.floor(Math.random() * refreshTtl * 0.1);
 
       await this.redisService
         .getClient()
