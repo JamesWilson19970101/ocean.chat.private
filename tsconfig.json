@@ -75,6 +75,12 @@
       ],
       "@ocean.chat/tracing/*": [
         "libs/tracing/src/*"
+      ],
+      "@ocean.chat/types": [
+        "libs/types/src"
+      ],
+      "@ocean.chat/types/*": [
+        "libs/types/src/*"
       ]
     }
   }

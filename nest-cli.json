@@ -173,6 +173,15 @@
       "compilerOptions": {
         "tsConfigPath": "libs/tracing/tsconfig.lib.json"
       }
+    },
+    "types": {
+      "type": "library",
+      "root": "libs/types",
+      "entryFile": "index",
+      "sourceRoot": "libs/types/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/types/tsconfig.lib.json"
+      }
     }
   },
   "monorepo": true,

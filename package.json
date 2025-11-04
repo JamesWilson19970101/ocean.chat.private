@@ -165,7 +165,8 @@
       "^@ocean.chat/nats-opentelemetry-tracing(|/.*)$": "<rootDir>/libs/nats-opentelemetry-tracing/src/$1",
       "^@ocean.chat/redis(|/.*)$": "<rootDir>/libs/redis/src/$1",
       "^@ocean.chat/settings(|/.*)$": "<rootDir>/libs/settings/src/$1",
-      "^@ocean.chat/tracing(|/.*)$": "<rootDir>/libs/tracing/src/$1"
+      "^@ocean.chat/tracing(|/.*)$": "<rootDir>/libs/tracing/src/$1",
+      "^@ocean.chat/types(|/.*)$": "<rootDir>/libs/types/src/$1"
     }
   },
   "packageManager": "yarn@4.7.0"
