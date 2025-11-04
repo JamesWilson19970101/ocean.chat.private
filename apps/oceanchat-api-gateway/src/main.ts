@@ -44,7 +44,7 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.OCEANCHAT_API_GATEWAY_PORT ?? 3000);
+  await app.listen(process.env.OCEANCHAT_API_GATEWAY_PORT ?? 1994);
 }
 bootstrap().catch((error) => {
   if (error instanceof Error) {
