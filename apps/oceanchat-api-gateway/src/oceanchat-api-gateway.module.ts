@@ -22,7 +22,9 @@ import {
 } from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
+import { AuthModule } from './modules/auth/auth.module';
 import { JwtStrategy } from './modules/auth/jwt.strategy';
+import { UsersModule } from './modules/users/users.module';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
@@ -128,7 +130,6 @@ export class OceanchatApiGatewayModule {
           serviceInstanceId: options.serviceInstanceId,
         }),
         RedisModule.registerAsync({
-          imports: [ConfigModule],
           useFactory: (configService: ConfigService) => ({
             host: configService.get<string>('redis.host'),
             port: configService.get<number>('redis.port'),
@@ -137,7 +138,6 @@ export class OceanchatApiGatewayModule {
           inject: [ConfigService],
         }),
         MongooseModule.forRootAsync({
-          imports: [ConfigModule],
           useFactory: (
             configService: ConfigService,
             logger: PinoLogger,
@@ -193,6 +193,8 @@ export class OceanchatApiGatewayModule {
           }),
           inject: [ConfigService],
         }),
+        AuthModule,
+        UsersModule,
       ],
       providers: [
         JwtStrategy,

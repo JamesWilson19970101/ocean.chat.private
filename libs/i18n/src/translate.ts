@@ -126,6 +126,7 @@ export default {
         'Idempotency: Lock acquired, executing operation.',
       IDEMPOTENCY_OPERATION_FAILED:
         'Idempotency: Operation failed, releasing lock.',
+      REGISTRATION_FAILED: 'Registration failed',
     },
   },
   zh: {
@@ -229,6 +230,7 @@ export default {
       IDEMPOTENCY_CONFLICT_DETECTED: '幂等性：检测到冲突。',
       IDEMPOTENCY_LOCK_ACQUIRED: '幂等性：已获取锁，正在执行操作。',
       IDEMPOTENCY_OPERATION_FAILED: '幂等性：操作失败，正在释放锁。',
+      REGISTRATION_FAILED: '注册失败',
     },
   },
 };

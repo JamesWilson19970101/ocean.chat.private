@@ -29,6 +29,7 @@ export class NatsOpentelemetryTracingModule {
           })),
         ),
       ],
+      global: true,
       providers: [NatsTraceInterceptor],
       exports: [NatsTraceInterceptor, ClientsModule],
     };
