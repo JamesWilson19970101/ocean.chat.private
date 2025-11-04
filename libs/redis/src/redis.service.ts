@@ -1,5 +1,11 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+  HttpStatus,
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
+import { CachedResponse } from '@ocean.chat/types';
 import { RedisKey, RedisValue } from 'ioredis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
@@ -15,6 +21,24 @@ export interface GetOrSetOptions {
   /** Time to wait in milliseconds before retrying if a lock is not acquired. */
   lockWaitTime?: number;
   /** Add a random jitter to the TTL to prevent stampedes on expiry. Max value in seconds. */
+  ttlJitter?: number;
+}
+
+export interface IdempotencyResult<T> {
+  /** Indicates the outcome of the idempotency check. */
+  status: 'EXECUTED' | 'CONFLICT' | 'CACHED';
+  /** The HTTP status code to return. */
+  statusCode: number;
+  /** The response body. */
+  body: T | { message: string };
+}
+
+export interface IdempotencyOptions {
+  /** Time to live in seconds for the "processing" lock. */
+  processingTtl: number;
+  /** Time to live in seconds for the final cached response. */
+  cacheTtl: number;
+  /** Add a random jitter to the cache TTL to prevent stampedes on expiry. Max value in seconds. */
   ttlJitter?: number;
 }
 
@@ -279,6 +303,93 @@ export class RedisService implements OnModuleDestroy {
         this.i18nService.translate('Retry_Failed_Fallback_To_Null'),
       );
       return null;
+    }
+  }
+
+  /**
+   * Executes a function idempotently using Redis for distributed locking and response caching.
+   *
+   * @template T The expected type of the successful response body.
+   * @param key The idempotency key.
+   * @param fetcher An async function that performs the actual operation and returns the body and status code.
+   * @param options Configuration for processing and cache TTLs.
+   * @returns An `IdempotencyResult` object indicating the outcome.
+   */
+  async executeIdempotently<T>(
+    key: string,
+    fetcher: () => Promise<{ body: T; statusCode: number }>,
+    options: IdempotencyOptions,
+  ): Promise<IdempotencyResult<T>> {
+    // 1. Atomically acquire a distributed lock.
+    const lockAcquired = await this.setnx(
+      key,
+      JSON.stringify({ status: 'processing' }),
+      options.processingTtl,
+    );
+
+    if (!lockAcquired) {
+      // 2. Lock not acquired, check the current state.
+      const cached = await this.get<CachedResponse>(key);
+      if (cached?.status === 'completed') {
+        this.logger.debug(
+          { key },
+          this.i18nService.translate('IDEMPOTENCY_CACHED_RESPONSE_RETURNED'),
+        );
+        return {
+          status: 'CACHED',
+          statusCode: cached.statusCode,
+          body: cached.body,
+        };
+      }
+      // If status is 'processing' or key expired, it's a conflict.
+      this.logger.warn(
+        { key },
+        this.i18nService.translate('IDEMPOTENCY_CONFLICT_DETECTED'),
+      );
+      return {
+        status: 'CONFLICT',
+        statusCode: HttpStatus.CONFLICT,
+        body: { message: 'Request is being processed' },
+      };
+    }
+
+    // 3. Lock acquired, execute the operation.
+    try {
+      this.logger.debug(
+        { key },
+        this.i18nService.translate('IDEMPOTENCY_LOCK_ACQUIRED'),
+      );
+      const { body, statusCode } = await fetcher();
+      // 4. Check if the response indicates success (e.g., 2xx status code).
+      // Only cache successful responses to allow retries for client/server errors.
+      if (statusCode >= 200 && statusCode < 300) {
+        const cache = {
+          status: 'completed',
+          body,
+          statusCode,
+        };
+        const jitter = options.ttlJitter
+          ? Math.floor(Math.random() * options.ttlJitter)
+          : 0;
+        await this.set(key, cache, options.cacheTtl + jitter);
+      } else {
+        // If the status code indicates an error (e.g., 4xx, 5xx),
+        // do not cache the response and release the lock to allow retries.
+        await this.del(key);
+      }
+      return {
+        status: 'EXECUTED',
+        statusCode,
+        body,
+      };
+    } catch (error) {
+      this.logger.error(
+        { key, err: error },
+        this.i18nService.translate('IDEMPOTENCY_OPERATION_FAILED'),
+      );
+      await this.del(key);
+      // Re-throw the original error to be handled by the global exception filter.
+      throw error;
     }
   }
 }

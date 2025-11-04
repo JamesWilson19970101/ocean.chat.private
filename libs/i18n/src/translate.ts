@@ -118,6 +118,14 @@ export default {
         'getOrSet returned null. Retrying after {{delay}}ms...',
       GET_SETTING_VALUE_FAILED_AFTER_RETRIES:
         'Failed to get setting value after multiple retries.',
+      IDEMPOTENCY_CONFLICT: 'Idempotency conflict.',
+      IDEMPOTENCY_CACHED_RESPONSE_RETURNED:
+        'Idempotency: Cached response returned.',
+      IDEMPOTENCY_CONFLICT_DETECTED: 'Idempotency: Conflict detected.',
+      IDEMPOTENCY_LOCK_ACQUIRED:
+        'Idempotency: Lock acquired, executing operation.',
+      IDEMPOTENCY_OPERATION_FAILED:
+        'Idempotency: Operation failed, releasing lock.',
     },
   },
   zh: {
@@ -216,6 +224,11 @@ export default {
       GET_OR_SET_RETURNED_NULL_RETRYING:
         'getOrSet 返回了 null。将在 {{delay}}ms 后重试...',
       GET_SETTING_VALUE_FAILED_AFTER_RETRIES: '多次重试后未能获取设置值。',
+      IDEMPOTENCY_CONFLICT: '幂等性冲突。',
+      IDEMPOTENCY_CACHED_RESPONSE_RETURNED: '幂等性：返回缓存的响应。',
+      IDEMPOTENCY_CONFLICT_DETECTED: '幂等性：检测到冲突。',
+      IDEMPOTENCY_LOCK_ACQUIRED: '幂等性：已获取锁，正在执行操作。',
+      IDEMPOTENCY_OPERATION_FAILED: '幂等性：操作失败，正在释放锁。',
     },
   },
 };

@@ -12,6 +12,13 @@ export const redisConfiguration = registerAs('redis', () => ({
   db: parseInt(process.env.REDIS_DB || '2', 10),
 }));
 
+export const jwtConfiguration = registerAs('jwt', () => ({
+  accessSecret: process.env.JWT_ACCESS_SECRET,
+  accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15Mins',
+  refreshSecret: process.env.JWT_REFRESH_SECRET,
+  refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7Days',
+}));
+
 export const natsConfiguration = registerAs('nats', () => ({
   url: process.env.NATS_URL || 'nats://localhost:4222',
 }));

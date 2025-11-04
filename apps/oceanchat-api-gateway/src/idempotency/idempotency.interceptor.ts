@@ -1,31 +1,22 @@
 import {
   CallHandler,
-  ConflictException,
   ExecutionContext,
+  HttpStatus,
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
-import { Request, Response } from 'express';
-import { from, Observable, of, throwError } from 'rxjs';
-import { catchError, concatMap } from 'rxjs/operators';
+import type { Request, Response } from 'express';
+import { Observable, of } from 'rxjs';
 
-const IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
-const PROCESSING_TTL_SECONDS = 30; // The max time a request is expected to take.
-const RESPONSE_CACHE_TTL_SECONDS = 24 * 60 * 60; // Cache responses for 24 hours.
-
-interface CompletedResponse {
-  status: 'completed';
-  body: any;
-  statusCode: number;
-}
-
-interface ProcessingResponse {
-  status: 'processing';
-}
-
-type CachedResponse = ProcessingResponse | CompletedResponse;
+import { getIdempotencyRedisKey } from '../common/utils/idempotency.utils';
+import {
+  IDEMPOTENCY_OPTIONS_KEY,
+  IdempotencyMetadata,
+} from '../decorators/idempotency.decorator';
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
@@ -34,6 +25,13 @@ export class IdempotencyInterceptor implements NestInterceptor {
     private readonly i18nService: I18nService,
   ) {}
 
+  // Default TTL if not specified on the route
+  private readonly DEFAULT_CACHE_TTL = 24 * 60 * 60; // 24 hours
+  private readonly DEFAULT_JITTER = 60 * 60; // 1 hour
+
+  private readonly IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
+  private readonly METHODS_TO_CHECK = ['POST', 'PUT', 'PATCH'];
+
   async intercept(
     context: ExecutionContext,
     next: CallHandler,
@@ -41,64 +39,56 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<Request>();
 
-    if (!['POST', 'PUT', 'PATCH'].includes(request.method)) {
+    if (!this.METHODS_TO_CHECK.includes(request.method)) {
       return next.handle();
     }
 
-    const idempotencyKey = request.headers[IDEMPOTENCY_KEY_HEADER] as string;
+    const idempotencyKey = request.headers[
+      this.IDEMPOTENCY_KEY_HEADER
+    ] as string;
 
     // If no key, proceed without idempotency
     if (!idempotencyKey) {
       return next.handle();
     }
 
-    const redisKey = `idempotency:${idempotencyKey}`;
-    const cached = await this.redisService.get<CachedResponse>(redisKey);
+    const reflector = new Reflector();
+    const routeOptions = reflector.get<IdempotencyMetadata>(
+      IDEMPOTENCY_OPTIONS_KEY,
+      context.getHandler(),
+    );
 
-    if (cached) {
-      if (cached.status === 'processing') {
-        // The original request is still being processed.
-        return throwError(
-          () => new ConflictException('Request is being processed'),
-        );
-      }
-      if (cached.status === 'completed') {
-        // The original request completed, return the cached response.
-        const response = httpContext.getResponse<Response>();
-        response.status(cached.statusCode);
-        return of(cached.body);
-      }
+    const cacheTtl = routeOptions?.cacheTtl ?? this.DEFAULT_CACHE_TTL;
+
+    const result = await this.redisService.executeIdempotently(
+      getIdempotencyRedisKey(idempotencyKey),
+      async () => {
+        // This is the 'fetcher' function. It will only be executed
+        // if the lock is successfully acquired.
+        const body = await next.handle().toPromise();
+        const statusCode = httpContext.getResponse<Response>().statusCode;
+        return { body, statusCode };
+      },
+      {
+        processingTtl: 30, // 30 seconds for the processing lock
+        cacheTtl,
+        ttlJitter: this.DEFAULT_JITTER,
+      },
+    );
+    const response = httpContext.getResponse<Response>();
+    response.status(result.statusCode);
+
+    if (result.status === 'CONFLICT') {
+      const message = this.i18nService.translate('IDEMPOTENCY_CONFLICT');
+      // For conflicts, we throw an exception that will be handled by the global filter.
+      throw new BaseException(
+        message,
+        HttpStatus.CONFLICT,
+        ErrorCodes.IDEMPOTENCY_CONFLICT, // Assuming this error code exists or will be added.
+        { idempotencyKey },
+      );
     }
-
-    // First time seeing this key. Mark as 'processing'.
-    await this.redisService.set<CachedResponse>(
-      redisKey,
-      { status: 'processing' },
-      PROCESSING_TTL_SECONDS,
-    );
-
-    // TODO: Intercepting HTTP errors in the controller
-    return next.handle().pipe(
-      concatMap((body) => {
-        const response = httpContext.getResponse<Response>();
-        const cache: CachedResponse = {
-          status: 'completed',
-          body,
-          statusCode: response.statusCode,
-        };
-        // from() converts the Promise from redisService.set into an Observable
-        return from(
-          this.redisService.set(redisKey, cache, RESPONSE_CACHE_TTL_SECONDS),
-        ).pipe(
-          // After caching is done, return the original body to continue the stream
-          concatMap(() => of(body)),
-        );
-      }),
-      catchError(async (err) => {
-        // If an error occurs, remove the processing key to allow retries.
-        await this.redisService.del(redisKey);
-        throw err; // Re-throw the original error.
-      }),
-    );
+    // For 'EXECUTED' and 'CACHED' statuses, we return the body as an Observable.
+    return of(result.body);
   }
 }

@@ -22,6 +22,9 @@ export enum ErrorCodes {
   UNAUTHORIZED = 10030, // e.g., when accessing a protected resource without valid authentication
   REFRESH_TOKEN_REUSED_OR_REVOKED = 10031, // e.g., when a refresh token is used more than once or its session is not found in Redis
 
+  // idempotency key conflict error
+  IDEMPOTENCY_CONFLICT = 10050,
+
   // Service-level errors
   SERVICE_ERROR = 50300, // e.g., a downstream microservice is not responding
 

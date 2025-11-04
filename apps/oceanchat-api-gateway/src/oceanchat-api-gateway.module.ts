@@ -1,7 +1,9 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
+import { PassportModule } from '@nestjs/passport';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
@@ -10,8 +12,11 @@ import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
+import { JwtStrategy } from './auth/jwt.strategy';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import {
   databaseConfiguration,
+  jwtConfiguration,
   natsConfiguration,
   redisConfiguration,
 } from './config/configuration';
@@ -56,7 +61,12 @@ export class OceanchatApiGatewayModule {
       imports: [
         I18nModule.forRoot(),
         ConfigModule.forRoot({
-          load: [databaseConfiguration, redisConfiguration, natsConfiguration],
+          load: [
+            databaseConfiguration,
+            redisConfiguration,
+            jwtConfiguration,
+            natsConfiguration,
+          ],
           validationSchema,
           envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
           isGlobal: true,
@@ -171,8 +181,27 @@ export class OceanchatApiGatewayModule {
             inject: [ConfigService],
           },
         ]),
+        PassportModule,
+        JwtModule.registerAsync({
+          imports: [ConfigModule],
+          // eslint-disable-next-line @typescript-eslint/require-await
+          useFactory: async (configService: ConfigService) => ({
+            secret: configService.get<string>('jwt.accessSecret'),
+            signOptions: {
+              expiresIn: configService.get<string>('jwt.accessExpiresIn'),
+            },
+          }),
+          inject: [ConfigService],
+        }),
       ],
       providers: [
+        JwtStrategy,
+        // Register JwtAuthGuard globally. All routes will be protected by default.
+        // Use @SkipAuth() decorator to make specific routes public.
+        {
+          provide: APP_GUARD,
+          useClass: JwtAuthGuard,
+        },
         // Register the IdempotencyInterceptor as a global interceptor.
         // NestJS will handle its instantiation and dependency injection.
         {
