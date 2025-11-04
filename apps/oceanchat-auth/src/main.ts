@@ -5,7 +5,6 @@ import { randomUUID } from 'crypto';
 const serviceName = 'oceanchat-auth';
 const serviceInstanceId = randomUUID();
 startTracing(serviceName, serviceInstanceId); // Initialize OpenTelemetry Tracing at the very begining of the application
-// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 propagation.setGlobalPropagator(new W3CTraceContextPropagator()); // This ensures that all OpenTelemetry API calls (such as inject and extract) use W3C standards.
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
