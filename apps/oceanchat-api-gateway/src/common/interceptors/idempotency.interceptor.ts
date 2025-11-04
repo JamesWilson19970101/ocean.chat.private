@@ -12,11 +12,11 @@ import { RedisService } from '@ocean.chat/redis';
 import type { Request, Response } from 'express';
 import { Observable, of } from 'rxjs';
 
-import { getIdempotencyRedisKey } from '../common/utils/idempotency.utils';
 import {
   IDEMPOTENCY_OPTIONS_KEY,
   IdempotencyMetadata,
 } from '../decorators/idempotency.decorator';
+import { getIdempotencyRedisKey } from '../utils/idempotency.utils';
 
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {

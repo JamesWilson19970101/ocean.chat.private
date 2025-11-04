@@ -12,8 +12,8 @@ import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
-import { JwtStrategy } from './auth/jwt.strategy';
-import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
 import {
   databaseConfiguration,
   jwtConfiguration,
@@ -22,7 +22,7 @@ import {
 } from './config/configuration';
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
-import { IdempotencyInterceptor } from './idempotency/idempotency.interceptor';
+import { JwtStrategy } from './modules/auth/jwt.strategy';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';

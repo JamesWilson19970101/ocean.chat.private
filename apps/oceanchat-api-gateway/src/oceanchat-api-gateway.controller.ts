@@ -4,7 +4,7 @@ import { User } from '@ocean.chat/models';
 import { Request } from 'express';
 import { firstValueFrom, timeout } from 'rxjs';
 
-import { SkipAuth } from './decorators/skip-auth.decorator';
+import { SkipAuth } from './common/decorators/skip-auth.decorator';
 
 @Controller()
 export class OceanchatApiGatewayController {
