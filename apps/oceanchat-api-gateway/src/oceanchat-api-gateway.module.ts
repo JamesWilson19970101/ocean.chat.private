@@ -1,9 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
-import { PassportModule } from '@nestjs/passport';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
@@ -23,7 +21,6 @@ import {
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
 import { AuthModule } from './modules/auth/auth.module';
-import { JwtStrategy } from './modules/auth/jwt.strategy';
 import { UsersModule } from './modules/users/users.module';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
@@ -181,23 +178,10 @@ export class OceanchatApiGatewayModule {
             inject: [ConfigService],
           },
         ]),
-        PassportModule,
-        JwtModule.registerAsync({
-          imports: [ConfigModule],
-          // eslint-disable-next-line @typescript-eslint/require-await
-          useFactory: async (configService: ConfigService) => ({
-            secret: configService.get<string>('jwt.accessSecret'),
-            signOptions: {
-              expiresIn: configService.get<string>('jwt.accessExpiresIn'),
-            },
-          }),
-          inject: [ConfigService],
-        }),
         AuthModule,
         UsersModule,
       ],
       providers: [
-        JwtStrategy,
         // Register JwtAuthGuard globally. All routes will be protected by default.
         // Use @SkipAuth() decorator to make specific routes public.
         {
