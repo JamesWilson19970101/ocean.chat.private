@@ -10,8 +10,7 @@ import { JwtStrategy } from './jwt.strategy';
   imports: [
     PassportModule,
     JwtModule.registerAsync({
-      // eslint-disable-next-line @typescript-eslint/require-await
-      useFactory: async (configService: ConfigService) => ({
+      useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>('jwt.accessSecret'),
         signOptions: {
           expiresIn: configService.get<string>('jwt.accessExpiresIn'),
@@ -22,5 +21,6 @@ import { JwtStrategy } from './jwt.strategy';
   ],
   controllers: [AuthController],
   providers: [JwtStrategy],
+  exports: [PassportModule],
 })
 export class AuthModule {}
