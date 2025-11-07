@@ -14,7 +14,6 @@ import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
-import { JwtStrategy } from './common/strategies/jwt.strategy';
 import {
   databaseConfiguration,
   jwtConfiguration,
@@ -24,6 +23,7 @@ import {
 import { Env } from './config/env';
 import { validationSchema } from './config/validation';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtStrategy } from './modules/auth/jwt.strategy';
 import { UsersModule } from './modules/users/users.module';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';

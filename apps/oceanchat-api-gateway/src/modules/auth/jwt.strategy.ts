@@ -4,7 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { RedisService } from '@ocean.chat/redis';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
-import { getAccessSessionKey } from '../utils/session.utils';
+import { getAccessSessionKey } from '../../common/utils/session.utils';
 
 export interface JwtPayload {
   username: string;
