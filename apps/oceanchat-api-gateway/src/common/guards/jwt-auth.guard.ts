@@ -4,8 +4,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 
-import { JwtPayload } from '../../modules/auth/jwt.strategy';
 import { IS_PUBLIC_KEY } from '../decorators/skip-auth.decorator';
+import { JwtPayload } from '../strategies/jwt.strategy';
 /**
  * JWT authentication guard for HTTP contexts in the API Gateway.
  * It extends the base Passport AuthGuard for the 'jwt' strategy.
