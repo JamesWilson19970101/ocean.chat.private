@@ -4,7 +4,7 @@ import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { Request } from 'express';
-import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
+import { catchError, firstValueFrom, map, throwError, timeout } from 'rxjs';
 
 @Controller('users')
 export class UsersController {
@@ -28,6 +28,14 @@ export class UsersController {
       this.userClient
         .send<Partial<User> | null>('user.query.profile', { userId })
         .pipe(
+          map((profile) => {
+            if (!profile) {
+              const message = this.i18nService.translate('USER_NOT_FOUND');
+              const errorCode = ErrorCodes.USER_NOT_FOUND;
+              throw new BaseException(message, HttpStatus.NOT_FOUND, errorCode);
+            }
+            return profile;
+          }),
           timeout(5000),
           catchError((err) => {
             const message = this.i18nService.translate('USER_NOT_FOUND');
