@@ -1,13 +1,16 @@
-import { Controller, Get, Inject, Req } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Inject, Req } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { Request } from 'express';
-import { firstValueFrom, timeout } from 'rxjs';
+import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
 @Controller('users')
 export class UsersController {
   constructor(
     @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
+    private readonly i18nService: I18nService,
   ) {}
 
   /**
@@ -24,7 +27,19 @@ export class UsersController {
     return firstValueFrom(
       this.userClient
         .send<Partial<User> | null>('user.query.profile', { userId })
-        .pipe(timeout(5000)),
+        .pipe(
+          timeout(5000),
+          catchError((err) => {
+            const message = this.i18nService.translate('USER_NOT_FOUND');
+            const errorCode = ErrorCodes.USER_NOT_FOUND;
+            return throwError(
+              () =>
+                new BaseException(message, HttpStatus.NOT_FOUND, errorCode, {
+                  cause: err,
+                }),
+            );
+          }),
+        ),
     );
   }
 }
