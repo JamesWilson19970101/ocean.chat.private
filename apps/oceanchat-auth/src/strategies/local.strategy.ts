@@ -1,7 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
-import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { Strategy } from 'passport-local';
 
@@ -9,24 +7,19 @@ import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private readonly usersService: UsersService,
-    private readonly i18nService: I18nService,
-  ) {
+  constructor(private readonly usersService: UsersService) {
     super();
   }
 
-  async validate(username: string, password: string): Promise<Partial<User>> {
+  async validate(
+    username: string,
+    password: string,
+  ): Promise<Partial<User> | null> {
     const user = await this.usersService.validatePassword(username, password);
 
-    if (!user) {
-      throw new BaseRpcException(
-        this.i18nService.translate('INVALID_CREDENTIALS'),
-        ErrorCodes.INVALID_CREDENTIALS,
-      );
-    }
-
-    // The user object returned from validatePassword is already a partial.
-    return user;
+    // The strategy's responsibility is to validate credentials and return the user or null.
+    // It should not be concerned with throwing business-specific exceptions.
+    // The guard's handleRequest method will handle the null case.
+    return user || null;
   }
 }
