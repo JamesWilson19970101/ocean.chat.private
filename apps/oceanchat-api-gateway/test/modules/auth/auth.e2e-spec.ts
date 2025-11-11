@@ -1,6 +1,8 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ErrorResponseDto } from '@ocean.chat/common-exceptions';
 import { User } from '@ocean.chat/models';
+import { LoginResult } from '@ocean.chat/types';
 import Redis from 'ioredis';
 import { connect, connection } from 'mongoose';
 import * as request from 'supertest';
@@ -96,9 +98,13 @@ describe('Auth Module E2E Tests', () => {
         .post('/auth/register')
         .send({ ...registerDto, confirmPassword: 'wrong-password' })
         .expect(400)
-        .then((res: { body: { message: string } } & { [key: string]: any }) => {
-          expect(res.body.message).toContain('Passwords do not match');
-        });
+        .then(
+          (
+            res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
+          ) => {
+            expect(res.body.message).toContain('Passwords do not match');
+          },
+        );
     });
 
     it('should fail with 400 if username already exists', async () => {
@@ -112,7 +118,9 @@ describe('Auth Module E2E Tests', () => {
         .send(registerDto)
         .expect(400)
         .then(
-          (res: { body: { errorCode: string } } & { [key: string]: any }) => {
+          (
+            res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
+          ) => {
             expect(res.body.errorCode).toEqual(10001);
           },
         );
@@ -138,10 +146,73 @@ describe('Auth Module E2E Tests', () => {
         .send(shortPasswordDto)
         .expect(400)
         .then(
-          (res: { body: { errorCode: string } } & { [key: string]: any }) => {
+          (
+            res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
+          ) => {
             expect(res.body.errorCode).toEqual(10010);
           },
         );
+    });
+  });
+
+  describe('/auth/login (POST)', () => {
+    const loginDto = {
+      username: 'e2e-login-user',
+      password: 'Password123!',
+    };
+
+    // Before each test in this block, register a user to ensure a clean state.
+    beforeEach(async () => {
+      await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({
+          ...loginDto,
+          confirmPassword: loginDto.password,
+        });
+    });
+
+    it('should return tokens and user on successful login', () => {
+      return request(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginDto)
+        .expect(200)
+        .then((res: { [key: string]: any; body: LoginResult }) => {
+          console.log('res.body is: ', res.body);
+          // 1. Check for the presence of tokens and user object
+          expect(res.body).toHaveProperty('accessToken');
+          expect(res.body).toHaveProperty('refreshToken');
+          expect(res.body).toHaveProperty('user');
+
+          // 2. Validate the content of the tokens and user object
+          expect(typeof res.body.accessToken).toBe('string');
+          expect(res.body.accessToken).not.toBe('');
+          expect(typeof res.body.refreshToken).toBe('string');
+          expect(res.body.refreshToken).not.toBe('');
+          expect(res.body.user.username).toEqual(loginDto.username);
+          expect(res.body.user).toHaveProperty('_id');
+
+          // 3. Ensure sensitive data is not exposed
+          expect(res.body.user).not.toHaveProperty('providers');
+        });
+    });
+
+    it('should fail with 401 for incorrect password', () => {
+      return request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ ...loginDto, password: 'wrong-password' })
+        .expect(401)
+        .then(
+          (res: { [key: string]: any; body: Partial<ErrorResponseDto> }) => {
+            expect(res.body.errorCode).toEqual(10030); // UNAUTHORIZED
+          },
+        );
+    });
+
+    it('should fail with 401 for non-existent user', () => {
+      return request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ ...loginDto, username: 'non-existent-user' })
+        .expect(401);
     });
   });
 });
