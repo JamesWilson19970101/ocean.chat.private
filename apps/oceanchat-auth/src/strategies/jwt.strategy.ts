@@ -48,16 +48,23 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
       }
     | boolean
   > {
+    // This strategy implements a centralized JTI Whitelist validation.
+    // It is intended for high-security operations or initial connection authentication (e.g., WebSocket)
+    // where the overhead of an RPC call is acceptable for the highest level of security.
+    // For high-frequency requests, services like an API gateway should use a hybrid model:
+    // 1. Perform local JWT signature/expiration validation.
+    // 2. Check against a locally cached revocation list (blacklist) for better performance.
+
+    // So TODO: Future Consideration - Hybrid Model or Blacklist
+    // For performance optimization, a blacklist (revocation list) or a hybrid model could be considered.
+    // This would involve creating a list of revoked JTIs or user IDs in Redis, which would only be
+    // checked for invalid tokens, reducing Redis lookups for valid ones. This could be driven by
+    // events like `user.revoked` for immediate invalidation.
     const key = getAccessSessionKey(payload.jti);
     // If Redis is down, `get` will throw an error,
     // which will be caught by the `JwtAuthGuard` and result in an authentication failure.
     // This aligns with the strategy of failing the operation if Redis is unavailable.
     const sessionExists = await this.redisService.get(key);
-    // TODO: Event-driven Revocation List
-    // Publish event on user status change: When a user is deleted or disabled, your UsersService (or other relevant service), after completing the database operation, will publish an event via NATS, such as user.revoked, with a payload of { userId: 'some-user-id' }.
-    // Auth service listens for the event: The OceanchatAuthService listens for this user.revoked event.
-    // Add to blacklist: Upon receiving the event, the OceanchatAuthService adds this userId to a "blacklist" Set in Redis and sets a reasonable expiration time (e.g., set it to the expiration time of your longest Refresh Token for automatic cleanup).
-    // JwtStrategy checks the blacklist: Modify the JwtStrategy to add an additional step after checking the whitelist (access-session): check if the token's sub (i.e., the userId) exists in the Redis "blacklist".
     if (sessionExists) {
       // Cache Hit: Token is in the whitelist, validation successful.
       return { sub: payload.sub, username: payload.username };
