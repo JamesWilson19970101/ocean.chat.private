@@ -95,8 +95,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.warn(logPayload, `Warning: ${request.method} ${request.url}`);
     }
 
-    const clientResponse = { ...responseBody };
-    delete clientResponse.details;
+    const clientResponse = {
+      statusCode: responseBody.statusCode,
+      message: responseBody.message,
+      path: responseBody.path,
+      errorCode: responseBody.errorCode,
+    };
 
     response.status(responseBody.statusCode).json(clientResponse);
   }
