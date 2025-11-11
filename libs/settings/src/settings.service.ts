@@ -153,7 +153,9 @@ export class SettingsService implements OnModuleInit {
   private async _loadAllSettingsToCache(): Promise<void> {
     const allSettings = await this.settingsRepository.find({});
     if (!allSettings || allSettings.length === 0) {
-      this.logger.info('No settings found in database to cache.');
+      this.logger.info(
+        this.i18nService.translate('NO_SETTINGS_FOUND_TO_CACHE'),
+      );
       return;
     }
 

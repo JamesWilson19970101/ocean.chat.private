@@ -127,6 +127,7 @@ export default {
       IDEMPOTENCY_OPERATION_FAILED:
         'Idempotency: Operation failed, releasing lock.',
       REGISTRATION_FAILED: 'Registration failed',
+      NO_SETTINGS_FOUND_TO_CACHE: 'No settings found in database to cache.',
     },
   },
   zh: {
@@ -231,6 +232,7 @@ export default {
       IDEMPOTENCY_LOCK_ACQUIRED: '幂等性：已获取锁，正在执行操作。',
       IDEMPOTENCY_OPERATION_FAILED: '幂等性：操作失败，正在释放锁。',
       REGISTRATION_FAILED: '注册失败',
+      NO_SETTINGS_FOUND_TO_CACHE: '数据库中未找到可缓存的设置。',
     },
   },
 };
