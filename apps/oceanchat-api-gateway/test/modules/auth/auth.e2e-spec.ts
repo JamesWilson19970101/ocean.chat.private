@@ -177,7 +177,6 @@ describe('Auth Module E2E Tests', () => {
         .send(loginDto)
         .expect(200)
         .then((res: { [key: string]: any; body: LoginResult }) => {
-          console.log('res.body is: ', res.body);
           // 1. Check for the presence of tokens and user object
           expect(res.body).toHaveProperty('accessToken');
           expect(res.body).toHaveProperty('refreshToken');
@@ -212,7 +211,21 @@ describe('Auth Module E2E Tests', () => {
       return request(app.getHttpServer())
         .post('/auth/login')
         .send({ ...loginDto, username: 'non-existent-user' })
-        .expect(401);
+        .expect(401)
+        .then(
+          (res: { [key: string]: any; body: Partial<ErrorResponseDto> }) => {
+            expect(res.body.errorCode).toEqual(10030); // UNAUTHORIZED
+          },
+        );
+    });
+
+    it('should fail with 400 if password is not provided', () => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, ...dtoWithoutPassword } = loginDto;
+      return request(app.getHttpServer())
+        .post('/auth/login')
+        .send(dtoWithoutPassword)
+        .expect(400);
     });
   });
 });
