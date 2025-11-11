@@ -1,7 +1,6 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { User } from '@ocean.chat/models';
-
-import { AuthenticatedUser } from '../types/auth.types';
+import { AuthenticatedUser } from '@ocean.chat/types';
 /**
  * Custom parameter decorator to extract the user object that was manually
  * attached to the RPC context by a guard.
@@ -19,6 +18,7 @@ export const validateUser = createParamDecorator(
     context: ExecutionContext,
   ): { username: string; sub: string } => {
     const rpcData = context.switchToRpc().getData();
+
     const rpcUser = (
       rpcData as {
         user: { username: string; sub: string } & Record<string, unknown>;

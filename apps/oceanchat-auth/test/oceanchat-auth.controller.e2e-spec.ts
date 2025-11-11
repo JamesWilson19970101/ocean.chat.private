@@ -1,17 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ClientProxy } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ErrorResponseDto } from '@ocean.chat/common-exceptions';
 import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
+import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
 import Redis from 'ioredis';
 import { connect, connection, Types } from 'mongoose';
 import * as ms from 'ms';
 import { catchError, firstValueFrom, of } from 'rxjs';
-
-import { ErrorResponseDto } from '../../../libs/common-exceptions/src/dto/error-response.dto';
-import {
-  LoginResult,
-  RefreshTokenResult,
-} from '..//src/common/types/auth.types';
 type RpcError = {
   error: ErrorResponseDto;
   message: string;

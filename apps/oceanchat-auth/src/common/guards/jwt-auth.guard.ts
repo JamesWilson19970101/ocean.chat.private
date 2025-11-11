@@ -2,8 +2,7 @@ import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
-
-import { AuthenticatedUser } from '../types/auth.types';
+import { AuthenticatedUser } from '@ocean.chat/types';
 /**
  * A custom JWT authentication guard for RPC contexts.
  * It extends the base Passport AuthGuard for the 'jwt' strategy.

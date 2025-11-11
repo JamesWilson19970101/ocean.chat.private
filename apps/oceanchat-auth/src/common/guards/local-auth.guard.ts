@@ -2,8 +2,8 @@ import { ExecutionContext, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
+import { AuthenticatedUser, RequestLike } from '@ocean.chat/types';
 
-import { AuthenticatedUser, RequestLike } from '../types/auth.types';
 @Injectable()
 export class LocalAuthGuard extends AuthGuard('local') {
   constructor(private readonly i18nService: I18nService) {

@@ -6,12 +6,12 @@ import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerService } from '@ocean.chat/nats-jetstream-provisioner';
 import { RedisService } from '@ocean.chat/redis';
+import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
 import { Counter, metrics } from '@opentelemetry/api';
 import * as ms from 'ms';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { v4 as uuidv4 } from 'uuid';
 
-import { LoginResult, RefreshTokenResult } from './common/types/auth.types';
 import {
   getAccessSessionKey,
   getRefreshSessionKey,
