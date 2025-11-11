@@ -95,7 +95,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
       this.logger.warn(logPayload, `Warning: ${request.method} ${request.url}`);
     }
 
-    response.status(responseBody.statusCode).json(responseBody);
+    const clientResponse = { ...responseBody };
+    delete clientResponse.details;
+
+    response.status(responseBody.statusCode).json(clientResponse);
   }
 
   /**
@@ -155,7 +158,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
     );
     // For 'ws' library, use client.send() to transmit data.
     if (client.readyState === WebSocket.OPEN) {
-      client.send(JSON.stringify({ event: 'exception', data: errorResponse }));
+      const clientResponse = { ...errorResponse };
+      delete clientResponse.details;
+      client.send(JSON.stringify({ event: 'exception', data: clientResponse }));
     }
   }
 
