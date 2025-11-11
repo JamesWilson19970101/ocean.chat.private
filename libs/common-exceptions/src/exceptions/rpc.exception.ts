@@ -1,6 +1,7 @@
 import { RpcException } from '@nestjs/microservices';
 
 import { ErrorCodes } from '../constants/error-codes.enum';
+import { ErrorResponseDto } from '../dto/error-response.dto';
 
 /**
  * The foundational class for all custom RPC (Remote Procedure Call) exceptions within the application.
@@ -46,7 +47,10 @@ export class BaseRpcException extends RpcException {
   constructor(
     public readonly message: string,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly details?: { [key: string]: any; cause?: Error },
+    public readonly details?: {
+      [key: string]: any;
+      cause?: Error | ErrorResponseDto;
+    },
   ) {
     // Pass the primary message directly to the parent RpcException.
     // The errorCode and details are stored as properties of this class for structured access.

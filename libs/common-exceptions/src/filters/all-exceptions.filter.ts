@@ -180,9 +180,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
   ): ErrorResponseDto {
     // Default values for an unexpected error
     let statusCode: number = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message: string | object = this.i18nService.translate(
-      'INTERNAL_SERVER_ERROR',
-    );
+    let message: string = this.i18nService.translate('INTERNAL_SERVER_ERROR');
     let errorCode: number = ErrorCodes.UNEXPECTED_ERROR;
     let details: any;
 
@@ -206,7 +204,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? responseMessage.join(', ')
           : responseMessage;
       } else if (typeof response === 'object' && response !== null) {
-        message = response;
+        message = JSON.stringify(response);
       }
     } else if (exception instanceof HttpException) {
       statusCode = exception.getStatus();
@@ -225,7 +223,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           ? responseMessage.join(', ')
           : responseMessage;
       } else if (typeof response === 'object' && response !== null) {
-        message = response;
+        message = JSON.stringify(response);
       }
     } else if (exception instanceof BaseRpcException) {
       message = exception.message;

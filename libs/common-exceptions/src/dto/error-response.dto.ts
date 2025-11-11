@@ -43,7 +43,7 @@ export class ErrorResponseDto {
    * The error message or object
    * @example "User with ID 123 not found."
    */
-  message: string | object;
+  message: string;
 
   /**
    * The type of error: 'Business' for predictable business logic errors, 'System' for unexpected system errors
