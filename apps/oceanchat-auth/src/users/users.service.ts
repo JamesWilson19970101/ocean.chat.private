@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  BaseRpcException,
+  ErrorCodes,
+  ErrorResponseDto,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider, User } from '@ocean.chat/models';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -28,11 +32,19 @@ export class UsersService {
         .send<User | null>('user.query.byUsername', { username, provider })
         .pipe(
           timeout(5000),
-          catchError((err) => {
+          catchError((err: ErrorResponseDto | Error) => {
+            if (err instanceof ErrorResponseDto) {
+              return throwError(
+                () =>
+                  new BaseRpcException(err.message, err.errorCode, {
+                    cause: err,
+                  }),
+              );
+            }
+
             const message = this.i18nService.translate('SERVICE_ERROR', {
               method: 'user.query.byUsername',
             });
-            // Wrap the original error in a business-specific exception
             return throwError(
               () =>
                 new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
@@ -51,7 +63,16 @@ export class UsersService {
         .send<Partial<User> | null>('user.query.profile', { userId: id })
         .pipe(
           timeout(5000),
-          catchError((err) => {
+          catchError((err: ErrorResponseDto | Error) => {
+            if (err instanceof ErrorResponseDto) {
+              return throwError(
+                () =>
+                  new BaseRpcException(err.message, err.errorCode, {
+                    cause: err,
+                  }),
+              );
+            }
+
             const message = this.i18nService.translate('SERVICE_ERROR', {
               method: 'user.query.profile',
             });
@@ -78,7 +99,16 @@ export class UsersService {
         })
         .pipe(
           timeout(5000),
-          catchError((err) => {
+          catchError((err: ErrorResponseDto | Error) => {
+            if (err instanceof ErrorResponseDto) {
+              return throwError(
+                () =>
+                  new BaseRpcException(err.message, err.errorCode, {
+                    cause: err,
+                  }),
+              );
+            }
+
             const message = this.i18nService.translate('SERVICE_ERROR', {
               method: 'user.validate.password',
             });
