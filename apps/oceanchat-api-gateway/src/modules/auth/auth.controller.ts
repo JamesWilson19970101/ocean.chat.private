@@ -1,6 +1,17 @@
-import { Body, Controller, HttpStatus, Inject, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Inject,
+  Post,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  BaseException,
+  ErrorCodes,
+  ErrorResponseDto,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
@@ -22,6 +33,7 @@ export class AuthController {
    */
   @SkipAuth()
   @Post('login')
+  @HttpCode(HttpStatus.OK)
   async login(
     @Body() loginDto: LoginDto,
   ): Promise<{ accessToken: string; user: Pick<User, '_id' | 'username'> }> {
@@ -34,17 +46,30 @@ export class AuthController {
         }>('auth.login', loginDto)
         .pipe(
           timeout(5000),
-          catchError((err) => {
-            // The error from a microservice is an RpcException.
-            // We convert it to a BaseException (which extends HttpException)
-            // to ensure it's handled correctly by the global AllExceptionsFilter.
-            const message = this.i18nService.translate('UNAUTHORIZED');
-            const errorCode = ErrorCodes.UNAUTHORIZED;
+          catchError((err: ErrorResponseDto) => {
+            // Check if the error from the microservice is a structured ErrorResponseDto
+            if (err && err?.message && err?.errorCode) {
+              // Propagate the specific error code and message from the auth-service
+              return throwError(
+                () =>
+                  new BaseException(
+                    err.message,
+                    HttpStatus.UNAUTHORIZED, // Login failures are typically 401
+                    err.errorCode,
+                    { cause: err },
+                  ),
+              );
+            }
+            // Fallback for unexpected or unstructured errors
+            const message = this.i18nService.translate('INVALID_CREDENTIALS');
             return throwError(
               () =>
-                new BaseException(message, HttpStatus.UNAUTHORIZED, errorCode, {
-                  cause: err,
-                }),
+                new BaseException(
+                  message,
+                  HttpStatus.UNAUTHORIZED,
+                  ErrorCodes.INVALID_CREDENTIALS,
+                  { cause: err },
+                ),
             );
           }),
         ),
@@ -61,15 +86,26 @@ export class AuthController {
     return firstValueFrom<Partial<User>>(
       this.userClient.send<Partial<User>>('user.create', registerDto).pipe(
         timeout(5000),
-        catchError((err) => {
-          const message = this.i18nService.translate('REGISTRATION_FAILED');
-          const errorCode = ErrorCodes.CREATION_ERROR;
-          // Use HttpStatus.BAD_REQUEST for validation-like errors during registration.
+        catchError((err: ErrorResponseDto) => {
+          if (err && err?.message && err?.errorCode) {
+            return throwError(
+              () =>
+                new BaseException(
+                  err.message,
+                  HttpStatus.BAD_REQUEST,
+                  err.errorCode,
+                  { cause: err },
+                ),
+            );
+          }
           return throwError(
             () =>
-              new BaseException(message, HttpStatus.BAD_REQUEST, errorCode, {
-                cause: err,
-              }),
+              new BaseException(
+                this.i18nService.translate('REGISTRATION_FAILED'),
+                HttpStatus.BAD_REQUEST,
+                ErrorCodes.CREATION_ERROR,
+                { cause: err },
+              ),
           );
         }),
       ),

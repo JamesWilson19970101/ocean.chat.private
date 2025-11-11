@@ -1,6 +1,10 @@
 import { Controller, Get, HttpStatus, Inject, Req } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  BaseException,
+  ErrorCodes,
+  ErrorResponseDto,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { Request } from 'express';
@@ -37,14 +41,29 @@ export class UsersController {
             return profile;
           }),
           timeout(5000),
-          catchError((err) => {
-            const message = this.i18nService.translate('USER_NOT_FOUND');
-            const errorCode = ErrorCodes.USER_NOT_FOUND;
+          catchError((err: ErrorResponseDto) => {
+            if (err && 'errorCode' in err && 'message' in err) {
+              return throwError(
+                () =>
+                  new BaseException(
+                    err.message,
+                    HttpStatus.NOT_FOUND,
+                    err.errorCode,
+                    { cause: err },
+                  ),
+              );
+            }
+
             return throwError(
               () =>
-                new BaseException(message, HttpStatus.NOT_FOUND, errorCode, {
-                  cause: err,
-                }),
+                new BaseException(
+                  this.i18nService.translate('USER_NOT_FOUND'),
+                  HttpStatus.NOT_FOUND,
+                  ErrorCodes.USER_NOT_FOUND,
+                  {
+                    cause: err,
+                  },
+                ),
             );
           }),
         ),
