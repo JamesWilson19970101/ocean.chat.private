@@ -1,6 +1,7 @@
 import { HttpException } from '@nestjs/common';
 
 import { ErrorCodes } from '../constants/error-codes.enum';
+import { ErrorResponseDto } from '../dto/error-response.dto';
 
 /**
  * The foundational class for all custom business exceptions within the application.
@@ -48,7 +49,10 @@ export class BaseException extends HttpException {
     response: string | Record<string, any>,
     status: number,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly details?: { [key: string]: any; cause?: Error },
+    public readonly details?: {
+      [key: string]: any;
+      cause?: Error | ErrorResponseDto;
+    },
   ) {
     super(response, status);
   }
