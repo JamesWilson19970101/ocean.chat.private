@@ -26,6 +26,15 @@
         "tsConfigPath": "apps/account/tsconfig.app.json"
       }
     },
+    "authorization": {
+      "type": "library",
+      "root": "libs/authorization",
+      "entryFile": "index",
+      "sourceRoot": "libs/authorization/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/authorization/tsconfig.lib.json"
+      }
+    },
     "common-exceptions": {
       "type": "library",
       "root": "libs/common-exceptions",

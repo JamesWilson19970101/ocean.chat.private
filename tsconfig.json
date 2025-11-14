@@ -28,6 +28,12 @@
       "ws"
     ],
     "paths": {
+      "@ocean.chat/authorization": [
+        "libs/authorization/src"
+      ],
+      "@ocean.chat/authorization/*": [
+        "libs/authorization/src/*"
+      ],
       "@ocean.chat/common-exceptions": [
         "libs/common-exceptions/src"
       ],
