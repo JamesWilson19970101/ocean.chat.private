@@ -11,7 +11,6 @@
     "start": "nest start",
     "start:account": "NODE_ENV=development nest start account --watch",
     "start:ocean.chat": "NODE_ENV=development nest start ocean.chat --watch",
-    "start:authorization": "NODE_ENV=development nest start authorization --watch",
     "start:stream": "NODE_ENV=development nest start stream --watch",
     "start:dev": "concurrently \"yarn start:oceanchat-auth\" \"yarn start:oceanchat-user\" \"yarn start:oceanchat-api-gateway\"",
     "start:debug": "nest start --debug --watch",

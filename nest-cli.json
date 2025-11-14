@@ -11,10 +11,6 @@
         "outDir": "dist/apps/ocean.chat/src"
       },
       {
-        "include": "authorization_assets/**/*",
-        "outDir": "dist/apps/authorization/src"
-      },
-      {
         "include": "oceanchat_router_assets/**/*",
         "outDir": "dist/apps/oceanchat-router"
       }
@@ -28,15 +24,6 @@
       "sourceRoot": "apps/account/src",
       "compilerOptions": {
         "tsConfigPath": "apps/account/tsconfig.app.json"
-      }
-    },
-    "authorization": {
-      "type": "application",
-      "root": "apps/authorization",
-      "entryFile": "main",
-      "sourceRoot": "apps/authorization/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/authorization/tsconfig.app.json"
       }
     },
     "common-exceptions": {
