@@ -31,10 +31,6 @@ export class NatsJetStreamProvisionerService
     private readonly i18nService: I18nService,
   ) {}
 
-  getNatsConnection(): NatsConnection | undefined {
-    return this.nc;
-  }
-
   getJetStreamClient(): JetStreamClient | undefined {
     return this.js;
   }
