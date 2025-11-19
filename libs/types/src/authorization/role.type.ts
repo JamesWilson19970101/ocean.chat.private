@@ -20,3 +20,25 @@ export interface IDefaultRole {
    */
   description: string;
 }
+
+/**
+ * @fileoverview
+ * Role Data Source Interface (The "Fetcher" Strategy).
+ *
+ * This abstract class allows the RoleCacheService to remain agnostic of the
+ * underlying database (MongoDB/Postgres).
+ *
+ * The host application (e.g., oceanchat-auth) MUST provide an implementation
+ * of this provider to allow the cache service to "refill" itself on cache misses.
+ */
+export abstract class IRoleDataSource {
+  /**
+   * Fetches the global roles for a user from the source of truth (DB).
+   */
+  abstract getUserGlobalRoles(userId: string): Promise<string[]>;
+
+  /**
+   * Fetches the roles associated with a permission from the source of truth (DB).
+   */
+  abstract getRolesForPermission(permissionId: string): Promise<string[]>;
+}
