@@ -9,6 +9,8 @@
  *
  * Solution: The microservice (e.g., Group Service) must implement this interface
  * and inject it into the AuthorizationModule to provide context-aware role data.
+ *
+ * @todo The IScopeDataProvider implementation class needs to include a caching mechanism to prevent hasPermission from making excessive calls to this Provider when a large number of users flood the screen, causing MongoDB CPU to spike.
  */
 
 export abstract class IScopeDataProvider {
