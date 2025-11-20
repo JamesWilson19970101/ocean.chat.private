@@ -1,4 +1,6 @@
-import { Injectable, Optional } from '@nestjs/common';
+import { HttpStatus, Injectable, Optional } from '@nestjs/common';
+import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
 import { IRoleDataSource } from '@ocean.chat/types';
 
@@ -61,6 +63,7 @@ export class RoleCacheService {
   private permRolesL1Cache = new LRUCache<string[]>(L1_MAX_SIZE);
 
   constructor(
+    private readonly i18nService: I18nService,
     private readonly redis: RedisService,
     // Optional: If not provided, cache misses will call redis.get directly
     @Optional() private readonly dataSource?: IRoleDataSource,
@@ -98,8 +101,12 @@ export class RoleCacheService {
         roles = await this.redis.get<string[]>(key);
       }
     } catch (err) {
-      // For high availability, returning empty (no permission) is safer than crashing.
-      return [];
+      throw new BaseRpcException(
+        this.i18nService.translate('ROLE_CACHE_FETCH_FAILED'),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.UNEXPECTED_ERROR,
+        { cause: err },
+      );
     }
     // Default to empty array if nothing found
     const finalRoles = roles || [];
@@ -140,7 +147,12 @@ export class RoleCacheService {
         roles = await this.redis.get<string[]>(key);
       }
     } catch (err) {
-      return [];
+      throw new BaseRpcException(
+        this.i18nService.translate('PERMISSION_CACHE_FETCH_FAILED'),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.UNEXPECTED_ERROR,
+        { cause: err },
+      );
     }
 
     const finalRoles = roles || [];

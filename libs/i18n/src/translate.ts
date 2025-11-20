@@ -130,7 +130,9 @@ export default {
       NO_SETTINGS_FOUND_TO_CACHE: 'No settings found in database to cache.',
       FAILED_TO_RETRIEVE_SCOPED_ROLES: 'Failed to retrieve scoped roles.',
       ROLE_CACHE_FETCH_FAILED:
-        'Failed to fetch roles from cache or data source. Returning empty array for high availability.',
+        'Failed to fetch roles from cache or data source.',
+      PERMISSION_CACHE_FETCH_FAILED:
+        'Failed to fetch permissions from cache or data source.',
     },
   },
   zh: {
@@ -237,8 +239,8 @@ export default {
       REGISTRATION_FAILED: '注册失败',
       NO_SETTINGS_FOUND_TO_CACHE: '数据库中未找到可缓存的设置。',
       FAILED_TO_RETRIEVE_SCOPED_ROLES: '获取作用域角色失败。',
-      ROLE_CACHE_FETCH_FAILED:
-        '从缓存或数据源获取角色失败。为保证高可用性，返回空数组。',
+      ROLE_CACHE_FETCH_FAILED: '从缓存或数据源获取角色失败。',
+      PERMISSION_CACHE_FETCH_FAILED: '从缓存或数据源获取权限失败。',
     },
   },
 };
