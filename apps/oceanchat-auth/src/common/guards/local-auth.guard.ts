@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
@@ -61,9 +61,14 @@ export class LocalAuthGuard extends AuthGuard('local') {
   ): any {
     if (err || !user) {
       const message = this.i18nService.translate('UNAUTHORIZED');
-      throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED, {
-        cause: err,
-      });
+      throw new BaseRpcException(
+        message,
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.UNAUTHORIZED,
+        {
+          cause: err || info,
+        },
+      );
     }
 
     const data: AuthenticatedUser = context.switchToRpc().getData();

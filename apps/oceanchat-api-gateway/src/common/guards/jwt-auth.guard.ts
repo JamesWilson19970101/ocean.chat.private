@@ -46,18 +46,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest<TUser = Pick<JwtPayload, 'username' | 'sub'>>(
     err: any,
     user: TUser,
+    info: any,
   ): TUser {
     // If passport-jwt throws an error (e.g., TokenExpiredError), it will be in `err`.
     // If JwtStrategy.validate returns null/false, `user` will be falsy.
     // In either case, authentication has failed.
     if (err || !user) {
+      const causeError = err || info;
       // wrap the original error message or provide a generic one in our custom exception.
       const message = this.i18nService.translate('UNAUTHORIZED');
       throw new BaseException(
         message,
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
-        { cause: err },
+        { cause: causeError },
       );
     }
     return user;

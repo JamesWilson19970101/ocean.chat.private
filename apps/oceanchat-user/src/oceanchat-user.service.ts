@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider, User, UserRepository } from '@ocean.chat/models';
@@ -54,6 +54,7 @@ export class OceanchatUserService {
       ) {
         throw new BaseRpcException(
           this.i18nService.translate('USERNAME_ALREADY_EXISTS'),
+          HttpStatus.CONFLICT,
           ErrorCodes.USERNAME_ALREADY_EXISTS,
         );
       }
@@ -65,9 +66,15 @@ export class OceanchatUserService {
       // This ensures that I don't leak implementation details and that the boundary
       // logger has a consistent error object to work with.
       const errorMessage = this.i18nService.translate('USER_CREATION_ERROR');
-      throw new BaseRpcException(errorMessage, ErrorCodes.CREATION_ERROR, {
-        cause: error,
-      });
+      throw new BaseRpcException(
+        errorMessage,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.CREATION_ERROR,
+
+        {
+          cause: error,
+        },
+      );
     }
   }
 
@@ -112,7 +119,10 @@ export class OceanchatUserService {
       username.length < usernameMinLength
     ) {
       throw new BaseRpcException(
-        this.i18nService.translate('USERNAME_TOO_SHORT', {}),
+        this.i18nService.translate('USERNAME_TOO_SHORT', {
+          minLength: usernameMinLength,
+        }),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.USERNAME_TOO_SHORT,
       );
     }
@@ -121,7 +131,10 @@ export class OceanchatUserService {
       username.length > usernameMaxLength
     ) {
       throw new BaseRpcException(
-        this.i18nService.translate('USERNAME_TOO_LONG', {}),
+        this.i18nService.translate('USERNAME_TOO_LONG', {
+          maxLength: usernameMaxLength,
+        }),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.USERNAME_TOO_LONG,
       );
     }
@@ -130,6 +143,7 @@ export class OceanchatUserService {
         this.i18nService.translate(
           'USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY',
         ),
+        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.UNEXPECTED_ERROR,
       );
     }
@@ -137,6 +151,7 @@ export class OceanchatUserService {
     if (!usernameRegex.test(username)) {
       throw new BaseRpcException(
         this.i18nService.translate('USERNAME_INVALID_CHARACTERS'),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.USERNAME_INVALID_CHARACTERS,
       );
     }
@@ -147,7 +162,8 @@ export class OceanchatUserService {
       password.length < passwordMinLength
     ) {
       throw new BaseRpcException(
-        this.i18nService.translate('PASSWORD_TOO_SHORT', {}),
+        this.i18nService.translate('PASSWORD_TOO_SHORT'),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_TOO_SHORT,
       );
     }
@@ -155,6 +171,7 @@ export class OceanchatUserService {
     if (passwordRequireDigit && !/\d/.test(password)) {
       throw new BaseRpcException(
         this.i18nService.translate('PASSWORD_NO_DIGIT'),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_DIGIT,
       );
     }
@@ -162,6 +179,7 @@ export class OceanchatUserService {
     if (passwordRequireLowercase && !/[a-z]/.test(password)) {
       throw new BaseRpcException(
         this.i18nService.translate('PASSWORD_NO_LOWERCASE'),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_LOWERCASE,
       );
     }
@@ -169,6 +187,7 @@ export class OceanchatUserService {
     if (passwordRequireUppercase && !/[A-Z]/.test(password)) {
       throw new BaseRpcException(
         this.i18nService.translate('PASSWORD_NO_UPPERCASE'),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_UPPERCASE,
       );
     }
@@ -180,6 +199,7 @@ export class OceanchatUserService {
     ) {
       throw new BaseRpcException(
         this.i18nService.translate('PASSWORD_NO_SPECIAL_CHAR'),
+        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_SPECIAL_CHAR,
       );
     }

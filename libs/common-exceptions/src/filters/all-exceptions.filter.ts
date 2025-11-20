@@ -22,7 +22,7 @@ import { BaseRpcException } from '../exceptions/rpc.exception';
 import { BaseWsException } from '../exceptions/ws.exception';
 
 /**
- * global exception filter that catches all unhandled exceptions across different contexts (HTTP, RPC, WebSocket).
+ * Intercept errors in HTTP/RPC/WS requests.
  * It standardizes error responses and ensures consistent logging.
  */
 @Catch()
@@ -187,7 +187,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
     if (exception instanceof BaseException) {
       // process NestJS built-in HTTP exceptions
       // eg. 400, 401, 403, 404, 500, etc.
-      statusCode = exception.getStatus();
+      statusCode = exception.getStatusCode();
       errorCode = exception.getErrorCode();
       details = exception.getDetails();
       const response = exception.getResponse();
@@ -227,9 +227,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
       }
     } else if (exception instanceof BaseRpcException) {
       message = exception.message;
+      statusCode = exception.getStatusCode();
       errorCode = exception.getErrorCode();
       details = exception.getDetails();
-      statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     } else if (exception instanceof RpcException) {
       // process NestJS built-in RPC exceptions
       const rpcError = exception.getError();

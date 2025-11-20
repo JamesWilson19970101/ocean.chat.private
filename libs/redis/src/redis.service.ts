@@ -383,11 +383,12 @@ export class RedisService implements OnModuleDestroy {
         body,
       };
     } catch (error) {
-      this.logger.error(
-        { key, err: error },
-        this.i18nService.translate('IDEMPOTENCY_OPERATION_FAILED'),
-      );
-      await this.del(key);
+      await this.del(key).catch((delError) => {
+        this.logger.error(
+          { key, originalError: error, delError },
+          'CRITICAL: Failed to release idempotency lock during rollback',
+        );
+      });
       // Re-throw the original error to be handled by the global exception filter.
       throw error;
     }

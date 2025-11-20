@@ -25,6 +25,9 @@ export enum ErrorCodes {
   // idempotency key conflict error
   IDEMPOTENCY_CONFLICT = 10050,
 
+  // Authorization errors
+  FAILED_TO_FETCH_SCOPED_ROLES = 20001, // e.g., when the scope provider fails to return roles
+
   // Service-level errors
   SERVICE_ERROR = 50300, // e.g., a downstream microservice is not responding
 

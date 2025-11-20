@@ -49,10 +49,10 @@ export const createAsyncProviders = (options: RedisModuleAsyncOptions) => {
         i18nService: I18nService,
         ...args: any[]
       ): Promise<RedisClient> => {
+        logger.setContext('redis.provider');
         if (!options.useFactory) {
           throw new Error('useFactory is required');
         }
-        logger.setContext('redis.provider');
         const redisOptions: RedisOptions = await options.useFactory(...args);
         const client = new Redis(redisOptions);
 

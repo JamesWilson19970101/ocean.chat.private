@@ -4,3 +4,4 @@ export * from './dto/error-response.dto';
 export * from './exceptions/base.exception';
 export * from './exceptions/rpc.exception';
 export * from './filters/all-exceptions.filter';
+export * from './utils/is-error-response-dto.utils';

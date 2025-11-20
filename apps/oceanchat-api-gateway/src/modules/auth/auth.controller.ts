@@ -10,7 +10,7 @@ import { ClientProxy } from '@nestjs/microservices';
 import {
   BaseException,
   ErrorCodes,
-  ErrorResponseDto,
+  isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
@@ -46,29 +46,29 @@ export class AuthController {
         }>('auth.login', loginDto)
         .pipe(
           timeout(5000),
-          catchError((err: ErrorResponseDto) => {
+          catchError((err: unknown) => {
             // Check if the error from the microservice is a structured ErrorResponseDto
-            if (err && err?.message && err?.errorCode) {
+            if (isErrorResponseDto(err)) {
               // Propagate the specific error code and message from the auth-service
               return throwError(
                 () =>
                   new BaseException(
                     err.message,
-                    HttpStatus.UNAUTHORIZED, // Login failures are typically 401
+                    err.statusCode,
                     err.errorCode,
                     { cause: err },
                   ),
               );
             }
             // Fallback for unexpected or unstructured errors
-            const message = this.i18nService.translate('INVALID_CREDENTIALS');
+            const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
             return throwError(
               () =>
                 new BaseException(
                   message,
-                  HttpStatus.UNAUTHORIZED,
-                  ErrorCodes.INVALID_CREDENTIALS,
-                  { cause: err },
+                  HttpStatus.INTERNAL_SERVER_ERROR,
+                  ErrorCodes.UNEXPECTED_ERROR,
+                  { cause: err as any },
                 ),
             );
           }),
@@ -86,25 +86,22 @@ export class AuthController {
     return firstValueFrom<Partial<User>>(
       this.userClient.send<Partial<User>>('user.create', registerDto).pipe(
         timeout(5000),
-        catchError((err: ErrorResponseDto) => {
-          if (err && err?.message && err?.errorCode) {
+        catchError((err: unknown) => {
+          if (isErrorResponseDto(err)) {
             return throwError(
               () =>
-                new BaseException(
-                  err.message,
-                  HttpStatus.BAD_REQUEST,
-                  err.errorCode,
-                  { cause: err },
-                ),
+                new BaseException(err.message, err.statusCode, err.errorCode, {
+                  cause: err,
+                }),
             );
           }
           return throwError(
             () =>
               new BaseException(
                 this.i18nService.translate('REGISTRATION_FAILED'),
-                HttpStatus.BAD_REQUEST,
+                HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorCodes.CREATION_ERROR,
-                { cause: err },
+                { cause: err as any },
               ),
           );
         }),
