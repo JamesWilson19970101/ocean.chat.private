@@ -61,6 +61,7 @@ export class OceanchatAuthService implements OnModuleInit {
       // Fire-and-forget: publish the event but don't await it.
       // Attach a .catch() to handle potential errors (e.g., NATS server is down)
       // and prevent an unhandled promise rejection, while not blocking the login response.
+      // TODO: Distributed tracing integration for NATS publishing
       void js
         .publish(
           'auth.event.user.loggedIn',
