@@ -13,6 +13,23 @@ import { Logger } from 'nestjs-pino';
 
 import { OceanchatUserModule } from './oceanchat-user.module';
 
+// Helper to ensure logs are always JSON, even during crashes
+const emergencyLog = (type: string, error: unknown) => {
+  const logPayload = {
+    level: 'error',
+    timestamp: new Date().toISOString(),
+    serviceName,
+    serviceInstanceId,
+    msg: `[${type}] ${error instanceof Error ? error.message : String(error)}`,
+    err:
+      error instanceof Error
+        ? { stack: error.stack, message: error.message }
+        : error,
+  };
+  // Write directly to stderr stream to bypass any buffering issues during crash
+  process.stderr.write(JSON.stringify(logPayload) + '\n');
+};
+
 async function bootstrap() {
   console.log(`
    ____   _____ ______          _   _      _____ _    _       _______     _____ __  __
@@ -39,7 +56,8 @@ async function bootstrap() {
   );
 
   // Use the Pino logger instance from the app container
-  app.useLogger(app.get(Logger));
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -49,6 +67,27 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  process.on('unhandledRejection', (reason) => {
+    // Try to use the Pino logger if available, otherwise fallback to JSON stdout
+    try {
+      logger.error({ err: reason }, '[Unhandled Rejection]');
+    } catch {
+      emergencyLog('Unhandled Rejection', reason);
+    }
+    // Usually, the process does not exit
+  });
+  // Catch uncaught exceptions (serious code logic errors)
+  // Corresponding scenarios: throw in setTimeout, or serious errors in synchronous code logic.
+  process.on('uncaughtException', (err) => {
+    try {
+      logger.error({ err }, '[Uncaught Exception] Exiting...');
+    } catch {
+      emergencyLog('Uncaught Exception', err);
+    }
+    // In this situation, must exit and restart the service.
+    process.exit(1);
+  });
 
   // Start the microservice and listen for incoming messages
   await app.listen();

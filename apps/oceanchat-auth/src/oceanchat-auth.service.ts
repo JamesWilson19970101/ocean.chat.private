@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
@@ -95,9 +95,16 @@ export class OceanchatAuthService implements OnModuleInit {
         secret: this.configService.get<string>('jwt.refreshSecret'),
       });
     } catch (error) {
+      // If the underlying layer has already packaged the error (e.g., failure to obtain role, database connection timeout, etc.),
+      // this means that the underlying layer has a clear definition of the error, and the upper layer should directly "pass it through" without tampering with it.
+      if (error instanceof BaseRpcException) {
+        throw error;
+      }
       // If the refresh token is invalid or expired, deny access.
+      // Only those "unexpected" errors or errors that actually belong to the current level of semantics (such as the native JsonWebTokenError thrown by verify token) are uniformly wrapped.
       throw new BaseRpcException(
         this.i18nService.translate('UNAUTHORIZED'),
+        HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
         { cause: error },
       );
@@ -123,6 +130,7 @@ export class OceanchatAuthService implements OnModuleInit {
       // instead of logging the user out immediately.
       throw new BaseRpcException(
         this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
+        HttpStatus.UNAUTHORIZED,
         ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
         {
           userId,
@@ -136,6 +144,7 @@ export class OceanchatAuthService implements OnModuleInit {
     if (!user) {
       throw new BaseRpcException(
         this.i18nService.translate('User_not_found'),
+        HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
         {
           userId,
@@ -223,10 +232,14 @@ export class OceanchatAuthService implements OnModuleInit {
 
       return [accessToken, refreshToken];
     } catch (error) {
+      if (error instanceof BaseRpcException) {
+        throw error;
+      }
       // If storing the session in Redis fails, I should not issue the token.
       // This prevents issuing a token that can never be validated.
       throw new BaseRpcException(
         this.i18nService.translate('Login_Session_Store_Failed'),
+        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.UNEXPECTED_ERROR,
         { cause: error },
       );

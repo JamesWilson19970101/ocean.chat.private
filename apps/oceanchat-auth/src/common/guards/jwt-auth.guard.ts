@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, HttpStatus, Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
@@ -30,16 +30,25 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @returns The authenticated user object.
    * @throws The error if authentication fails or the user is not found.
    */
-  handleRequest<TUser = AuthenticatedUser>(err: any, user: TUser): TUser {
+  handleRequest<TUser = AuthenticatedUser>(
+    err: any,
+    user: TUser,
+    info: any,
+  ): TUser {
     // If passport-jwt throws an error (e.g., TokenExpiredError), it will be in `err`.
     // If JwtStrategy.validate returns null/false, `user` will be falsy.
     // In either case, authentication has failed.
     if (err || !user) {
       // wrap the original error message or provide a generic one in our custom exception.
       const message = this.i18nService.translate('UNAUTHORIZED');
-      throw new BaseRpcException(message, ErrorCodes.UNAUTHORIZED, {
-        cause: err,
-      });
+      throw new BaseRpcException(
+        message,
+        HttpStatus.UNAUTHORIZED,
+        ErrorCodes.UNAUTHORIZED,
+        {
+          cause: err || info,
+        },
+      );
     }
 
     return user;

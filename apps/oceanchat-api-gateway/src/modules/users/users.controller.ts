@@ -4,6 +4,7 @@ import {
   BaseException,
   ErrorCodes,
   ErrorResponseDto,
+  isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
@@ -32,6 +33,7 @@ export class UsersController {
       this.userClient
         .send<Partial<User> | null>('user.query.profile', { userId })
         .pipe(
+          timeout(5000),
           map((profile) => {
             if (!profile) {
               const message = this.i18nService.translate('USER_NOT_FOUND');
@@ -40,14 +42,17 @@ export class UsersController {
             }
             return profile;
           }),
-          timeout(5000),
           catchError((err: ErrorResponseDto) => {
-            if (err && 'errorCode' in err && 'message' in err) {
+            // If it's the BaseException (404) we just threw in the map, just throw it out directly without changing the status code.
+            if (err instanceof BaseException) {
+              return throwError(() => err);
+            }
+            if (isErrorResponseDto(err)) {
               return throwError(
                 () =>
                   new BaseException(
                     err.message,
-                    HttpStatus.NOT_FOUND,
+                    err.statusCode,
                     err.errorCode,
                     { cause: err },
                   ),
@@ -57,12 +62,10 @@ export class UsersController {
             return throwError(
               () =>
                 new BaseException(
-                  this.i18nService.translate('USER_NOT_FOUND'),
-                  HttpStatus.NOT_FOUND,
-                  ErrorCodes.USER_NOT_FOUND,
-                  {
-                    cause: err,
-                  },
+                  this.i18nService.translate('INTERNAL_SERVER_ERROR'),
+                  HttpStatus.INTERNAL_SERVER_ERROR,
+                  ErrorCodes.UNEXPECTED_ERROR,
+                  { cause: err },
                 ),
             );
           }),

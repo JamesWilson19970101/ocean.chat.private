@@ -1,14 +1,21 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
   BaseRpcException,
   ErrorCodes,
   ErrorResponseDto,
+  isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { AuthProvider, User } from '@ocean.chat/models';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
+import {
+  catchError,
+  firstValueFrom,
+  Observable,
+  throwError,
+  timeout,
+} from 'rxjs';
 
 @Injectable()
 export class UsersService {
@@ -32,25 +39,8 @@ export class UsersService {
         .send<User | null>('user.query.byUsername', { username, provider })
         .pipe(
           timeout(5000),
-          catchError((err: ErrorResponseDto | Error) => {
-            if (err instanceof ErrorResponseDto) {
-              return throwError(
-                () =>
-                  new BaseRpcException(err.message, err.errorCode, {
-                    cause: err,
-                  }),
-              );
-            }
-
-            const message = this.i18nService.translate('SERVICE_ERROR', {
-              method: 'user.query.byUsername',
-            });
-            return throwError(
-              () =>
-                new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
-                  cause: err,
-                }),
-            );
+          catchError((err: unknown) => {
+            return this.handleRpcError(err);
           }),
         ),
     );
@@ -64,24 +54,7 @@ export class UsersService {
         .pipe(
           timeout(5000),
           catchError((err: ErrorResponseDto | Error) => {
-            if (err instanceof ErrorResponseDto) {
-              return throwError(
-                () =>
-                  new BaseRpcException(err.message, err.errorCode, {
-                    cause: err,
-                  }),
-              );
-            }
-
-            const message = this.i18nService.translate('SERVICE_ERROR', {
-              method: 'user.query.profile',
-            });
-            return throwError(
-              () =>
-                new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
-                  cause: err,
-                }),
-            );
+            return this.handleRpcError(err);
           }),
         ),
     );
@@ -99,26 +72,39 @@ export class UsersService {
         })
         .pipe(
           timeout(5000),
-          catchError((err: ErrorResponseDto | Error) => {
-            if (err instanceof ErrorResponseDto) {
-              return throwError(
-                () =>
-                  new BaseRpcException(err.message, err.errorCode, {
-                    cause: err,
-                  }),
-              );
-            }
-
-            const message = this.i18nService.translate('SERVICE_ERROR', {
-              method: 'user.validate.password',
-            });
-            return throwError(
-              () =>
-                new BaseRpcException(message, ErrorCodes.SERVICE_ERROR, {
-                  cause: err,
-                }),
-            );
+          catchError((err: unknown) => {
+            return this.handleRpcError(err);
           }),
+        ),
+    );
+  }
+
+  /**
+   * Centralized error handling for RPC calls.
+   * Ensures that status codes are propagated correctly and timeouts are handled.
+   */
+  private handleRpcError(err: unknown): Observable<never> {
+    // Handle Structured Errors from Downstream (Propagate Status Code)
+    if (isErrorResponseDto(err)) {
+      return throwError(
+        () =>
+          new BaseRpcException(err.message, err.statusCode, err.errorCode, {
+            cause: err as ErrorResponseDto,
+          }),
+      );
+    }
+
+    // Handle Unexpected Errors (500 Internal Server Error)
+    const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
+    return throwError(
+      () =>
+        new BaseRpcException(
+          message,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          ErrorCodes.UNEXPECTED_ERROR,
+          {
+            cause: err as any,
+          },
         ),
     );
   }
