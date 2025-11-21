@@ -2,6 +2,8 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
+import { PermissionGuard } from '@ocean.chat/authorization';
+import { AuthorizationModule } from '@ocean.chat/authorization';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
@@ -178,6 +180,7 @@ export class OceanchatApiGatewayModule {
             inject: [ConfigService],
           },
         ]),
+        AuthorizationModule,
         AuthModule,
         UsersModule,
       ],
@@ -187,6 +190,12 @@ export class OceanchatApiGatewayModule {
         {
           provide: APP_GUARD,
           useClass: JwtAuthGuard,
+        },
+        // Register PermissionGuard globally. It will run after JwtAuthGuard.
+        // This ensures that authentication happens before authorization checks.
+        {
+          provide: APP_GUARD,
+          useClass: PermissionGuard,
         },
         // Register the IdempotencyInterceptor as a global interceptor.
         // NestJS will handle its instantiation and dependency injection.
