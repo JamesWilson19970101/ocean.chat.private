@@ -1,2 +1,2 @@
+export * from '../constants/watcher.constants';
 export * from './repository.interface';
-export * from './watcher.constants';

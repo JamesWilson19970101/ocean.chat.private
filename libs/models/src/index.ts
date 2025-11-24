@@ -1,4 +1,5 @@
 export * from './base.repository';
+export * from './constants/model.constants';
 export * from './entities';
 export * from './interfaces';
 export * from './models.module';

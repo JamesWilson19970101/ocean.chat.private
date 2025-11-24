@@ -137,6 +137,7 @@ export default {
         'Access denied: No User ID found in context. Ensure AuthGuard runs before PermissionGuard.',
       PERMISSION_GUARD_ACCESS_DENIED:
         'User {{userId}} denied access to {{className}}.{{handlerName}}. Missing one of: [{{permissions}}]',
+      SETTINGS_SEEDER_SKIPPED: 'Settings Seeder skipped (Reader Mode)',
     },
   },
   zh: {
@@ -249,6 +250,7 @@ export default {
         '访问被拒绝：上下文中未找到用户ID。请确保AuthGuard在PermissionGuard之前运行。',
       PERMISSION_GUARD_ACCESS_DENIED:
         '用户 {{userId}} 被拒绝访问 {{className}}.{{handlerName}}。缺少以下权限之一：[{{permissions}}]',
+      SETTINGS_SEEDER_SKIPPED: '设置种子已跳过（只读模式）',
     },
   },
 };
