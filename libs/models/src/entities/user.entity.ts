@@ -117,6 +117,13 @@ export class User extends Document {
   emails?: { address: string; verified: boolean }[];
 
   /**
+   * Avatar Hash (ETag).
+   * Used for client-side caching. If the hash changes, the client re-fetches the avatar.
+   */
+  @Prop({ type: String })
+  avatarETag?: string;
+
+  /**
    * The authentication providers associated with the user.
    */
   @Prop({ type: [AuthProvidersSchema], default: [] })
@@ -146,6 +153,12 @@ export class UserIdentifier {
   /** The display name of the user. */
   @Prop()
   name?: string;
+
+  /** * The avatar hash of the user.
+   * Essential for list views (like Recent Chats) to render avatars efficiently.
+   */
+  @Prop()
+  avatarETag?: string;
 }
 export const UserIdentifierSchema =
   SchemaFactory.createForClass(UserIdentifier);

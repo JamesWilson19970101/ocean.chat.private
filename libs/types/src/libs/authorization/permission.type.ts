@@ -9,3 +9,16 @@ export interface IPermissionDefinition {
    */
   roles: string[];
 }
+
+export interface IAuthenticatedRequest {
+  user: {
+    sub: string;
+    username: string;
+  };
+
+  query: Record<string, any>;
+
+  params: Record<string, any>;
+
+  body: Record<string, any>;
+}

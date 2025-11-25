@@ -133,6 +133,11 @@ export default {
         'Failed to fetch roles from cache or data source.',
       PERMISSION_CACHE_FETCH_FAILED:
         'Failed to fetch permissions from cache or data source.',
+      PERMISSION_GUARD_NO_USER_ID_IN_CONTEXT:
+        'Access denied: No User ID found in context. Ensure AuthGuard runs before PermissionGuard.',
+      PERMISSION_GUARD_ACCESS_DENIED:
+        'User {{userId}} denied access to {{className}}.{{handlerName}}. Missing one of: [{{permissions}}]',
+      SETTINGS_SEEDER_SKIPPED: 'Settings Seeder skipped (Reader Mode)',
     },
   },
   zh: {
@@ -241,6 +246,11 @@ export default {
       FAILED_TO_RETRIEVE_SCOPED_ROLES: '获取作用域角色失败。',
       ROLE_CACHE_FETCH_FAILED: '从缓存或数据源获取角色失败。',
       PERMISSION_CACHE_FETCH_FAILED: '从缓存或数据源获取权限失败。',
+      PERMISSION_GUARD_NO_USER_ID_IN_CONTEXT:
+        '访问被拒绝：上下文中未找到用户ID。请确保AuthGuard在PermissionGuard之前运行。',
+      PERMISSION_GUARD_ACCESS_DENIED:
+        '用户 {{userId}} 被拒绝访问 {{className}}.{{handlerName}}。缺少以下权限之一：[{{permissions}}]',
+      SETTINGS_SEEDER_SKIPPED: '设置种子已跳过（只读模式）',
     },
   },
 };

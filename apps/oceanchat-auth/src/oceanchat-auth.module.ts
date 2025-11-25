@@ -6,10 +6,11 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
-import { ModelsModule } from '@ocean.chat/models';
+import { ModelsModule, OceanModel } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provisioner';
 import { NatsTraceInterceptor } from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
+import { SettingsModule } from '@ocean.chat/settings';
 import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
 import { RetentionPolicy, StorageType } from 'nats';
@@ -201,6 +202,10 @@ export class OceanchatAuthModule {
             };
           },
         }),
+        // Almost all microservices use the `settings` library,
+        // but only this one microservice can write to it;
+        // other microservices only read from it. Therefore, this library is maintained by `oceanchat-auth`.
+        SettingsModule.register({ runSeeds: true }),
         PassportModule.register({ defaultStrategy: 'jwt' }),
         JwtModule.registerAsync({
           imports: [ConfigModule],
@@ -213,7 +218,11 @@ export class OceanchatAuthModule {
           }),
           inject: [ConfigService],
         }),
-        ModelsModule,
+        ModelsModule.forFeature([
+          OceanModel.User,
+          OceanModel.Role,
+          OceanModel.Permission,
+        ]),
         UsersModule,
       ],
       controllers: [OceanchatAuthController],

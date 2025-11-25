@@ -43,3 +43,40 @@ Now, I have two options to connect mongodb, one is mongodb, the other is mongoos
 - Type Safety: While TypeScript helps, the lack of a strict schema means you can't rely on the database to enforce data types.
 
 **So finally I decide to use mongoose.**
+
+## multi-table ops
+
+> For high-frequency core services, AP must be guaranteed; for low-frequency non-core services, CP is preferred.
+
+### demo
+
+In GroupMember：
+
+```
+/**
+   * The Group ID.
+   */
+  @Prop({
+    type: MongooseSchema.Types.ObjectId,
+    ref: 'Group',
+    required: true,
+    index: true,
+  })
+  groupId: string;
+```
+
+I populate document between 2 collections, which guarantees CP. The fields that will be frequently operated have been denormalized,which guarantees AP.
+
+For example(high-frequency):
+
+a user logs in and loads his chat list, But I have index for "Get my group list". Atomic operations on a single table are achieved through redundant fields in the table, so there is no need to worry about consistency issues.
+
+Redundant fields ensure that the data is present in the current table and will not be corrupted due to problems in other nodes, thus guaranteeing AP.
+
+The groupId field will be just accesed in some low-frequency scenarios.
+
+For example(low-frequency):
+
+When an administrator views the member list of a group in the backend, they may need to click on a member and then be redirected to a details page showing the complete Group information referenced by that member. The operation above is low-frenquency.
+
+Populate is not a atomic operation, but this operation ensures that the data retrieved each time is the latest version, thus guaranteeing CP.

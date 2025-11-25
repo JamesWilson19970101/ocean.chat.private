@@ -54,6 +54,10 @@ export const PermissionId = {
 
   // --- Room Operations (General) ---
   VIEW_D_ROOM: 'view-d-room',
+  /**
+   * Allows users to view ANY room (including Private 'p') if they are a member.
+   * Without this, normal users would need 'view-p-room' which is too broad (all private rooms).
+   */
   VIEW_JOINED_ROOM: 'view-joined-room',
   VIEW_HISTORY: 'view-history',
   ADD_USER_TO_JOINED_ROOM: 'add-user-to-joined-room',

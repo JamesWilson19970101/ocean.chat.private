@@ -1,9 +1,9 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
+import { IScopeDataProvider } from '@ocean.chat/types';
 
 import { PermissionIdType } from '../constants/permission-ids';
-import { IScopeDataProvider } from '../interfaces/scope-provider.interface';
 import { RoleCacheService } from '../services/role-cache.service';
 
 @Injectable()
@@ -25,7 +25,7 @@ export class PermissionCheckerService {
    */
   async hasPermission(
     userId: string,
-    permissionId: PermissionIdType,
+    permissionId: PermissionIdType | null,
     scopeId?: string,
   ): Promise<boolean> {
     if (!userId || !permissionId) {

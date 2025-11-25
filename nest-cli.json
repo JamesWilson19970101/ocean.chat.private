@@ -44,6 +44,15 @@
         "tsConfigPath": "libs/common-exceptions/tsconfig.lib.json"
       }
     },
+    "cores": {
+      "type": "library",
+      "root": "libs/cores",
+      "entryFile": "index",
+      "sourceRoot": "libs/cores/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/cores/tsconfig.lib.json"
+      }
+    },
     "i18n": {
       "type": "library",
       "root": "libs/i18n",

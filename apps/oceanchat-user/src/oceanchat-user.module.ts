@@ -4,7 +4,7 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
-import { ModelsModule } from '@ocean.chat/models';
+import { ModelsModule, OceanModel } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provisioner';
 import {
   NatsOpentelemetryTracingModule,
@@ -205,8 +205,9 @@ export class OceanchatUserModule {
             };
           },
         }),
-        ModelsModule, // Provides UserRepository
-        SettingsModule, // Provides SettingsService
+        // TODO: add params for init repository
+        ModelsModule.forFeature([OceanModel.Setting, OceanModel.User]), // Provides *Repository
+        SettingsModule.register({ runSeeds: false }),
       ],
       controllers: [OceanchatUserController],
       providers: [

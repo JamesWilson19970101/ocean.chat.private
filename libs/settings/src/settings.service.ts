@@ -1,12 +1,18 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import type { Setting } from '@ocean.chat/models';
 import { SettingsRepository } from '@ocean.chat/models';
 import { RedisService } from '@ocean.chat/redis';
+import { SettingsModuleOptions } from '@ocean.chat/types';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
+import { SETTINGS_OPTIONS } from './constants';
 import { DefaultSetting, defaultSettings } from './default-settings';
 
+// TODO: Currently, the implementation handles the initialization of settings collection -> Redis,
+// while other microservices are only responsible for reading from Redis.
+// This ensures that the microservices start in an orderly manner.
+// This issue will be addressed later.
 @Injectable()
 export class SettingsService implements OnModuleInit {
   private readonly CACHE_KEY_PREFIX = 'settings:';
@@ -20,6 +26,7 @@ export class SettingsService implements OnModuleInit {
     @InjectPinoLogger('lib.settings.settings.service')
     private readonly logger: PinoLogger,
     private readonly i18nService: I18nService,
+    @Inject(SETTINGS_OPTIONS) private readonly options: SettingsModuleOptions,
   ) {}
 
   /**
@@ -29,6 +36,11 @@ export class SettingsService implements OnModuleInit {
    * It also pre-warms the cache by loading all settings from the database into Redis.
    */
   async onModuleInit() {
+    // CRITICAL CHECK: Only run seeding if this service is the "Owner"
+    if (!this.options.runSeeds) {
+      this.logger.debug(this.i18nService.translate('SETTINGS_SEEDER_SKIPPED'));
+      return;
+    }
     try {
       this.logger.info(
         this.i18nService.translate('Initializing_Default_Settings'),
