@@ -9,5 +9,6 @@ export enum OceanModel {
   Permission = 'Permission',
   Room = 'Room',
   Message = 'Message',
-  //   GroupMember = 'GroupMember', // Add GroupMember as we discussed previously
+  Group = 'Group',
+  GroupMember = 'GroupMember',
 }

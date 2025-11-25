@@ -1,3 +1,5 @@
+export * from './group.entity';
+export * from './group-member.entity';
 export * from './message.entity';
 export * from './permission.entity';
 export * from './role.entity';
