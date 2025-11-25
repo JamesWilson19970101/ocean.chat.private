@@ -40,6 +40,12 @@
       "@ocean.chat/common-exceptions/*": [
         "libs/common-exceptions/src/*"
       ],
+      "@ocean.chat/cores": [
+        "libs/cores/src"
+      ],
+      "@ocean.chat/cores/*": [
+        "libs/cores/src/*"
+      ],
       "@ocean.chat/i18n": [
         "libs/i18n/src"
       ],
