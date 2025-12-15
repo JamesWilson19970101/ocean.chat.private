@@ -7,7 +7,6 @@ export enum OceanModel {
   Setting = 'Setting',
   Role = 'Role',
   Permission = 'Permission',
-  Room = 'Room',
   Message = 'Message',
   Group = 'Group',
   GroupMember = 'GroupMember',

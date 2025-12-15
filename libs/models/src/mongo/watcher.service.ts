@@ -11,7 +11,7 @@ import {
 import { Connection } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
-import { WATCHED_COLLECTION_TOKEN } from '../interfaces';
+import { WATCHED_COLLECTION_TOKEN } from '../constants/watcher.constants';
 import type { OceanChatRecord } from './OceanChatRecord'; // Adjust the import path as necessary
 import { UtilsService } from './utils.service';
 

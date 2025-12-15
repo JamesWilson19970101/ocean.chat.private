@@ -1,7 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import { WATCHED_COLLECTION_TOKEN } from '../interfaces';
+import { WATCHED_COLLECTION_TOKEN } from '../constants/watcher.constants';
 import { ModelsModule } from '../models.module';
 import { UtilsService } from './utils.service';
 import { DatabaseWatcher } from './watcher.service';

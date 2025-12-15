@@ -34,8 +34,8 @@ const GroupMessageSnapshotSchema =
 
 /**
  * @class Group
- * @description Represents the 'groups' collecction in the database (equivalent to room)
- * It act as the container of messages.
+ * @description Represents the 'groups' collection in the database (equivalent to room) </br>
+ * It act as the container of messages. </br>
  * Note: User Relationships (membership, unread counts) are NOT store here,
  * but in 'group_members'.
  */
@@ -143,3 +143,9 @@ export class Group extends Document {
   @Prop({ type: MongooseSchema.Types.Mixed })
   customFields?: Record<string, any>;
 }
+
+export const GroupSchema = SchemaFactory.createForClass(Group);
+
+// Compound Indexes for optimization
+// 1. Find public channels by name: { name: 1, type: 1 }
+GroupSchema.index({ name: 1, type: 1 });

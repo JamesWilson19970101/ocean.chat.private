@@ -3,14 +3,16 @@ import { ModelDefinition } from '@nestjs/mongoose';
 
 import { OceanModel } from '../constants/model.constants';
 import {
+  Group,
+  GroupMember,
+  GroupMemberSchema,
+  GroupSchema,
   Message,
   MessageSchema,
   Permission,
   PermissionSchema,
   Role,
   RoleSchema,
-  Room,
-  RoomSchema,
   Setting,
   SettingSchema,
   User,
@@ -26,8 +28,12 @@ export const MODEL_DEFINITIONS: Record<OceanModel, ModelDefinition> = {
   [OceanModel.Setting]: { name: Setting.name, schema: SettingSchema },
   [OceanModel.Role]: { name: Role.name, schema: RoleSchema },
   [OceanModel.Permission]: { name: Permission.name, schema: PermissionSchema },
-  [OceanModel.Room]: { name: Room.name, schema: RoomSchema },
   [OceanModel.Message]: { name: Message.name, schema: MessageSchema },
+  [OceanModel.Group]: { name: Group.name, schema: GroupSchema },
+  [OceanModel.GroupMember]: {
+    name: GroupMember.name,
+    schema: GroupMemberSchema,
+  },
 };
 
 /**
@@ -37,8 +43,9 @@ export const MODEL_DEFINITIONS: Record<OceanModel, ModelDefinition> = {
 export const REPOSITORY_MAP: Record<OceanModel, Type<any> | undefined> = {
   [OceanModel.User]: UserRepository,
   [OceanModel.Setting]: SettingsRepository,
-  [OceanModel.Room]: undefined,
   [OceanModel.Permission]: undefined,
   [OceanModel.Role]: undefined,
   [OceanModel.Message]: undefined,
+  [OceanModel.Group]: undefined,
+  [OceanModel.GroupMember]: undefined,
 };

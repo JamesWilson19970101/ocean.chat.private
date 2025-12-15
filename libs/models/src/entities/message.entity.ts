@@ -1,7 +1,7 @@
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
 
-import { Room } from './room.entity';
+import { Group } from './group.entity';
 import { UserIdentifier, UserIdentifierSchema } from './user.entity';
 
 /**
@@ -90,11 +90,11 @@ export class Message extends Document {
   /** The ID of the room where the message was sent. */
   @Prop({
     type: MongooseSchema.Types.ObjectId,
-    ref: 'Room',
+    ref: 'Group',
     required: true,
     index: true,
   })
-  rid: Room | MongooseSchema.Types.ObjectId;
+  rid: Group | MongooseSchema.Types.ObjectId;
 
   /** The actual message content. */
   @Prop({ required: true })
