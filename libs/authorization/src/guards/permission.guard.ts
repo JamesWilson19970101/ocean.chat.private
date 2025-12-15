@@ -79,7 +79,6 @@ export class PermissionGuard implements CanActivate {
     // --- Handle HTTP Requests (api-gateway) ---
     if (context.getType() === 'http') {
       const req = context.switchToHttp().getRequest<IAuthenticatedRequest>();
-      console.dir(req);
       // Assuming previous AuthGuard populated req.user
       userId = req.user.sub || null;
 
