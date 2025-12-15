@@ -17,6 +17,8 @@ export abstract class IScopeDataProvider {
   /**
    * Retrieves the roles a user holds within a specific scope (e.g., a Room).
    *
+   * // TODO: To achieve high concurrency, don't forget to implement multi-level caching.
+   *
    * @param userId - The ID of the user.
    * @param scopeId - The ID of the scope (e.g., roomId).
    * @returns A list of role names (e.g., ['owner', 'moderator']) or an empty array.

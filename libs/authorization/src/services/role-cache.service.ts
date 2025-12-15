@@ -11,7 +11,7 @@ const L2_CACHE_TTL_SEC = 3600; // 1 Hour Redis cache
 // This means that after a permission change, there will be a 10-second delay in the worst case.
 // But this avoids complex broadcast communication logic (assuming the service is deployed on 10 pods, it is necessary to ensure that each of these 10 pods is broadcast to the message; only in this way can the L1 cache maintained in each pod be invalidated).
 const L1_CACHE_TTL_MS = 10 * 1000; // 10 Seconds memory cache
-const L1_MAX_SIZE = 10000; // Max 5000 items per instance to prevent OOM
+const L1_MAX_SIZE = 10000; // Max 10000 items per instance to prevent OOM
 
 /**
  * A simplified LRU (Least Recently Used) Cache to prevent memory leaks.
@@ -88,7 +88,7 @@ export class RoleCacheService {
         const result = await this.redis.getOrSet<string[]>(
           key,
           async () => {
-            return this.dataSource!.getUserGlobalRoles(userId);
+            return this.dataSource!.getUserGlobalRoles(userId); // TODO: The caller needs to inject an implementation class for retrieving documents in MongoDB.
           },
           {
             ttl: L2_CACHE_TTL_SEC,
@@ -134,7 +134,7 @@ export class RoleCacheService {
         const result = await this.redis.getOrSet<string[]>(
           key,
           async () => {
-            return this.dataSource!.getRolesForPermission(permissionId);
+            return this.dataSource!.getRolesForPermission(permissionId); // TODO: The caller needs to inject an implementation class for retrieving documents in MongoDB.
           },
           {
             ttl: L2_CACHE_TTL_SEC * 24, // Permissions change rarely, cache longer

@@ -7,6 +7,10 @@
  * It prevents the use of "magic strings" (hardcoded strings) in the codebase.
  *
  * @consumer All microservices (api-gateway, message, group, etc.)
+ *
+ * @warning
+ * To prevent permission overlap issues (e.g., 'admin' can kick-user, 'owner' can also kick-user), </br>
+ * it is strictly forbidden for a single permission to belong to both Scope and Global contexts simultaneously.
  */
 // This object maps the plain string IDs from 'permissions.ts' to
 // type-safe, auto-completable constants.
