@@ -9,7 +9,6 @@
     "build": "nest build",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
-    "start:account": "NODE_ENV=development nest start account --watch",
     "start:ocean.chat": "NODE_ENV=development nest start ocean.chat --watch",
     "start:stream": "NODE_ENV=development nest start stream --watch",
     "start:dev": "concurrently \"yarn start:oceanchat-auth\" \"yarn start:oceanchat-user\" \"yarn start:oceanchat-api-gateway\"",
@@ -32,7 +31,6 @@
     "test:app/oceanchat.user": "NODE_ENV=test jest --config ./apps/oceanchat-user/test/jest.config.json --runInBand",
     "test:app/oceanchat-api-gateway": "NODE_ENV=test jest --config ./apps/oceanchat-api-gateway/test/jest.config.json --runInBand",
     "test:oceanchat-router": "jest --config ./apps/oceanchat-router/test/jest.config.json",
-    "test:app/account": "jest --config ./jest.account.json",
     "test:lib/models": "jest --config ./libs//models/jest.config.json",
     "test:lib/redis": "NODE_ENV=test jest --config ./libs//redis/test/jest.config.json",
     "generatedoc": "typedoc"
