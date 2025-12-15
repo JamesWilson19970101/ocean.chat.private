@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { RedisService } from '@ocean.chat/redis';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-
-import { getAccessSessionKey } from '../../common/utils/session.utils';
 
 export interface JwtPayload {
   username: string;
@@ -14,10 +11,7 @@ export interface JwtPayload {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(
-    private readonly configService: ConfigService,
-    private readonly redisService: RedisService,
-  ) {
+  constructor(private readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -25,22 +19,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<
+  validate(payload: JwtPayload):
     | {
         username: string;
         sub: string;
       }
-    | boolean
-  > {
-    // Optional: Check if the token's JTI is still valid in Redis (for revocation)
-    // This adds a Redis lookup for every protected request.
-    // Consider if this is strictly necessary for your use case, given short-lived access tokens.
-    const key = getAccessSessionKey(payload.jti);
-    const sessionExists = await this.redisService.get(key);
-    if (sessionExists) {
-      // Cache Hit: Token is in the whitelist, validation successful.
-      return { sub: payload.sub, username: payload.username };
-    }
-    return false;
+    | boolean {
+    // Passport-JWT has already verified the signature and expiration.
+    // Since I want a stateless verification (no DB/Redis lookup),
+    // I simply return the user info extracted from the token.
+    // As long as attackers don't have your JWT_ACCESS_SECRET, they cannot forge a signed token.
+    // Expired tokens will also be automatically rejected by passport-jwt and will not enter the validate method.
+    return { sub: payload.sub, username: payload.username };
   }
 }
