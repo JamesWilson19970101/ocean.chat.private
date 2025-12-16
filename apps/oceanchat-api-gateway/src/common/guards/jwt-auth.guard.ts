@@ -5,7 +5,7 @@ import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { IS_PUBLIC_KEY } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 
-import { JwtPayload } from '../../modules/auth/jwt.strategy';
+import { JwtPayload } from '../strategies/jwt.strategy';
 /**
  * JWT authentication guard for HTTP contexts in the API Gateway.
  * It extends the base Passport AuthGuard for the 'jwt' strategy.
@@ -51,6 +51,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // If passport-jwt throws an error (e.g., TokenExpiredError), it will be in `err`.
     // If JwtStrategy.validate returns null/false, `user` will be falsy.
     // In either case, authentication has failed.
+    // TODO: Here I need to distinguish whether the token has expired. If it has expired, we need to mark the field on the front end and refresh the token.
     if (err || !user) {
       const causeError = err || info;
       // wrap the original error message or provide a generic one in our custom exception.
