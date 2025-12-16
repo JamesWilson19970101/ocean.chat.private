@@ -22,3 +22,7 @@ export const jwtConfiguration = registerAs('jwt', () => ({
 export const natsConfiguration = registerAs('nats', () => ({
   url: process.env.NATS_URL || 'nats://localhost:4222',
 }));
+
+export const restConfiguration = registerAs('rest', () => ({
+  rate_limit: parseInt(process.env.REST_RATE_LIMIT || '10', 10),
+}));

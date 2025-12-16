@@ -1,6 +1,7 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PermissionGuard } from '@ocean.chat/authorization';
 import { AuthorizationModule } from '@ocean.chat/authorization';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
@@ -10,6 +11,7 @@ import {
   jwtConfiguration,
   natsConfiguration,
   redisConfiguration,
+  restConfiguration,
   validationSchema,
 } from '@ocean.chat/cores';
 import { I18nModule } from '@ocean.chat/i18n';
@@ -59,7 +61,12 @@ export class OceanchatApiGatewayModule {
       imports: [
         I18nModule.forRoot(),
         ConfigModule.forRoot({
-          load: [redisConfiguration, jwtConfiguration, natsConfiguration],
+          load: [
+            redisConfiguration,
+            jwtConfiguration,
+            natsConfiguration,
+            restConfiguration,
+          ],
           validationSchema,
           envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
           isGlobal: true,
@@ -148,11 +155,31 @@ export class OceanchatApiGatewayModule {
             inject: [ConfigService],
           },
         ]),
+        ThrottlerModule.forRootAsync({
+          imports: [ConfigModule],
+          inject: [ConfigService],
+          useFactory: (configService: ConfigService) => ({
+            throttlers: [
+              {
+                ttl: 1000, // 1 second
+                // TODO: If multiple gateway instances are deployed, the default memory storage will cause each instance to be counted separately (for example, if 3 gateways are deployed, the actual rate limiting threshold will become 30 times/second).
+                // For a stateless gateway, consider adding a Redis storage provider here
+                limit: configService.get<number>('rest.rate_limit', 10), // 10 requests per second per IP
+              },
+            ],
+          }),
+        }),
         AuthorizationModule,
         AuthModule,
         UsersModule,
       ],
       providers: [
+        // Register ThrottlerGuard globally. It should run before authentication
+        // to protect the auth endpoints themselves from brute-force attacks.
+        {
+          provide: APP_GUARD,
+          useClass: ThrottlerGuard,
+        },
         // Register JwtAuthGuard globally. All routes will be protected by default.
         // Use @SkipAuth() decorator to make specific routes public.
         {

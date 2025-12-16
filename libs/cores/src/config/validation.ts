@@ -41,4 +41,8 @@ export const validationSchema = Joi.object({
     'string.empty': 'NATS_URL cannot be empty',
     'any.required': 'NATS_URL is required',
   }),
+  REST_RATE_LIMIT: Joi.number().default(10).messages({
+    'string.empty': 'REST_RATE_LIMIT cannot be empty',
+    'any.required': 'REST_RATE_LIMIT is required',
+  }),
 });
