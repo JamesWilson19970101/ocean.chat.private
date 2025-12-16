@@ -218,11 +218,7 @@ export class OceanchatAuthModule {
           }),
           inject: [ConfigService],
         }),
-        ModelsModule.forFeature([
-          OceanModel.User,
-          OceanModel.Role,
-          OceanModel.Permission,
-        ]),
+        ModelsModule.forFeature([OceanModel.Setting, OceanModel.User]),
         UsersModule,
       ],
       controllers: [OceanchatAuthController],
