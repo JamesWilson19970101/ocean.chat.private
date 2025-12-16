@@ -5,6 +5,14 @@ import { JwtModule } from '@nestjs/jwt';
 import { MongooseModule } from '@nestjs/mongoose';
 import { PassportModule } from '@nestjs/passport';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
+import {
+  databaseConfiguration,
+  Env,
+  jwtConfiguration,
+  natsConfiguration,
+  redisConfiguration,
+  validationSchema,
+} from '@ocean.chat/cores';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { ModelsModule, OceanModel } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provisioner';
@@ -18,14 +26,6 @@ import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
-import {
-  databaseConfiguration,
-  jwtConfiguration,
-  natsConfiguration,
-  redisConfiguration,
-} from './config/configuration';
-import { Env } from './config/env';
-import { validationSchema } from './config/validation';
 import { OceanchatAuthController } from './oceanchat-auth.controller';
 import { OceanchatAuthService } from './oceanchat-auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';

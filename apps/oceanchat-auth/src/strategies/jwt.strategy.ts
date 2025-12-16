@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
+import { getAccessSessionKey } from '@ocean.chat/cores';
 import { RedisService } from '@ocean.chat/redis';
 import { Strategy } from 'passport-jwt';
-
-import { getAccessSessionKey } from '../common/utils/session.utils';
 
 const fromNatsPayload = (request: unknown): string | null => {
   if (

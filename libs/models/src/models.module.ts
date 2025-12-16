@@ -1,6 +1,5 @@
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { ModelDefinition, MongooseModule } from '@nestjs/mongoose';
-import {} from '@nestjs/mongoose';
 
 import { OceanModel } from './constants/model.constants';
 import {

@@ -1,6 +1,5 @@
+import { Match } from '@ocean.chat/cores';
 import { IsNotEmpty, IsString } from 'class-validator';
-
-import { Match } from '../../../common/decorators/match.decorator';
 
 export class RegisterDto {
   @IsString()

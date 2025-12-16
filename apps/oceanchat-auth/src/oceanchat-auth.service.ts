@@ -2,6 +2,7 @@ import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { getAccessSessionKey, getRefreshSessionKey } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerService } from '@ocean.chat/nats-jetstream-provisioner';
@@ -12,10 +13,6 @@ import * as ms from 'ms';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { v4 as uuidv4 } from 'uuid';
 
-import {
-  getAccessSessionKey,
-  getRefreshSessionKey,
-} from './common/utils/session.utils';
 import { UsersService } from './users/users.service';
 
 @Injectable()

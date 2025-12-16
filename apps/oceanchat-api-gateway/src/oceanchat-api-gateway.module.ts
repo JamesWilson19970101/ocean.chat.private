@@ -1,27 +1,24 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { MongooseModule } from '@nestjs/mongoose';
 import { PermissionGuard } from '@ocean.chat/authorization';
 import { AuthorizationModule } from '@ocean.chat/authorization';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
-import { I18nModule, I18nService } from '@ocean.chat/i18n';
-import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
-import { RedisModule } from '@ocean.chat/redis';
-import { context, trace } from '@opentelemetry/api';
-import { Connection } from 'mongoose';
-import { LoggerModule, PinoLogger } from 'nestjs-pino';
-
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
-import { IdempotencyInterceptor } from './common/interceptors/idempotency.interceptor';
+import { IdempotencyInterceptor } from '@ocean.chat/cores';
 import {
-  databaseConfiguration,
+  Env,
   jwtConfiguration,
   natsConfiguration,
   redisConfiguration,
-} from './config/configuration';
-import { Env } from './config/env';
-import { validationSchema } from './config/validation';
+  validationSchema,
+} from '@ocean.chat/cores';
+import { I18nModule } from '@ocean.chat/i18n';
+import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
+import { RedisModule } from '@ocean.chat/redis';
+import { context, trace } from '@opentelemetry/api';
+import { LoggerModule } from 'nestjs-pino';
+
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -62,12 +59,7 @@ export class OceanchatApiGatewayModule {
       imports: [
         I18nModule.forRoot(),
         ConfigModule.forRoot({
-          load: [
-            databaseConfiguration,
-            redisConfiguration,
-            jwtConfiguration,
-            natsConfiguration,
-          ],
+          load: [redisConfiguration, jwtConfiguration, natsConfiguration],
           validationSchema,
           envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
           isGlobal: true,
@@ -135,30 +127,6 @@ export class OceanchatApiGatewayModule {
             db: configService.get<number>('redis.db'),
           }),
           inject: [ConfigService],
-        }),
-        MongooseModule.forRootAsync({
-          useFactory: (
-            configService: ConfigService,
-            logger: PinoLogger,
-            i18nService: I18nService,
-          ) => {
-            return {
-              uri: configService.get<string>('database.uri'),
-              dbName: configService.get<string>('database.name'),
-              serverSelectionTimeoutMS: 5000,
-              onConnectionCreate: (connection: Connection) => {
-                connection.on('connected', () => {
-                  logger.setContext('database.module');
-                  logger.info(
-                    { dbName: configService.get<string>('database.name') },
-                    i18nService.translate('Database_Connected'),
-                  );
-                });
-                return connection;
-              },
-            };
-          },
-          inject: [ConfigService, PinoLogger, I18nService],
         }),
         // Use the enhanced module to register multiple traceable NATS clients.
         NatsOpentelemetryTracingModule.registerAsync([

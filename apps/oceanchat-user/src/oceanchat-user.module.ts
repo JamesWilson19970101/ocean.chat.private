@@ -3,6 +3,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
+import {
+  databaseConfiguration,
+  Env,
+  natsConfiguration,
+  redisConfiguration,
+  validationSchema,
+} from '@ocean.chat/cores';
 import { I18nModule, I18nService } from '@ocean.chat/i18n';
 import { ModelsModule, OceanModel } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provisioner';
@@ -17,13 +24,6 @@ import { Connection } from 'mongoose';
 import { RetentionPolicy, StorageType } from 'nats';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
-import {
-  databaseConfiguration,
-  natsConfiguration,
-  redisConfiguration,
-} from './config/configuration';
-import { Env } from './config/env';
-import { validationSchema } from './config/validation';
 import { OceanchatUserController } from './oceanchat-user.controller';
 import { OceanchatUserService } from './oceanchat-user.service';
 import { PasswordService } from './password.service';

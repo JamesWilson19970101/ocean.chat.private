@@ -12,11 +12,11 @@ import {
   ErrorCodes,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
+import { SkipAuth } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
-import { SkipAuth } from '../../common/decorators/skip-auth.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
