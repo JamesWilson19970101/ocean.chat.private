@@ -1,5 +1,8 @@
 import { startTracing } from '@ocean.chat/tracing';
-startTracing({ name: 'oceanchat-router' }); // Initialize OpenTelemetry Tracing at the very begining of the application
+import { randomUUID } from 'crypto';
+const serviceInstanceId = randomUUID();
+const serviceName = 'oceanchat-router';
+startTracing(serviceName, serviceInstanceId); // Initialize OpenTelemetry Tracing at the very begining of the application
 import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { join } from 'path';
