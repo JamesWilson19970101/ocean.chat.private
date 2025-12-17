@@ -190,6 +190,30 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Get a value from a hash field.
+   * @param key The key of the hash.
+   * @param field The field to get.
+   * @returns The value, parsed as JSON if possible, or null if not found.
+   */
+  async hget<T>(key: RedisKey, field: string): Promise<T | null> {
+    const value = await this.redisClient.hget(key, field);
+    if (value) {
+      try {
+        return JSON.parse(value) as T;
+      } catch (error) {
+        this.logger?.error(
+          { key, field, value, err: error },
+          this.i18nService.translate('Failed_to_parse_redis_value', {
+            key: Buffer.isBuffer(key) ? key.toString() : key,
+          }),
+        );
+        return value as unknown as T;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Sets multiple key-value pairs in Redis.
    * @param args An array of key-value pairs, e.g., ['key1', 'value1', 'key2', 'value2'].
    * @returns 'OK' if all keys were set successfully.

@@ -34,7 +34,7 @@ export class LocalAuthGuard extends AuthGuard('local') {
 
   /**
    * Override canActivate to add custom logic if needed
-   * calls super.canActivate to get a request-like object, because passport-local is desined to work with HTTP requests, but here I are adapting it to work with RPC
+   * calls super.canActivate to get a request-like object, because passport-local is desined to work with HTTP requests, but here I am adapting it to work with RPC
    * then call getRequest to transform the RPC data into a request-like object
    * then call validate method of LocalStrategy with username and password extracted from the request-like object
    * @param context The execution context

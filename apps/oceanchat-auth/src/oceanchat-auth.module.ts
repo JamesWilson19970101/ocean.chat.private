@@ -24,11 +24,9 @@ import { Connection } from 'mongoose';
 import { RetentionPolicy, StorageType } from 'nats';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
-import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import { OceanchatAuthController } from './oceanchat-auth.controller';
 import { OceanchatAuthService } from './oceanchat-auth.service';
-import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from './users/users.module';
 // map SeverityNumber
@@ -225,9 +223,7 @@ export class OceanchatAuthModule {
       providers: [
         OceanchatAuthService,
         LocalStrategy,
-        JwtStrategy,
         LocalAuthGuard,
-        JwtAuthGuard,
         // Register NatsTraceInterceptor as a global interceptor.
         {
           provide: APP_INTERCEPTOR,

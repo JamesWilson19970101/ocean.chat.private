@@ -4,8 +4,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { IS_PUBLIC_KEY } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
+import { IJwtPayload } from '@ocean.chat/types';
 
-import { JwtPayload } from '../strategies/jwt.strategy';
 /**
  * JWT authentication guard for HTTP contexts in the API Gateway.
  * It extends the base Passport AuthGuard for the 'jwt' strategy.
@@ -43,7 +43,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
    * @returns The user payload if authentication is successful.
    * @throws {UnauthorizedException} If authentication fails for any reason.
    */
-  handleRequest<TUser = Pick<JwtPayload, 'username' | 'sub'>>(
+  handleRequest<TUser = Pick<IJwtPayload, 'username' | 'sub'>>(
     err: any,
     user: TUser,
     info: any,
@@ -51,9 +51,24 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // If passport-jwt throws an error (e.g., TokenExpiredError), it will be in `err`.
     // If JwtStrategy.validate returns null/false, `user` will be falsy.
     // In either case, authentication has failed.
-    // TODO: Here I need to distinguish whether the token has expired. If it has expired, we need to mark the field on the front end and refresh the token.
     if (err || !user) {
       const causeError = err || info;
+      // Check if the error is due to token expiration
+      if (
+        causeError &&
+        typeof causeError === 'object' &&
+        'name' in causeError && // Check if 'name' property exists
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        causeError.name === 'TokenExpiredError'
+      ) {
+        throw new BaseException(
+          this.i18nService.translate('TOKEN_EXPIRED'),
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.ERROR_CODE_TOKEN_EXPIRED,
+          { cause: causeError },
+        );
+      }
+
       // wrap the original error message or provide a generic one in our custom exception.
       const message = this.i18nService.translate('UNAUTHORIZED');
       throw new BaseException(

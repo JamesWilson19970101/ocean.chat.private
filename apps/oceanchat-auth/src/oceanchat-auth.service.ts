@@ -2,11 +2,12 @@ import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
-import { getAccessSessionKey, getRefreshSessionKey } from '@ocean.chat/cores';
+import { AuthKeyUtil } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { NatsJetStreamProvisionerService } from '@ocean.chat/nats-jetstream-provisioner';
 import { RedisService } from '@ocean.chat/redis';
+import { IJwtPayload, ITokenStorage } from '@ocean.chat/types';
 import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
 import { Counter, metrics } from '@opentelemetry/api';
 import * as ms from 'ms';
@@ -41,16 +42,22 @@ export class OceanchatAuthService implements OnModuleInit {
    * @param user The user object, validated by LocalStrategy.
    * @returns An object containing the access token, refresh token, and user information.
    */
-  async login(user: Pick<User, 'username' | '_id'>): Promise<LoginResult> {
+  async login(
+    user: Pick<User, 'username' | '_id'>,
+    deviceId: string,
+  ): Promise<LoginResult> {
     this.logger.info(
-      { userId: user._id },
+      { userId: user._id, deviceId },
       this.i18nService.translate('User_Login_Successful', {
         username: user.username,
       }),
     );
     this.loginCounter.add(1, { 'login.method': 'password' });
     // generate accessToken & refreshToken if `@UseGuards(JwtAuthGuard)` runs successfully.
-    const [accessToken, refreshToken] = await this.generateTokens(user);
+    const [accessToken, refreshToken] = await this.generateTokens(
+      user,
+      deviceId,
+    );
 
     // Publish a domain event to NATS JetStream for other services to consume.
     const js = this.natsProvisioner.getJetStreamClient();
@@ -64,6 +71,7 @@ export class OceanchatAuthService implements OnModuleInit {
           'auth.event.user.loggedIn',
           JSON.stringify({
             userId: user._id,
+            deviceId,
             loginTime: new Date().toISOString(),
           }),
         )
@@ -86,11 +94,14 @@ export class OceanchatAuthService implements OnModuleInit {
    * @returns A new pair of access and refresh tokens.
    */
   async refreshToken(oldRefreshToken: string): Promise<RefreshTokenResult> {
-    let payload: { sub: string; jti: string };
+    let payload: IJwtPayload;
     try {
-      payload = await this.jwtService.verifyAsync(oldRefreshToken, {
-        secret: this.configService.get<string>('jwt.refreshSecret'),
-      });
+      payload = await this.jwtService.verifyAsync<IJwtPayload>(
+        oldRefreshToken,
+        {
+          secret: this.configService.get<string>('jwt.refreshSecret'),
+        },
+      );
     } catch (error) {
       // If the underlying layer has already packaged the error (e.g., failure to obtain role, database connection timeout, etc.),
       // this means that the underlying layer has a clear definition of the error, and the upper layer should directly "pass it through" without tampering with it.
@@ -107,19 +118,18 @@ export class OceanchatAuthService implements OnModuleInit {
       );
     }
 
-    const { sub: userId, jti } = payload;
-    const sessionKey = getRefreshSessionKey(jti);
+    const { sub: userId, jti, deviceId } = payload;
+    const userKey = AuthKeyUtil.getUserKey(userId);
 
-    // Atomically get the session value and delete the key using a Lua script.
-    // This prevents the race condition where multiple concurrent requests
-    // could use the same refresh token. The first request will get the session and
-    // delete the key. Any subsequent requests will get `nil` and be rejected.
-    const storedValue =
-      await this.redisService.getAndDelete<string>(sessionKey);
+    // Check if the device session exists in Redis Hash
+    const storage = await this.redisService.hget<ITokenStorage>(
+      userKey,
+      deviceId,
+    );
 
-    if (!storedValue) {
-      // If the token is not in Redis, it means it has been used by a concurrent request,
-      // revoked, or the session has expired from Redis TTL.
+    if (!storage || storage.refreshJti !== jti) {
+      // If storage is missing, the user was kicked out or expired.
+      // If JTI mismatch, the token was already refreshed (reuse attempt) or replaced.
       // I return a specific error code to differentiate this from a fundamentally invalid token
       // (which fails at the jwt.verifyAsync step).
       // This allows the frontend to handle race conditions gracefully (e.g., by ignoring this
@@ -152,10 +162,13 @@ export class OceanchatAuthService implements OnModuleInit {
     }
 
     // Issue a new pair of tokens
-    const [newAccessToken, newRefreshToken] = await this.generateTokens({
-      username: user.username as string,
-      _id: user._id,
-    });
+    const [newAccessToken, newRefreshToken] = await this.generateTokens(
+      {
+        username: user.username as string,
+        _id: user._id,
+      },
+      deviceId,
+    );
 
     return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
@@ -163,21 +176,30 @@ export class OceanchatAuthService implements OnModuleInit {
   /**
    * Generates and stores a new pair of access and refresh tokens for a user.
    * @param user The user to generate tokens for.
+   * @param deviceId The device identifier.
    * @returns A tuple containing the new [accessToken, refreshToken].
    */
   private async generateTokens(
     user: Pick<User, 'username' | '_id'>,
+    deviceId: string,
   ): Promise<[string, string]> {
     const userId = user._id as string;
     const accessJti = uuidv4();
     const refreshJti = uuidv4();
 
-    const accessTokenPayload = {
+    const accessTokenPayload: IJwtPayload = {
       username: user.username,
       sub: userId,
       jti: accessJti,
+      deviceId,
     };
-    const refreshTokenPayload = { sub: userId, jti: refreshJti };
+
+    const refreshTokenPayload: IJwtPayload = {
+      sub: userId,
+      jti: refreshJti,
+      username: user.username,
+      deviceId,
+    };
 
     const accessExpiresIn = this.configService.get<string>(
       'jwt.accessExpiresIn',
@@ -188,6 +210,7 @@ export class OceanchatAuthService implements OnModuleInit {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(accessTokenPayload, {
+        secret: this.configService.get<string>('jwt.accessSecret'),
         expiresIn: accessExpiresIn,
       }),
       this.jwtService.signAsync(refreshTokenPayload, {
@@ -196,35 +219,34 @@ export class OceanchatAuthService implements OnModuleInit {
       }),
     ]);
 
+    const tokenStorage: ITokenStorage = {
+      accessToken,
+      refreshToken,
+      accessJti,
+      refreshJti,
+      lastActive: Date.now(),
+    };
+
     try {
       // Atomically store both tokens' JTIs in Redis using a transaction (MULTI/EXEC).
       // This ensures that either both keys are set successfully, or neither is,
       // preventing a partial state where only one token is valid.
-      const accessTtl = ms(accessExpiresIn) / 1000;
+
+      // Store the token info in the Redis Hash: auth:user:{userId} -> {deviceId}
+      const userKey = AuthKeyUtil.getUserKey(userId);
+
       const refreshTtl = ms(refreshExpiresIn) / 1000;
 
       // Add jitter to TTLs to prevent mass expiry (cache avalanche)
       // e.g., add up to 10% of the original TTL as random jitter.
-      const accessExpiresInSeconds =
-        accessTtl + Math.floor(Math.random() * accessTtl * 0.1);
       const refreshExpiresInSeconds =
         refreshTtl + Math.floor(Math.random() * refreshTtl * 0.1);
 
       await this.redisService
         .getClient()
         .multi()
-        .set(
-          getAccessSessionKey(accessJti),
-          userId,
-          'EX',
-          accessExpiresInSeconds,
-        )
-        .set(
-          getRefreshSessionKey(refreshJti),
-          userId,
-          'EX',
-          refreshExpiresInSeconds,
-        )
+        .hset(userKey, deviceId, JSON.stringify(tokenStorage))
+        .expire(userKey, refreshExpiresInSeconds)
         .exec();
 
       return [accessToken, refreshToken];
@@ -240,19 +262,6 @@ export class OceanchatAuthService implements OnModuleInit {
         ErrorCodes.UNEXPECTED_ERROR,
         { cause: error },
       );
-    }
-  }
-
-  /**
-   * Validates a JWT.
-   * @param token The token to validate.
-   * @returns The decoded payload if valid, otherwise null.
-   */
-  async validateToken(token: string): Promise<any> {
-    try {
-      return await this.jwtService.verifyAsync(token);
-    } catch {
-      return null;
     }
   }
 

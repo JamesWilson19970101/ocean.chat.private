@@ -1,16 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
-import { getAccessSessionKey } from '@ocean.chat/cores';
+import { AuthKeyUtil } from '@ocean.chat/cores';
 import { RedisService } from '@ocean.chat/redis';
+import { IJwtPayload, ITokenStorage } from '@ocean.chat/types';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-
-export interface JwtPayload {
-  username: string;
-  sub: string; // User ID
-  jti: string; // JWT ID for session management
-  iat: number;
-}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
@@ -25,19 +19,32 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: JwtPayload): Promise<
+  async validate(payload: IJwtPayload): Promise<
     | {
         username: string;
         sub: string;
+        deviceId: string;
       }
     | boolean
   > {
-    const key = getAccessSessionKey(payload.jti);
-    const sessionExists = await this.redisService.get(key);
-    if (sessionExists) {
-      // Cache Hit: Token is in the whitelist, validation successful.
-      return { sub: payload.sub, username: payload.username };
+    const key = AuthKeyUtil.getUserKey(payload.sub);
+    // Check the whitelist in Redis Hash: auth:user:{userId} -> field: {deviceId}
+    const storage = await this.redisService.hget<ITokenStorage>(
+      key,
+      payload.deviceId,
+    );
+    if (!storage) {
+      return false;
     }
-    return false;
+    // Compare the JTI to ensure the token hasn't been refreshed/revoked
+    if (storage.accessJti !== payload.jti) {
+      return false;
+    }
+
+    return {
+      sub: payload.sub,
+      username: payload.username,
+      deviceId: payload.deviceId,
+    };
   }
 }
