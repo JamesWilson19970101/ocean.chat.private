@@ -186,7 +186,33 @@ export class RedisService implements OnModuleDestroy {
    * @returns The number of fields that were added.
    */
   async hset(key: RedisKey, field: string, value: RedisValue): Promise<number> {
-    return this.redisClient.hset(key, field, value);
+    try {
+      return this.redisClient.hset(key, field, value);
+    } catch (error) {
+      this.logger?.error(
+        { key, field, err: error },
+        this.i18nService.translate('Redis_HSet_Failed'),
+      );
+      return 0; // Return 0 to indicate that no fields were added/updated due to the error.
+    }
+  }
+
+  /**
+   * Delete one or more hash fields.
+   * @param key The key of the hash.
+   * @param fields The fields to delete.
+   * @returns The number of fields that were removed.
+   */
+  async hdel(key: RedisKey, ...fields: string[]): Promise<number> {
+    try {
+      return this.redisClient.hdel(key, ...fields);
+    } catch (error) {
+      this.logger?.error(
+        { key, fields, err: error },
+        this.i18nService.translate('Redis_HDel_Failed'),
+      );
+      return 0;
+    }
   }
 
   /**

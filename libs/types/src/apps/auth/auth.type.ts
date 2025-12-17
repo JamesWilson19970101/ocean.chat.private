@@ -6,6 +6,7 @@ import { User } from '@ocean.chat/models';
  */
 export type AuthenticatedUser = Pick<User, '_id' | 'username'> & {
   sub: string;
+  deviceId?: string;
 };
 
 /**

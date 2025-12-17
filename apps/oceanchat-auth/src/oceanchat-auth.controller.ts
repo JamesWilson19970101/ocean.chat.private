@@ -39,4 +39,12 @@ export class OceanchatAuthController {
     // For testing purposes only.
     return this.oceanchatAuthService.decodeToken(token);
   }
+
+  /**
+   * NATS message handler for user logout.
+   */
+  @MessagePattern('auth.logout')
+  async logout(@Payload() payload: { userId: string; deviceId: string }) {
+    return this.oceanchatAuthService.logout(payload.userId, payload.deviceId);
+  }
 }

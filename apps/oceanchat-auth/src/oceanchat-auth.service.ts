@@ -88,6 +88,16 @@ export class OceanchatAuthService implements OnModuleInit {
   }
 
   /**
+   * Logs out a user from a specific device by removing the session from Redis.
+   * @param userId The user ID.
+   * @param deviceId The device ID.
+   */
+  async logout(userId: string, deviceId: string): Promise<number> {
+    const userKey = AuthKeyUtil.getUserKey(userId);
+    return await this.redisService.hdel(userKey, deviceId);
+  }
+
+  /**
    * Generates new access and refresh tokens using a valid refresh token.
    * Implements sliding session for refresh tokens.
    * @param oldRefreshToken The expired or soon-to-expire refresh token.

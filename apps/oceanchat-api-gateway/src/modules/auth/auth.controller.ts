@@ -17,6 +17,7 @@ import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -101,6 +102,42 @@ export class AuthController {
                 this.i18nService.translate('REGISTRATION_FAILED'),
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ErrorCodes.CREATION_ERROR,
+                { cause: err as any },
+              ),
+          );
+        }),
+      ),
+    );
+  }
+
+  /**
+   * Handles user logout requests.
+   */
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(
+    @CurrentUser() user: { sub: string; deviceId: string },
+  ): Promise<void> {
+    const { sub: userId, deviceId } = user;
+    await firstValueFrom<number>(
+      this.authClient.send<number>('auth.logout', { userId, deviceId }).pipe(
+        timeout(5000),
+        catchError((err: unknown) => {
+          if (isErrorResponseDto(err)) {
+            return throwError(
+              () =>
+                new BaseException(err.message, err.statusCode, err.errorCode, {
+                  cause: err,
+                }),
+            );
+          }
+          const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
+          return throwError(
+            () =>
+              new BaseException(
+                message,
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCodes.UNEXPECTED_ERROR,
                 { cause: err as any },
               ),
           );
