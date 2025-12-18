@@ -1,11 +1,5 @@
-import {
-  HttpStatus,
-  Inject,
-  Injectable,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
-import { CachedResponse } from '@ocean.chat/types';
 import { RedisKey, RedisValue } from 'ioredis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
@@ -68,25 +62,8 @@ export class RedisService implements OnModuleDestroy {
    * @param key The key.
    * @returns The value.
    */
-  async get<T>(key: RedisKey): Promise<T | null> {
-    const value = await this.redisClient.get(key);
-    if (value) {
-      try {
-        return JSON.parse(value) as T;
-      } catch (error) {
-        // If a value exists but is not valid JSON, it's a potential data corruption.
-        // Log it as an error for better visibility.
-        this.logger?.error(
-          { key, value, err: error },
-          this.i18nService.translate('Failed_to_parse_redis_value', {
-            key: Buffer.isBuffer(key) ? key.toString() : key,
-          }),
-        );
-        // If the value is simply a string, JSON.parse(value) will encounter an error during execution, but normally it should return the string to the client.
-        return value as T;
-      }
-    }
-    return null;
+  async get(key: RedisKey): Promise<string | null> {
+    return await this.redisClient.get(key);
   }
 
   /**
@@ -107,9 +84,9 @@ export class RedisService implements OnModuleDestroy {
     }
 
     if (ttl) {
-      return this.redisClient.set(key, valueToStore, 'EX', ttl);
+      return await this.redisClient.set(key, valueToStore, 'EX', ttl);
     }
-    return this.redisClient.set(key, valueToStore);
+    return await this.redisClient.set(key, valueToStore);
   }
 
   /**
@@ -126,7 +103,7 @@ export class RedisService implements OnModuleDestroy {
     ttl: number,
   ): Promise<'OK' | null> {
     // Use 'EX' for seconds and 'NX' to set only if the key does not exist.
-    return this.redisClient.set(key, value, 'EX', ttl, 'NX');
+    return await this.redisClient.set(key, value, 'EX', ttl, 'NX');
   }
 
   /**
@@ -139,7 +116,7 @@ export class RedisService implements OnModuleDestroy {
     if (keys.length === 0) {
       return 0;
     }
-    return this.redisClient.del(...keys);
+    return await this.redisClient.del(...keys);
   }
 
   /**
@@ -175,7 +152,7 @@ export class RedisService implements OnModuleDestroy {
   ): Promise<unknown> {
     // ioredis's eval signature is: eval(script, numberOfKeys, key1, key2, ..., arg1, arg2, ...)
     // I use the spread operator to pass keys and args correctly.
-    return this.redisClient.eval(script, keys.length, ...keys, ...args);
+    return await this.redisClient.eval(script, keys.length, ...keys, ...args);
   }
 
   /**
@@ -186,15 +163,7 @@ export class RedisService implements OnModuleDestroy {
    * @returns The number of fields that were added.
    */
   async hset(key: RedisKey, field: string, value: RedisValue): Promise<number> {
-    try {
-      return this.redisClient.hset(key, field, value);
-    } catch (error) {
-      this.logger?.error(
-        { key, field, err: error },
-        this.i18nService.translate('Redis_HSet_Failed'),
-      );
-      return 0; // Return 0 to indicate that no fields were added/updated due to the error.
-    }
+    return await this.redisClient.hset(key, field, value);
   }
 
   /**
@@ -204,39 +173,17 @@ export class RedisService implements OnModuleDestroy {
    * @returns The number of fields that were removed.
    */
   async hdel(key: RedisKey, ...fields: string[]): Promise<number> {
-    try {
-      return this.redisClient.hdel(key, ...fields);
-    } catch (error) {
-      this.logger?.error(
-        { key, fields, err: error },
-        this.i18nService.translate('Redis_HDel_Failed'),
-      );
-      return 0;
-    }
+    return await this.redisClient.hdel(key, ...fields);
   }
 
   /**
    * Get a value from a hash field.
    * @param key The key of the hash.
    * @param field The field to get.
-   * @returns The value, parsed as JSON if possible, or null if not found.
+   * @returns The value or null if not found.
    */
-  async hget<T>(key: RedisKey, field: string): Promise<T | null> {
-    const value = await this.redisClient.hget(key, field);
-    if (value) {
-      try {
-        return JSON.parse(value) as T;
-      } catch (error) {
-        this.logger?.error(
-          { key, field, value, err: error },
-          this.i18nService.translate('Failed_to_parse_redis_value', {
-            key: Buffer.isBuffer(key) ? key.toString() : key,
-          }),
-        );
-        return value as unknown as T;
-      }
-    }
-    return null;
+  async hget(key: RedisKey, field: string): Promise<string | null> {
+    return await this.redisClient.hget(key, field);
   }
 
   /**
@@ -247,7 +194,7 @@ export class RedisService implements OnModuleDestroy {
   async mset(args: (RedisKey | RedisValue)[]): Promise<'OK'> {
     // ioredis's mset expects arguments as (key1, value1, key2, value2, ...)
     // The spread operator (...) unpacks the array into individual arguments.
-    return this.redisClient.mset(...args);
+    return await this.redisClient.mset(...args);
   }
 
   /**
@@ -257,7 +204,7 @@ export class RedisService implements OnModuleDestroy {
    * @returns 1 if the timeout was set, 0 if the key does not exist or the timeout could not be set.
    */
   async expire(key: RedisKey, seconds: number): Promise<number> {
-    return this.redisClient.expire(key, seconds);
+    return await this.redisClient.expire(key, seconds);
   }
 
   /**
@@ -340,7 +287,7 @@ export class RedisService implements OnModuleDestroy {
       while (Date.now() - startTime < totalWaitTime) {
         await new Promise((resolve) => setTimeout(resolve, lockWaitTime));
 
-        const retryValue = await this.get<T>(key).catch(() => null);
+        const retryValue = await this.get(key).catch(() => null);
         if (retryValue !== null && retryValue !== undefined) {
           this.logger.debug({ key }, 'Retry successful, value found in cache.');
           return retryValue;
@@ -353,94 +300,6 @@ export class RedisService implements OnModuleDestroy {
         this.i18nService.translate('Retry_Failed_Fallback_To_Null'),
       );
       return null;
-    }
-  }
-
-  /**
-   * Executes a function idempotently using Redis for distributed locking and response caching.
-   *
-   * @template T The expected type of the successful response body.
-   * @param key The idempotency key.
-   * @param fetcher An async function that performs the actual operation and returns the body and status code.
-   * @param options Configuration for processing and cache TTLs.
-   * @returns An `IdempotencyResult` object indicating the outcome.
-   */
-  async executeIdempotently<T>(
-    key: string,
-    fetcher: () => Promise<{ body: T; statusCode: number }>,
-    options: IdempotencyOptions,
-  ): Promise<IdempotencyResult<T>> {
-    // 1. Atomically acquire a distributed lock.
-    const lockAcquired = await this.setnx(
-      key,
-      JSON.stringify({ status: 'processing' }),
-      options.processingTtl,
-    );
-
-    if (!lockAcquired) {
-      // 2. Lock not acquired, check the current state.
-      const cached = await this.get<CachedResponse>(key);
-      if (cached?.status === 'completed') {
-        this.logger.debug(
-          { key },
-          this.i18nService.translate('IDEMPOTENCY_CACHED_RESPONSE_RETURNED'),
-        );
-        return {
-          status: 'CACHED',
-          statusCode: cached.statusCode,
-          body: cached.body,
-        };
-      }
-      // If status is 'processing' or key expired, it's a conflict.
-      this.logger.warn(
-        { key },
-        this.i18nService.translate('IDEMPOTENCY_CONFLICT_DETECTED'),
-      );
-      return {
-        status: 'CONFLICT',
-        statusCode: HttpStatus.CONFLICT,
-        body: { message: 'Request is being processed' },
-      };
-    }
-
-    // 3. Lock acquired, execute the operation.
-    try {
-      this.logger.debug(
-        { key },
-        this.i18nService.translate('IDEMPOTENCY_LOCK_ACQUIRED'),
-      );
-      const { body, statusCode } = await fetcher();
-      // 4. Check if the response indicates success (e.g., 2xx status code).
-      // Only cache successful responses to allow retries for client/server errors.
-      if (statusCode >= 200 && statusCode < 300) {
-        const cache = {
-          status: 'completed',
-          body,
-          statusCode,
-        };
-        const jitter = options.ttlJitter
-          ? Math.floor(Math.random() * options.ttlJitter)
-          : 0;
-        await this.set(key, cache, options.cacheTtl + jitter);
-      } else {
-        // If the status code indicates an error (e.g., 4xx, 5xx),
-        // do not cache the response and release the lock to allow retries.
-        await this.del(key);
-      }
-      return {
-        status: 'EXECUTED',
-        statusCode,
-        body,
-      };
-    } catch (error) {
-      await this.del(key).catch((delError) => {
-        this.logger.error(
-          { key, originalError: error, delError },
-          'CRITICAL: Failed to release idempotency lock during rollback',
-        );
-      });
-      // Re-throw the original error to be handled by the global exception filter.
-      throw error;
     }
   }
 }
