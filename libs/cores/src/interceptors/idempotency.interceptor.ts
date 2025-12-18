@@ -9,8 +9,9 @@ import { Reflector } from '@nestjs/core';
 import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
+import { CachedResponse } from '@ocean.chat/types';
 import type { Request, Response } from 'express';
-import { Observable, of } from 'rxjs';
+import { firstValueFrom, Observable, of } from 'rxjs';
 
 import {
   IDEMPOTENCY_OPTIONS_KEY,
@@ -60,25 +61,28 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     const cacheTtl = routeOptions?.cacheTtl ?? this.DEFAULT_CACHE_TTL;
 
-    const result = await this.redisService.executeIdempotently(
-      getIdempotencyRedisKey(idempotencyKey),
-      async () => {
-        // This is the 'fetcher' function. It will only be executed
-        // if the lock is successfully acquired.
-        const body = await next.handle().toPromise();
-        const statusCode = httpContext.getResponse<Response>().statusCode;
-        return { body, statusCode };
-      },
-      {
-        processingTtl: 30, // 30 seconds for the processing lock
-        cacheTtl,
-        ttlJitter: this.DEFAULT_JITTER,
-      },
+    // Acquire lock
+    const redisKey = getIdempotencyRedisKey(idempotencyKey);
+    const processingTtl = 30;
+    const lockAcquired = await this.redisService.setnx(
+      redisKey,
+      JSON.stringify({ status: 'processing' }),
+      processingTtl,
     );
-    const response = httpContext.getResponse<Response>();
-    response.status(result.statusCode);
 
-    if (result.status === 'CONFLICT') {
+    if (!lockAcquired) {
+      // lock not acquired, check current state
+      const cachedString = await this.redisService.get(redisKey);
+      let cached: CachedResponse | null = null;
+      if (cachedString) {
+        // TODO: process error
+        cached = JSON.parse(cachedString) as CachedResponse;
+      }
+      if (cached?.status === 'completed') {
+        const response = httpContext.getResponse<Response>();
+        response.status(cached.statusCode);
+        return of(cached.body);
+      }
       const message = this.i18nService.translate('IDEMPOTENCY_CONFLICT');
       // For conflicts, we throw an exception that will be handled by the global filter.
       throw new BaseException(
@@ -88,7 +92,30 @@ export class IdempotencyInterceptor implements NestInterceptor {
         { idempotencyKey },
       );
     }
-    // For 'EXECUTED' and 'CACHED' statuses, we return the body as an Observable.
-    return of(result.body);
+    // Lock acquired, execute the operation.
+    try {
+      const body = await firstValueFrom(next.handle());
+      const response = httpContext.getResponse<Response>();
+      const statusCode = response.statusCode;
+
+      // Cache successful responses
+      if (statusCode >= 200 && statusCode < 300) {
+        const cache: CachedResponse = {
+          status: 'completed',
+          body,
+          statusCode,
+        };
+        const jitter = Math.floor(Math.random() * this.DEFAULT_JITTER);
+        await this.redisService.set(redisKey, cache, cacheTtl + jitter);
+      } else {
+        // If error, delete the key so client can retry
+        await this.redisService.del(redisKey);
+      }
+      return of(body);
+    } catch (error) {
+      // If exception, delete the key so client can retry
+      await this.redisService.del(redisKey);
+      throw error;
+    }
   }
 }
