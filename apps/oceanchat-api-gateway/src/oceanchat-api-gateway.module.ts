@@ -5,9 +5,9 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PermissionGuard } from '@ocean.chat/authorization';
 import { AuthorizationModule } from '@ocean.chat/authorization';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
-import { IdempotencyInterceptor } from '@ocean.chat/cores';
 import {
   Env,
+  IdempotencyInterceptor,
   jwtConfiguration,
   natsConfiguration,
   redisConfiguration,
