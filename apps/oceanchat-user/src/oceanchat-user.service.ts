@@ -255,4 +255,48 @@ export class OceanchatUserService {
     );
     return isValid ? userWithPassword : null;
   }
+
+  /**
+   * Adds a device to the user's device list or updates the last login time if it already exists.
+   * @param userId The user's ID.
+   * @param deviceId The device ID.
+   */
+  async addDevice(userId: string, deviceId: string): Promise<void> {
+    const now = new Date();
+
+    // Use aggregation pipeline to atomically update or push the device
+    await this.userRepository.updateOne({ _id: userId }, [
+      {
+        $set: {
+          devices: {
+            $cond: [
+              // Check if deviceId exists in the devices array
+              { $in: [deviceId, { $ifNull: ['$devices.deviceId', []] }] },
+              // If exists: map and update thee specific element
+              {
+                $map: {
+                  input: '$devices',
+                  as: 'd',
+                  in: {
+                    $cond: [
+                      { $eq: ['$$d.deviceId', deviceId] },
+                      { $mergeObjects: ['$$d', { lastLogin: now }] },
+                      '$$d',
+                    ],
+                  },
+                },
+              },
+              // If not exists, cancat new device to array
+              {
+                $concatArrays: [
+                  { $ifNull: ['$devices', []] },
+                  [{ deviceId, lastLogin: now }],
+                ],
+              },
+            ],
+          },
+        },
+      },
+    ]);
+  }
 }

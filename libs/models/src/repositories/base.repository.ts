@@ -1,5 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Document, FilterQuery, Model, UpdateQuery } from 'mongoose';
+import {
+  Document,
+  FilterQuery,
+  Model,
+  UpdateQuery,
+  UpdateWriteOpResult,
+} from 'mongoose';
 
 import { IRepository } from '../interfaces/repository.interface';
 
@@ -19,6 +25,14 @@ export abstract class BaseRepository<T extends Document>
 
   async findOne(filter: FilterQuery<T>): Promise<T | null> {
     return this.model.findOne(filter).exec();
+  }
+
+  async updateOne(
+    filter: FilterQuery<T>,
+    update: UpdateQuery<T>,
+    options?: Record<string, unknown>,
+  ): Promise<UpdateWriteOpResult> {
+    return this.model.updateOne(filter, update, options).exec();
   }
 
   async findById(id: any): Promise<Partial<T> | null> {
