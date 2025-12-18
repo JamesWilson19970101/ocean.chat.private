@@ -1,6 +1,6 @@
 import { Controller, UseGuards } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { User } from '@ocean.chat/models';
+import { AuthenticatedUser } from '@ocean.chat/types';
 
 import { CurrentUser } from './common/decorators/current-user.decorator';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
@@ -17,10 +17,10 @@ export class OceanchatAuthController {
   @UseGuards(LocalAuthGuard)
   @MessagePattern('auth.login')
   async login(
-    @CurrentUser() user: Pick<User, 'username' | '_id'>,
-    @Payload() payload: { deviceId: string },
+    @CurrentUser()
+    user: Pick<AuthenticatedUser, 'username' | '_id' | 'deviceId'>,
   ) {
-    return this.oceanchatAuthService.login(user, payload.deviceId);
+    return this.oceanchatAuthService.login(user);
   }
 
   /**

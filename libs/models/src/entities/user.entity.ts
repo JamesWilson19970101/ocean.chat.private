@@ -50,6 +50,23 @@ class AuthProviders {
 
 const AuthProvidersSchema = SchemaFactory.createForClass(AuthProviders);
 
+@Schema({ _id: false })
+export class UserDevice {
+  /**
+   * The unique identifier of the device.
+   */
+  @Prop({ required: true })
+  deviceId: string;
+
+  /**
+   * The last time this device logged in.
+   */
+  @Prop({ type: Date, default: Date.now })
+  lastLogin: Date;
+}
+
+const UserDeviceSchema = SchemaFactory.createForClass(UserDevice);
+
 /**
  * @class User
  * Represents a user entity in the system.
@@ -128,6 +145,12 @@ export class User extends Document {
    */
   @Prop({ type: [AuthProvidersSchema], default: [] })
   providers: AuthProviders[];
+
+  /**
+   * The list of devices that have logged in to this account.
+   */
+  @Prop({ type: [UserDeviceSchema], default: [] })
+  devices: UserDevice[];
 
   /**
    * The timestamp of the user's last login.
