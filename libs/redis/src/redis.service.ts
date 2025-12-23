@@ -236,11 +236,8 @@ export class RedisService implements OnModuleDestroy {
 
     if (rawCachedValue !== null) {
       this.logger.debug(this.i18nService.translate('Cache_Hit', { key }));
-      try {
-        return JSON.parse(rawCachedValue) as T;
-      } catch {
-        return rawCachedValue as unknown as T;
-      }
+
+      return JSON.parse(rawCachedValue) as T;
     }
 
     // 2. Cache miss, try to acquire a distributed lock
