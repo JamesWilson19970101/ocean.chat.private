@@ -32,6 +32,7 @@ export enum ErrorCodes {
 
   // Service-level errors
   SERVICE_ERROR = 50300, // e.g., a downstream microservice is not responding
+  SERVICE_UNAVAILABLE = 50301, // e.g., circuit breaker is open
 
   UNEXPECTED_ERROR = 99999, // e.g., for unexpected errors not covered by other codes
 }

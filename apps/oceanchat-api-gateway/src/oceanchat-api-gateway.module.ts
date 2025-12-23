@@ -7,6 +7,7 @@ import { PermissionGuard } from '@ocean.chat/authorization';
 import { AuthorizationModule } from '@ocean.chat/authorization';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import {
+  CircuitBreakerModule,
   Env,
   IdempotencyInterceptor,
   jwtConfiguration,
@@ -174,6 +175,7 @@ export class OceanchatApiGatewayModule {
             }),
           }),
         }),
+        CircuitBreakerModule,
         AuthorizationModule,
         AuthModule,
         UsersModule,

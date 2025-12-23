@@ -12,7 +12,7 @@ import {
   ErrorCodes,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
-import { SkipAuth } from '@ocean.chat/cores';
+import { CircuitBreakerService, SkipAuth } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
@@ -27,6 +27,7 @@ export class AuthController {
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
     @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
     private readonly i18nService: I18nService,
+    private readonly circuitBreakerService: CircuitBreakerService,
   ) {}
 
   /**
@@ -38,42 +39,49 @@ export class AuthController {
   async login(
     @Body() loginDto: LoginDto,
   ): Promise<{ accessToken: string; user: Pick<User, '_id' | 'username'> }> {
-    return firstValueFrom(
-      this.authClient
-        .send<{
-          accessToken: string;
-          refreshToken: string;
-          user: Pick<User, '_id' | 'username'>;
-        }>('auth.login', loginDto)
-        .pipe(
-          timeout(5000),
-          catchError((err: unknown) => {
-            // Check if the error from the microservice is a structured ErrorResponseDto
-            if (isErrorResponseDto(err)) {
-              // Propagate the specific error code and message from the auth-service
-              return throwError(
-                () =>
-                  new BaseException(
-                    err.message,
-                    err.statusCode,
-                    err.errorCode,
-                    { cause: err },
-                  ),
-              );
-            }
-            // Fallback for unexpected or unstructured errors
-            const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
-            return throwError(
-              () =>
-                new BaseException(
-                  message,
-                  HttpStatus.INTERNAL_SERVER_ERROR,
-                  ErrorCodes.UNEXPECTED_ERROR,
-                  { cause: err as any },
-                ),
-            );
-          }),
+    return this.circuitBreakerService.fire(
+      'auth.login',
+      () =>
+        firstValueFrom(
+          this.authClient
+            .send<{
+              accessToken: string;
+              refreshToken: string;
+              user: Pick<User, '_id' | 'username'>;
+            }>('auth.login', loginDto)
+            .pipe(
+              timeout(5000),
+              catchError((err: unknown) => {
+                // Check if the error from the microservice is a structured ErrorResponseDto
+                if (isErrorResponseDto(err)) {
+                  // Propagate the specific error code and message from the auth-service
+                  return throwError(
+                    () =>
+                      new BaseException(
+                        err.message,
+                        err.statusCode,
+                        err.errorCode,
+                        { cause: err },
+                      ),
+                  );
+                }
+                // Fallback for unexpected or unstructured errors
+                const message = this.i18nService.translate(
+                  'INTERNAL_SERVER_ERROR',
+                );
+                return throwError(
+                  () =>
+                    new BaseException(
+                      message,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      ErrorCodes.UNEXPECTED_ERROR,
+                      { cause: err as any },
+                    ),
+                );
+              }),
+            ),
         ),
+      { timeout: 6000 },
     );
   }
 

@@ -8,5 +8,7 @@ export * from './decorators/idempotency.decorator';
 export * from './decorators/match.decorator';
 export * from './decorators/skip-auth.decorator';
 export * from './interceptors';
+export * from './modules/circuit-breaker/circuit-breaker.module';
+export * from './modules/circuit-breaker/circuit-breaker.service';
 export * from './utils/auth-key.util';
 export * from './utils/idempotency.utils';
