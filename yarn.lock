@@ -1461,6 +1461,32 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@nest-lab/throttler-storage-redis@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@nest-lab/throttler-storage-redis@npm:1.1.0"
+  dependencies:
+    tslib: "npm:^2.3.0"
+  peerDependencies:
+    "@nestjs/common": ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+    "@nestjs/core": ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+    "@nestjs/throttler": ">=6.0.0"
+    ioredis: ">=5.0.0"
+    reflect-metadata: ^0.2.1
+  peerDependenciesMeta:
+    "@nestjs/common":
+      optional: false
+    "@nestjs/core":
+      optional: false
+    "@nestjs/throttler":
+      optional: false
+    ioredis:
+      optional: false
+    reflect-metadata:
+      optional: false
+  checksum: 10c0/91ed1e6b9dbf55a3cba0459c8637f8524cbfddadccd147e42700c0482d15b81b9d791e1e1b1dfadeb9bb2d2aeb30ee0838297107d9f4072151eed72014824bf0
+  languageName: node
+  linkType: hard
+
 "@nestjs-modules/ioredis@npm:^2.0.2":
   version: 2.0.2
   resolution: "@nestjs-modules/ioredis@npm:2.0.2"
@@ -9047,6 +9073,7 @@ __metadata:
     "@eslint/js": "npm:^9.18.0"
     "@grpc/grpc-js": "npm:^1.14.0"
     "@grpc/proto-loader": "npm:^0.8.0"
+    "@nest-lab/throttler-storage-redis": "npm:^1.1.0"
     "@nestjs-modules/ioredis": "npm:^2.0.2"
     "@nestjs/cli": "npm:^11.0.0"
     "@nestjs/common": "npm:^11.0.1"
@@ -11040,7 +11067,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:2.8.1, tslib@npm:^2.1.0, tslib@npm:^2.4.0, tslib@npm:^2.6.2, tslib@npm:^2.7.0":
+"tslib@npm:2.8.1, tslib@npm:^2.1.0, tslib@npm:^2.3.0, tslib@npm:^2.4.0, tslib@npm:^2.6.2, tslib@npm:^2.7.0":
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62

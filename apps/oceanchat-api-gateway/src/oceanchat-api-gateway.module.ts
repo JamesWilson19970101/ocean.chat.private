@@ -1,3 +1,4 @@
+import { ThrottlerStorageRedisService } from '@nest-lab/throttler-storage-redis';
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
@@ -159,14 +160,18 @@ export class OceanchatApiGatewayModule {
           imports: [ConfigModule],
           inject: [ConfigService],
           useFactory: (configService: ConfigService) => ({
+            errorMessage: 'Too many requests, please try again later.',
             throttlers: [
               {
                 ttl: 1000, // 1 second
-                // TODO: If multiple gateway instances are deployed, the default memory storage will cause each instance to be counted separately (for example, if 3 gateways are deployed, the actual rate limiting threshold will become 30 times/second).
-                // For a stateless gateway, consider adding a Redis storage provider here
                 limit: configService.get<number>('rest.rate_limit', 10), // 10 requests per second per IP
               },
             ],
+            storage: new ThrottlerStorageRedisService({
+              host: configService.get<string>('redis.host'),
+              port: configService.get<number>('redis.port'),
+              db: configService.get<number>('redis.db'),
+            }),
           }),
         }),
         AuthorizationModule,
