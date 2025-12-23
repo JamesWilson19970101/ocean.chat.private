@@ -29,15 +29,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   > {
     const key = AuthKeyUtil.getUserKey(payload.sub);
     // Check the whitelist in Redis Hash: auth:user:{userId} -> field: {deviceId}
-    const storage = await this.redisService.hget<ITokenStorage>(
-      key,
-      payload.deviceId,
-    );
+    const storage = await this.redisService.hget(key, payload.deviceId);
+
     if (!storage) {
       return false;
     }
+    const tokenStorage = JSON.parse(storage) as ITokenStorage;
     // Compare the JTI to ensure the token hasn't been refreshed/revoked
-    if (storage.accessJti !== payload.jti) {
+    if (tokenStorage.accessJti !== payload.jti) {
       return false;
     }
 

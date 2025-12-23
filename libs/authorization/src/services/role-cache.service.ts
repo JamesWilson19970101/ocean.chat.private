@@ -96,9 +96,16 @@ export class RoleCacheService {
             lockTtl: 5,
           },
         );
-        roles = result as string[];
+        if (typeof result === 'string') {
+          roles = JSON.parse(result);
+        }
+        roles = result as string[] | null;
       } else {
-        roles = await this.redis.get<string[]>(key);
+        const result = await this.redis.get(key);
+        if (typeof result === 'string') {
+          roles = JSON.parse(result);
+        }
+        roles = result as string[] | null;
       }
     } catch (err) {
       throw new BaseRpcException(
@@ -142,9 +149,16 @@ export class RoleCacheService {
             lockTtl: 5,
           },
         );
-        roles = result as string[];
+        if (typeof result === 'string') {
+          roles = JSON.parse(result);
+        }
+        roles = result as string[] | null;
       } else {
-        roles = await this.redis.get<string[]>(key);
+        const result = await this.redis.get(key);
+        if (typeof result === 'string') {
+          roles = JSON.parse(result);
+        }
+        roles = result as string[] | null;
       }
     } catch (err) {
       throw new BaseRpcException(

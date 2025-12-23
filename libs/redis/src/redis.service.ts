@@ -225,7 +225,7 @@ export class RedisService implements OnModuleDestroy {
    */
   async getOrSet<T>(
     key: string,
-    fetcher: () => Promise<T>,
+    fetcher: () => Promise<T | null>,
     options: GetOrSetOptions,
   ): Promise<T | null | string> {
     const { lockTtl = 10, lockWaitTime = 100, ttlJitter = 0 } = options;
@@ -237,7 +237,7 @@ export class RedisService implements OnModuleDestroy {
     if (rawCachedValue !== null) {
       this.logger.debug(this.i18nService.translate('Cache_Hit', { key }));
 
-      return JSON.parse(rawCachedValue) as T;
+      return rawCachedValue;
     }
 
     // 2. Cache miss, try to acquire a distributed lock
