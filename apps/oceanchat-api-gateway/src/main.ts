@@ -9,6 +9,9 @@ propagation.setGlobalPropagator(new W3CTraceContextPropagator()); // This ensure
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 
 import { OceanchatApiGatewayModule } from './oceanchat-api-gateway.module';
@@ -40,7 +43,7 @@ async function bootstrap() {
   \\____/ \\_____|______/_/    \\_\\_| \\_|    \\_____|_|  |_/_/    \\_\\_|      |_____|_|  |_|
   `);
 
-  const app = await NestFactory.create(
+  const app = await NestFactory.create<NestExpressApplication>(
     OceanchatApiGatewayModule.forRoot({
       serviceName,
       serviceInstanceId,
@@ -53,6 +56,20 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
+  // Security Middleware
+  app.use(helmet());
+
+  // Enable CORS to allow frontend requests
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN || '*', // In production, replace '*' with actual frontend domain
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
+
+  // Trust the proxy (Ingress/Nginx/LoadBalancer) to get the real client IP via X-Forwarded-For.
+  // Without this, rate limiting will block the LoadBalancer's IP, affecting all users.
+  app.set('trust proxy', 1);
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -61,6 +78,10 @@ async function bootstrap() {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  // Set request body size limit to prevent DoS attacks (e.g., large payloads causing OOM)
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ extended: true, limit: '10mb' }));
 
   // Process-Level Backup (Runtime Protection)
   // For example, an error was thrown in a Cron Job; Call NATS to publish a message but forget to write the .catch() block, and NATS crashes.
