@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import type { SettingValue } from '@ocean.chat/models';
+import type { SettingValue } from '@ocean.chat/types';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class UpdateSettingDto {

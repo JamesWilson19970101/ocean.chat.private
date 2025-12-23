@@ -1,5 +1,5 @@
-import type { Setting, SettingType } from '@ocean.chat/models';
-
+import type { Setting } from '@ocean.chat/models';
+import { SettingType } from '@ocean.chat/types';
 /**
  * @interface DefaultSetting
  * @description Defines the structure for a default setting entry.

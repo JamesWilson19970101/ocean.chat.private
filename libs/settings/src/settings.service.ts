@@ -3,7 +3,7 @@ import { I18nService } from '@ocean.chat/i18n';
 import type { Setting } from '@ocean.chat/models';
 import { SettingsRepository } from '@ocean.chat/models';
 import { RedisService } from '@ocean.chat/redis';
-import { SettingsModuleOptions } from '@ocean.chat/types';
+import { SettingsModuleOptions, SettingValue } from '@ocean.chat/types';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { SETTINGS_OPTIONS } from './constants';
@@ -107,16 +107,28 @@ export class SettingsService implements OnModuleInit {
         return setting ? setting.value : null;
       };
 
-      const result = await this.redisService.getOrSet(cacheKey, fetcher, {
-        ttl: this.CACHE_TTL_SECONDS,
-        nullTtl: this.CACHE_NULL_TTL_SECONDS,
-        lockTtl: 10, // Lock expires after 10 seconds
-        lockWaitTime: 100, // Wait for 100ms before retrying
-        ttlJitter: 300, // Add up to 5 minutes of jitter
-      });
+      const result = await this.redisService.getOrSet<SettingValue>(
+        cacheKey,
+        fetcher,
+        {
+          ttl: this.CACHE_TTL_SECONDS,
+          nullTtl: this.CACHE_NULL_TTL_SECONDS,
+          lockTtl: 10, // Lock expires after 10 seconds
+          lockWaitTime: 100, // Wait for 100ms before retrying
+          ttlJitter: 300, // Add up to 5 minutes of jitter
+        },
+      );
 
       if (result !== null) {
-        return result;
+        if (typeof result === 'string') {
+          try {
+            return JSON.parse(result) as SettingValue;
+          } catch {
+            return result;
+          }
+        } else {
+          return result;
+        }
       }
 
       this.logger.warn(
