@@ -125,53 +125,106 @@ export class OceanchatAuthService implements OnModuleInit {
     }
 
     const { sub: userId, jti, deviceId } = payload;
-    const userKey = AuthKeyUtil.getUserKey(userId);
+    const lockKey = `auth:refresh:lock:${userId}:${deviceId}`;
 
-    // Check if the device session exists in Redis Hash
-    const storage = await this.redisService.hget(userKey, deviceId);
+    // Attempt to acquire the lock independently.
+    // If Redis fails here, we catch it specifically to avoid entering the critical section or the finally block incorrectly.
+    let isLockAcquired: string | null = null;
+    try {
+      isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
+    } catch (error) {
+      throw new BaseRpcException(
+        this.i18nService.translate('Redis_Client_Error'),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.TOKEN_REFRESH_ERROR,
+        { cause: error },
+      );
+    }
 
-    if (!storage || (JSON.parse(storage) as ITokenStorage).refreshJti !== jti) {
-      // If storage is missing, the user was kicked out or expired.
-      // If JTI mismatch, the token was already refreshed (reuse attempt) or replaced.
-      // I return a specific error code to differentiate this from a fundamentally invalid token
-      // (which fails at the jwt.verifyAsync step).
-      // This allows the frontend to handle race conditions gracefully (e.g., by ignoring this
-      // specific error and waiting for the successful concurrent request's response)
-      // instead of logging the user out immediately.
+    if (isLockAcquired !== 'OK') {
       throw new BaseRpcException(
         this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
         HttpStatus.UNAUTHORIZED,
         ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
-        {
-          userId,
-          jti,
-        },
+        { userId, jti },
       );
     }
 
-    // Fetch user to generate new tokens
-    const user = await this.usersService.findOneById(userId);
-    if (!user) {
+    try {
+      const userKey = AuthKeyUtil.getUserKey(userId);
+
+      // Check if the device session exists in Redis Hash
+      const storage = await this.redisService.hget(userKey, deviceId);
+
+      if (
+        !storage ||
+        (JSON.parse(storage) as ITokenStorage).refreshJti !== jti
+      ) {
+        // If storage is missing, the user was kicked out or expired.
+        // If JTI mismatch, the token was already refreshed (reuse attempt) or replaced.
+        // I return a specific error code to differentiate this from a fundamentally invalid token
+        // (which fails at the jwt.verifyAsync step).
+        // This allows the frontend to handle race conditions gracefully (e.g., by ignoring this
+        // specific error and waiting for the successful concurrent request's response)
+        // instead of logging the user out immediately.
+        throw new BaseRpcException(
+          this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          {
+            userId,
+            jti,
+          },
+        );
+      }
+
+      // Fetch user to generate new tokens
+      const user = await this.usersService.findOneById(userId);
+      if (!user) {
+        throw new BaseRpcException(
+          this.i18nService.translate('User_not_found'),
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.UNAUTHORIZED,
+          {
+            userId,
+            jti,
+            reason: this.i18nService.translate(
+              'User_Not_Found_With_Valid_Token',
+            ),
+          },
+        );
+      }
+
+      // Issue a new pair of tokens
+      const [newAccessToken, newRefreshToken] = await this.generateTokens({
+        username: user.username as string,
+        _id: user._id,
+        deviceId,
+      });
+
+      return { accessToken: newAccessToken, refreshToken: newRefreshToken };
+    } catch (error) {
+      if (error instanceof BaseRpcException) {
+        throw error;
+      }
       throw new BaseRpcException(
-        this.i18nService.translate('User_not_found'),
-        HttpStatus.UNAUTHORIZED,
-        ErrorCodes.UNAUTHORIZED,
+        this.i18nService.translate('TOKEN_REFRESH_ERROR'),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        ErrorCodes.TOKEN_REFRESH_ERROR,
         {
-          userId,
-          jti,
-          reason: this.i18nService.translate('User_Not_Found_With_Valid_Token'),
+          cause: error,
         },
       );
+    } finally {
+      // Only release the lock if we acquired it (which is implied since we are in this try block).
+      // Add a catch to prevent errors during release from masking the original business logic error.
+      await this.redisService.del(lockKey).catch((err) => {
+        this.logger.error(
+          { err, lockKey },
+          this.i18nService.translate('Lock_Release_Failed'),
+        );
+      });
     }
-
-    // Issue a new pair of tokens
-    const [newAccessToken, newRefreshToken] = await this.generateTokens({
-      username: user.username as string,
-      _id: user._id,
-      deviceId,
-    });
-
-    return { accessToken: newAccessToken, refreshToken: newRefreshToken };
   }
 
   /**

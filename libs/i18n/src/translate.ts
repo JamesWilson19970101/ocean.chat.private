@@ -140,6 +140,7 @@ export default {
       SETTINGS_SEEDER_SKIPPED: 'Settings Seeder skipped (Reader Mode)',
       Redis_HSet_Failed: 'Failed to set hash field in Redis.',
       Redis_HDel_Failed: 'Failed to delete hash field from Redis.',
+      TOKEN_REFRESH_ERROR: 'Error refreshing token.',
     },
   },
   zh: {
@@ -255,6 +256,7 @@ export default {
       SETTINGS_SEEDER_SKIPPED: '设置种子已跳过（只读模式）',
       Redis_HSet_Failed: '在 Redis 中设置哈希字段失败。',
       Redis_HDel_Failed: '从 Redis 中删除哈希字段失败。',
+      TOKEN_REFRESH_ERROR: '刷新 TOKEN 出现错误。',
     },
   },
 };
