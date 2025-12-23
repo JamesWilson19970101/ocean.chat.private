@@ -70,7 +70,6 @@ export class OceanchatUserService {
         errorMessage,
         HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.CREATION_ERROR,
-
         {
           cause: error,
         },
