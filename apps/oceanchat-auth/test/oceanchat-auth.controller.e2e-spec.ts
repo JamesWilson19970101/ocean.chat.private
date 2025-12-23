@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { ClientProxy } from '@nestjs/microservices';
 import { Test, TestingModule } from '@nestjs/testing';
-import { ErrorResponseDto } from '@ocean.chat/common-exceptions';
+import { ErrorCodes, ErrorResponseDto } from '@ocean.chat/common-exceptions';
 import { AuthKeyUtil } from '@ocean.chat/cores';
 import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
 import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
@@ -10,13 +10,14 @@ import Redis from 'ioredis';
 import { connect, connection, Types } from 'mongoose';
 import * as ms from 'ms';
 import { catchError, firstValueFrom, of } from 'rxjs';
-import { v4 as uuidv4 } from 'uuid';
+
 type RpcError = {
   error: ErrorResponseDto;
   message: string;
 };
 
 describe('OceanchatAuthController (e2e)', () => {
+  jest.setTimeout(10000);
   let client: ClientProxy;
   let redisClient: Redis;
 
@@ -64,39 +65,40 @@ describe('OceanchatAuthController (e2e)', () => {
   });
 
   describe("MessagePattern 'auth.login'", () => {
-    beforeEach(async () => {
+    beforeAll(async () => {
       await firstValueFrom(client.send('user.create', testUser));
+    });
+    afterAll(async () => {
+      await connection.collection('users').deleteMany({});
     });
 
     afterEach(async () => {
-      await connection.collection('users').deleteMany({});
-      // Clean up Redis sessions (auth:user:*)
       const keys = await redisClient.keys('auth:user:*');
       if (keys.length > 0) {
         await redisClient.del(keys);
       }
     });
 
-    // it('should throw an RpcException with wrong password', async () => {
-    //   const payload = {
-    //     username: testUser.username,
-    //     password: 'WrongPassword',
-    //     deviceId: testDeviceId,
-    //   };
+    it('should throw an RpcException with wrong password', async () => {
+      const payload = {
+        username: testUser.username,
+        password: 'WrongPassword',
+        deviceId: testDeviceId,
+      };
 
-    //   const rpcEerror: RpcError = await firstValueFrom(
-    //     client.send('auth.login', payload).pipe(
-    //       catchError((error) => {
-    //         return of({ error });
-    //       }),
-    //     ),
-    //   );
+      const rpcEerror: RpcError = await firstValueFrom(
+        client.send('auth.login', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
 
-    //   // The error from BaseRpcException is nested inside the 'error' property.
-    //   expect(rpcEerror).toHaveProperty('error');
-    //   // The error message from the microservice is a JSON string, so I need to parse it.
-    //   expect(rpcEerror.error.errorCode).toBe(10030);
-    // });
+      // The error from BaseRpcException is nested inside the 'error' property.
+      expect(rpcEerror).toHaveProperty('error');
+      // The error message from the microservice is a JSON string, so I need to parse it.
+      expect(rpcEerror.error.errorCode).toBe(ErrorCodes.UNAUTHORIZED);
+    });
 
     it('should return tokens and store session in Redis with correct credentials', async () => {
       const payload = {
@@ -133,123 +135,267 @@ describe('OceanchatAuthController (e2e)', () => {
       expect(sessionData.refreshToken).toBe(response.refreshToken);
     });
 
-    // it('should throw an RpcException for a non-existent username', async () => {
-    //   const payload = {
-    //     username: 'nonexistentuser',
-    //     password: testUser.password,
-    //   };
+    it('should throw an RpcException for a non-existent username', async () => {
+      const payload = {
+        username: 'nonexistentuser',
+        password: testUser.password,
+      };
 
-    //   const rpcError: RpcError = await firstValueFrom(
-    //     client.send('auth.login', payload).pipe(
-    //       catchError((error) => {
-    //         return of({ error });
-    //       }),
-    //     ),
-    //   );
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.login', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
 
-    //   expect(rpcError).toHaveProperty('error');
-    //   expect(rpcError.error.errorCode).toBe(10030);
-    // });
+      expect(rpcError).toHaveProperty('error');
+      expect(rpcError.error.errorCode).toBe(ErrorCodes.UNAUTHORIZED);
+    });
+
+    it('should support multiple devices for the same user', async () => {
+      // 1. Login with device A
+      const payloadA = {
+        username: testUser.username,
+        password: testUser.password,
+        deviceId: 'device-A',
+      };
+      const responseA: LoginResult = await firstValueFrom(
+        client.send('auth.login', payloadA),
+      );
+
+      // 2. Login with device B
+      const payloadB = {
+        username: testUser.username,
+        password: testUser.password,
+        deviceId: 'device-B',
+      };
+      await firstValueFrom(client.send('auth.login', payloadB));
+
+      // 3. Verify Redis has both sessions
+      const userId = responseA.user._id as string;
+      const userKey = AuthKeyUtil.getUserKey(userId);
+      const allSessions = await redisClient.hgetall(userKey);
+
+      expect(Object.keys(allSessions)).toHaveLength(2);
+      expect(allSessions).toHaveProperty('device-A');
+      expect(allSessions).toHaveProperty('device-B');
+    });
+
+    it('should update the session when logging in again on the same device', async () => {
+      const payload = {
+        username: testUser.username,
+        password: testUser.password,
+        deviceId: testDeviceId,
+      };
+
+      // 1. First login
+      const response1: LoginResult = await firstValueFrom(
+        client.send('auth.login', payload),
+      );
+
+      // 2. Second login (same device)
+      const response2: LoginResult = await firstValueFrom(
+        client.send('auth.login', payload),
+      );
+
+      // Tokens should be different (new JTI, new issue time)
+      expect(response1.accessToken).not.toBe(response2.accessToken);
+
+      // 3. Verify Redis has the new token
+      const userId = response1.user._id as string;
+      const userKey = AuthKeyUtil.getUserKey(userId);
+      const storedSession = await redisClient.hget(userKey, testDeviceId);
+
+      const sessionData = JSON.parse(storedSession as string) as ITokenStorage;
+      expect(sessionData.accessToken).toBe(response2.accessToken);
+    });
   });
 
-  // describe("MessagePattern 'auth.token.refresh'", () => {
-  //   let refreshToken: string;
+  describe("MessagePattern 'auth.token.refresh'", () => {
+    let refreshToken: string;
+    let userId: string;
+    const deviceId = 'test-device-refresh';
 
-  //   let userId: string;
+    beforeAll(async () => {
+      // Register
+      await firstValueFrom(client.send('user.create', testUser));
+    });
 
-  //   beforeEach(async () => {
-  //     // Register and log in to get a valid refresh token
-  //     await firstValueFrom(client.send('user.create', testUser));
-  //     const loginPayload = {
-  //       username: testUser.username,
-  //       password: testUser.password,
-  //     };
-  //     const response = await firstValueFrom<{
-  //       refreshToken: string;
-  //       accessToken: string;
-  //       user: { _id: string };
-  //     }>(client.send('auth.login', loginPayload));
+    afterAll(async () => {
+      await connection.collection('users').deleteMany({});
+    });
 
-  //     refreshToken = response.refreshToken;
-  //     // accessToken = response.accessToken;
-  //     userId = response.user._id;
-  //   });
+    beforeEach(async () => {
+      const loginPayload = {
+        username: testUser.username,
+        password: testUser.password,
+        deviceId,
+      };
+      const response = await firstValueFrom<LoginResult>(
+        client.send('auth.login', loginPayload),
+      );
 
-  //   afterEach(async () => {
-  //     await connection.collection('users').deleteMany({});
-  //     const accessKeys = await redisClient.keys('access-session:*');
-  //     const refreshKeys = await redisClient.keys('refresh-session:*');
-  //     const allSessionKeys = [...accessKeys, ...refreshKeys];
-  //     if (allSessionKeys.length > 0) {
-  //       await redisClient.del(allSessionKeys);
-  //     }
-  //   });
+      refreshToken = response.refreshToken;
+      userId = response.user._id as string;
+    });
 
-  //   it('should return new tokens for a valid refresh token', async () => {
-  //     const payload = { refreshToken };
-  //     const response: RefreshTokenResult = await firstValueFrom(
-  //       client.send('auth.token.refresh', payload),
-  //     );
+    afterEach(async () => {
+      const keys = await redisClient.keys('auth:user:*');
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+      }
+      const lockKeys = await redisClient.keys('auth:refresh:lock:*');
+      if (lockKeys.length > 0) {
+        await redisClient.del(lockKeys);
+      }
+    });
 
-  //     expect(response).toHaveProperty('accessToken');
-  //     expect(response).toHaveProperty('refreshToken');
+    it('should return new tokens for a valid refresh token', async () => {
+      const payload = { refreshToken };
+      const response: RefreshTokenResult = await firstValueFrom(
+        client.send('auth.token.refresh', payload),
+      );
 
-  //     expect(response.refreshToken).not.toBe(refreshToken); // Should be a new token
-  //   });
+      expect(response).toHaveProperty('accessToken');
+      expect(response).toHaveProperty('refreshToken');
 
-  //   it('should throw an RpcException for an invalid refresh token', async () => {
-  //     const payload = { refreshToken: 'invalid.refresh.token' };
-  //     const rpcError: RpcError = await firstValueFrom(
-  //       client.send('auth.token.refresh', payload).pipe(
-  //         catchError((error) => {
-  //           return of({ error });
-  //         }),
-  //       ),
-  //     );
-  //     expect(rpcError).toHaveProperty('error');
+      expect(response.refreshToken).not.toBe(refreshToken); // Should be a new token
+    });
 
-  //     expect(rpcError.error.errorCode).toBe(10030);
-  //   });
+    it('should throw an RpcException for an invalid refresh token', async () => {
+      const payload = { refreshToken: 'invalid.refresh.token' };
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.refresh', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
+      expect(rpcError).toHaveProperty('error');
 
-  //   it('should throw an RpcException for a revoked refresh token', async () => {
-  //     // Manually revoke the token by deleting its session from Redis
-  //     const decoded = await firstValueFrom<{ jti: string }>(
-  //       client.send('auth.token.decode', { token: refreshToken }), // Assuming you have a decode helper or know the structure
-  //     );
-  //     await redisClient.del(`refresh-session:${decoded.jti}`);
+      expect(rpcError.error.errorCode).toBe(ErrorCodes.UNAUTHORIZED);
+    });
 
-  //     const payload = { refreshToken };
-  //     const rpcError: RpcError = await firstValueFrom(
-  //       client.send('auth.token.refresh', payload).pipe(
-  //         catchError((error) => {
-  //           return of({ error });
-  //         }),
-  //       ),
-  //     );
+    it('should throw an RpcException (10031) if session is missing in Redis (Revoked/Expired)', async () => {
+      // Manually revoke the token by deleting its session from Redis
+      const userKey = AuthKeyUtil.getUserKey(userId);
+      await redisClient.del(userKey);
 
-  //     expect(rpcError).toHaveProperty('error');
+      const payload = { refreshToken };
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.refresh', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
 
-  //     expect(rpcError.error.errorCode).toBe(10031);
-  //   });
+      expect(rpcError).toHaveProperty('error');
 
-  //   it('should throw an RpcException if the user does not exist anymore', async () => {
-  //     // Delete the user from the database
-  //     await connection.collection('users').deleteOne({
-  //       _id: new Types.ObjectId(userId),
-  //     });
+      expect(rpcError.error.errorCode).toBe(
+        ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+      );
+    });
 
-  //     const payload = { refreshToken };
-  //     const rpcError: RpcError = await firstValueFrom(
-  //       client.send('auth.token.refresh', payload).pipe(
-  //         catchError((error) => {
-  //           return of({ error });
-  //         }),
-  //       ),
-  //     );
+    it('should throw an RpcException if the user does not exist anymore', async () => {
+      // Delete the user from the database
+      await connection.collection('users').deleteOne({
+        _id: new Types.ObjectId(userId),
+      });
 
-  //     expect(rpcError).toHaveProperty('error');
+      const payload = { refreshToken };
+      const rpcError: RpcError = await firstValueFrom(
+        client.send('auth.token.refresh', payload).pipe(
+          catchError((error) => {
+            return of({ error });
+          }),
+        ),
+      );
 
-  //     expect(rpcError.error.errorCode).toBe(10030);
-  //   });
-  // });
+      expect(rpcError).toHaveProperty('error');
+
+      expect(rpcError.error.errorCode).toBe(ErrorCodes.UNAUTHORIZED);
+    });
+  });
+
+  describe("MessagePattern 'auth.logout'", () => {
+    let userId: string;
+    const deviceId = 'test-device-logout';
+
+    beforeAll(async () => {
+      // Register
+      await firstValueFrom(client.send('user.create', testUser));
+    });
+
+    afterAll(async () => {
+      await connection.collection('users').deleteMany({});
+    });
+
+    beforeEach(async () => {
+      // log in to establish a session
+      const loginPayload = {
+        username: testUser.username,
+        password: testUser.password,
+        deviceId,
+      };
+      const response = await firstValueFrom<LoginResult>(
+        client.send('auth.login', loginPayload),
+      );
+      userId = response.user._id as string;
+    });
+
+    afterEach(async () => {
+      const keys = await redisClient.keys('auth:user:*');
+      if (keys.length > 0) {
+        await redisClient.del(keys);
+      }
+    });
+
+    it('should successfully logout and remove session from Redis', async () => {
+      // Verify session exists before logout
+      const userKey = AuthKeyUtil.getUserKey(userId);
+      const initialSession = await redisClient.hget(userKey, deviceId);
+      expect(initialSession).not.toBeNull();
+
+      // Perform logout
+      const result = await firstValueFrom(
+        client.send('auth.logout', { userId, deviceId }),
+      );
+      expect(result).toBe(1); // hdel returns 1 if field was removed
+
+      // Verify session is gone
+      const finalSession = await redisClient.hget(userKey, deviceId);
+      expect(finalSession).toBeNull();
+    });
+
+    it('should return 0 if session does not exist (Idempotency)', async () => {
+      const result = await firstValueFrom(
+        client.send('auth.logout', { userId, deviceId: 'unknown-device' }),
+      );
+      expect(result).toBe(0); // hdel returns 0 if field did not exist
+    });
+
+    it('should not affect other devices sessions', async () => {
+      const deviceId2 = 'device-2';
+      // Login second device
+      await firstValueFrom(
+        client.send('auth.login', {
+          username: testUser.username,
+          password: testUser.password,
+          deviceId: deviceId2,
+        }),
+      );
+
+      // Logout first device
+      await firstValueFrom(client.send('auth.logout', { userId, deviceId }));
+
+      const userKey = AuthKeyUtil.getUserKey(userId);
+      const session1 = await redisClient.hget(userKey, deviceId);
+      const session2 = await redisClient.hget(userKey, deviceId2);
+
+      expect(session1).toBeNull(); // Device 1 logged out
+      expect(session2).not.toBeNull(); // Device 2 still active
+    });
+  });
 });
