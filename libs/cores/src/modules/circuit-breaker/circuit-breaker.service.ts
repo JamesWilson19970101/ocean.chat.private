@@ -2,7 +2,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import CircuitBreaker from 'opossum';
+import * as CircuitBreaker from 'opossum';
 
 @Injectable()
 export class CircuitBreakerService {
