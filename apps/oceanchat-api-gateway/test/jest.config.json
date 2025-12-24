@@ -1,6 +1,6 @@
 {
   "rootDir": "..",
-  "testMatch": ["<rootDir>/test/**/*.e2e-spec.ts"],
+  "testMatch": ["<rootDir>/test/**/*.e2e-special-spec.ts"],
   "coverageDirectory": "<rootDir>/coverage",
   "moduleFileExtensions": ["js", "json", "ts"],
   "testEnvironment": "node",
@@ -17,7 +17,8 @@
     "^@ocean.chat/nats-opentelemetry-tracing(|/.*)$": "<rootDir>/../../libs/nats-opentelemetry-tracing/src/$1",
     "^@ocean.chat/nats-jetstream-provisioner(|/.*)$": "<rootDir>/../../libs/nats-jetstream-provisioner/src/$1",
     "^@ocean.chat/tracing(|/.*)$": "<rootDir>/../../libs/tracing/src/$1",
-    "^@ocean.chat/types(|/.*)$": "<rootDir>/../../libs/types/src/$1"
+    "^@ocean.chat/types(|/.*)$": "<rootDir>/../../libs/types/src/$1",
+    "^@ocean.chat/cores(|/.*)$": "<rootDir>/../../libs/cores/src/$1"
   },
   "collectCoverage": true,
   "collectCoverageFrom": [
