@@ -204,7 +204,7 @@ export class OceanchatAuthModule {
         // but only this one microservice can write to it;
         // other microservices only read from it. Therefore, this library is maintained by `oceanchat-auth`.
         SettingsModule.register({ runSeeds: true }),
-        PassportModule.register({ defaultStrategy: 'jwt' }),
+        PassportModule.register({ defaultStrategy: 'local' }),
         JwtModule.registerAsync({
           imports: [ConfigModule],
           // eslint-disable-next-line @typescript-eslint/require-await
