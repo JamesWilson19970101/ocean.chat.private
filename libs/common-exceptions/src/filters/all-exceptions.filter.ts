@@ -252,8 +252,14 @@ export class AllExceptionsFilter implements ExceptionFilter {
     } else {
       // Fallback for any other type of error, including native JS errors and non-Error objects.
       if (exception instanceof Error) {
-        // Process native JS errors (e.g., ReferenceError, TypeError)
+        // Process native JS errors (e.g., ReferenceError, TypeError) or nestjs Errors (e.g., HttpErrors)
         message = exception.message;
+        if (
+          'statusCode' in exception &&
+          typeof exception.statusCode === 'number'
+        ) {
+          statusCode = exception.statusCode;
+        }
       } else {
         // Handle cases where a non-Error object (e.g., a string or plain object) is thrown.
         // This ensures that no thrown value is ever lost.
