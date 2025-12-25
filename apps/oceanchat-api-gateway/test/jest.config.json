@@ -1,6 +1,6 @@
 {
   "rootDir": "..",
-  "testMatch": ["<rootDir>/test/**/*.e2e-special-spec.ts"],
+  "testMatch": ["<rootDir>/test/**/*.e2e-spec.ts"],
   "coverageDirectory": "<rootDir>/coverage",
   "moduleFileExtensions": ["js", "json", "ts"],
   "testEnvironment": "node",
