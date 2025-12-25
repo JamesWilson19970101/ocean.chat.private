@@ -63,7 +63,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     // Acquire lock
     const redisKey = getIdempotencyRedisKey(idempotencyKey);
-    const processingTtl = 30;
+    // Increase processing TTL to handle network jitter or slow downstream services.
+    // For IM systems, holding the lock longer to prevent duplicate data is preferred
+    // over complex distributed transaction compensation mechanisms.
+    const processingTtl = 60;
     const lockAcquired = await this.redisService.setnx(
       redisKey,
       JSON.stringify({ status: 'processing' }),
