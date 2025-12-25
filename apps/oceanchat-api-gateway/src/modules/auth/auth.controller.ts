@@ -15,12 +15,13 @@ import {
 import { CircuitBreakerService, SkipAuth } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
+import { RefreshTokenResult } from '@ocean.chat/types';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
-
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -92,29 +93,86 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto): Promise<Partial<User>> {
     // Registration logic is handled by the user microservice
-    return firstValueFrom<Partial<User>>(
-      this.userClient.send<Partial<User>>('user.create', registerDto).pipe(
-        timeout(5000),
-        catchError((err: unknown) => {
-          if (isErrorResponseDto(err)) {
-            return throwError(
-              () =>
-                new BaseException(err.message, err.statusCode, err.errorCode, {
-                  cause: err,
-                }),
-            );
-          }
-          return throwError(
-            () =>
-              new BaseException(
-                this.i18nService.translate('REGISTRATION_FAILED'),
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                ErrorCodes.CREATION_ERROR,
-                { cause: err as any },
-              ),
-          );
-        }),
-      ),
+    return this.circuitBreakerService.fire(
+      'user.create',
+      () =>
+        firstValueFrom<Partial<User>>(
+          this.userClient.send<Partial<User>>('user.create', registerDto).pipe(
+            timeout(5000),
+            catchError((err: unknown) => {
+              if (isErrorResponseDto(err)) {
+                return throwError(
+                  () =>
+                    new BaseException(
+                      err.message,
+                      err.statusCode,
+                      err.errorCode,
+                      {
+                        cause: err,
+                      },
+                    ),
+                );
+              }
+              return throwError(
+                () =>
+                  new BaseException(
+                    this.i18nService.translate('REGISTRATION_FAILED'),
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ErrorCodes.CREATION_ERROR,
+                    { cause: err as any },
+                  ),
+              );
+            }),
+          ),
+        ),
+      { timeout: 6000 },
+    );
+  }
+
+  /**
+   * Handles token refresh requests.
+   */
+  @SkipAuth()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Body() refreshTokenDto: RefreshTokenDto,
+  ): Promise<RefreshTokenResult> {
+    return this.circuitBreakerService.fire(
+      'auth.token.refresh',
+      () =>
+        firstValueFrom(
+          this.authClient
+            .send<RefreshTokenResult>('auth.token.refresh', {
+              refreshToken: refreshTokenDto.refreshToken,
+            })
+            .pipe(
+              timeout(5000),
+              catchError((err: unknown) => {
+                if (isErrorResponseDto(err)) {
+                  return throwError(
+                    () =>
+                      new BaseException(
+                        err.message,
+                        err.statusCode,
+                        err.errorCode,
+                        { cause: err },
+                      ),
+                  );
+                }
+                return throwError(
+                  () =>
+                    new BaseException(
+                      this.i18nService.translate('REFRESHTOKEN_ERROR'),
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      ErrorCodes.TOKEN_REFRESH_ERROR,
+                      { cause: err as any },
+                    ),
+                );
+              }),
+            ),
+        ),
+      { timeout: 6000 },
     );
   }
 
@@ -127,29 +185,36 @@ export class AuthController {
     @CurrentUser() user: { sub: string; deviceId: string },
   ): Promise<void> {
     const { sub: userId, deviceId } = user;
-    await firstValueFrom<number>(
-      this.authClient.send<number>('auth.logout', { userId, deviceId }).pipe(
-        timeout(5000),
-        catchError((err: unknown) => {
-          if (isErrorResponseDto(err)) {
+    await this.circuitBreakerService.fire('auth.logout', () =>
+      firstValueFrom<number>(
+        this.authClient.send<number>('auth.logout', { userId, deviceId }).pipe(
+          timeout(5000),
+          catchError((err: unknown) => {
+            if (isErrorResponseDto(err)) {
+              return throwError(
+                () =>
+                  new BaseException(
+                    err.message,
+                    err.statusCode,
+                    err.errorCode,
+                    {
+                      cause: err,
+                    },
+                  ),
+              );
+            }
+            const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
             return throwError(
               () =>
-                new BaseException(err.message, err.statusCode, err.errorCode, {
-                  cause: err,
-                }),
+                new BaseException(
+                  message,
+                  HttpStatus.INTERNAL_SERVER_ERROR,
+                  ErrorCodes.UNEXPECTED_ERROR,
+                  { cause: err as any },
+                ),
             );
-          }
-          const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
-          return throwError(
-            () =>
-              new BaseException(
-                message,
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                ErrorCodes.UNEXPECTED_ERROR,
-                { cause: err as any },
-              ),
-          );
-        }),
+          }),
+        ),
       ),
     );
   }

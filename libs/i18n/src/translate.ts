@@ -141,6 +141,7 @@ export default {
       Redis_HSet_Failed: 'Failed to set hash field in Redis.',
       Redis_HDel_Failed: 'Failed to delete hash field from Redis.',
       TOKEN_REFRESH_ERROR: 'Error refreshing token.',
+      REFRESHTOKEN_ERROR: 'Refresh token error',
       CircuitBreaker_Open:
         '[CircuitBreaker] OPEN: {{name}} - Stopping requests',
       CircuitBreaker_HalfOpen:
@@ -264,6 +265,7 @@ export default {
       Redis_HSet_Failed: '在 Redis 中设置哈希字段失败。',
       Redis_HDel_Failed: '从 Redis 中删除哈希字段失败。',
       TOKEN_REFRESH_ERROR: '刷新 TOKEN 出现错误。',
+      REFRESHTOKEN_ERROR: '刷新令牌错误',
       CircuitBreaker_Open: '[熔断器] 开启: {{name}} - 停止请求',
       CircuitBreaker_HalfOpen: '[熔断器] 半开启: {{name}} - 测试服务',
       CircuitBreaker_Close: '[熔断器] 关闭: {{name}} - 服务已恢复',
