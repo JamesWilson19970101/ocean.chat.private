@@ -27,9 +27,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
   ) {}
 
   // Default TTL if not specified on the route
-  private readonly DEFAULT_CACHE_TTL = 24 * 60 * 60; // 24 hours
-  private readonly DEFAULT_JITTER = 60 * 60; // 1 hour
-
+  private readonly DEFAULT_CACHE_TTL = 30 * 60; // 30 minutes
+  private readonly DEFAULT_JITTER = 5 * 60; // 5 minutes
   private readonly IDEMPOTENCY_KEY_HEADER = 'idempotency-key';
   private readonly METHODS_TO_CHECK = ['POST', 'PUT', 'PATCH'];
 
@@ -87,7 +86,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
         return of(cached.body);
       }
       const message = this.i18nService.translate('IDEMPOTENCY_CONFLICT');
-      // For conflicts, we throw an exception that will be handled by the global filter.
+      // For conflicts, throw an exception that will be handled by the global filter.
       throw new BaseException(
         message,
         HttpStatus.CONFLICT,
