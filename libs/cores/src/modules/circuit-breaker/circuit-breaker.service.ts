@@ -31,6 +31,12 @@ export class CircuitBreakerService {
         timeout: 5000, // Default timeout matches typical RPC timeout
         errorThresholdPercentage: 50, // Open if 50% of requests fail
         resetTimeout: 10000, // Wait 10s before trying again (Half-Open)
+        errorFilter: (err: unknown) => {
+          // Ignore 4xx errors (Client Errors) as they don't indicate service unavailability
+          const error = err as { statusCode?: number; status?: number };
+          const status = error?.statusCode || error?.status;
+          return typeof status === 'number' && status >= 400 && status < 500;
+        },
         ...options,
       });
 
