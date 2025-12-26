@@ -1,40 +1,15 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { ErrorResponseDto } from '@ocean.chat/common-exceptions';
 import { User } from '@ocean.chat/models';
-import { LoginResult } from '@ocean.chat/types';
+import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
 import Redis from 'ioredis';
 import { connect, connection } from 'mongoose';
 import * as request from 'supertest';
-import { App } from 'supertest/types';
-import { v4 as uuidv4 } from 'uuid';
-
-import { OceanchatApiGatewayModule } from '../../../src/oceanchat-api-gateway.module';
 
 describe('Auth Module E2E Tests', () => {
-  let app: INestApplication<App>;
+  const appUrl = 'http://localhost:1994';
   let redisClient: Redis;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        OceanchatApiGatewayModule.forRoot({
-          serviceName: 'test-gateway',
-          serviceInstanceId: uuidv4(),
-        }),
-      ],
-    }).compile();
-    app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-        transformOptions: { enableImplicitConversion: true },
-      }),
-    );
-    await app.init();
-
     redisClient = new Redis({
       host: process.env.REDIS_HOST || '127.0.0.1',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
@@ -45,7 +20,6 @@ describe('Auth Module E2E Tests', () => {
   });
 
   afterAll(async () => {
-    await app.close();
     await redisClient.quit();
     await connection.close();
   });
@@ -69,10 +43,10 @@ describe('Auth Module E2E Tests', () => {
     };
 
     it('should return created user on successful registration', () => {
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/register')
         .send(registerDto)
-        .expect(201)
+        .expect(200)
         .then((res: { [key: string]: any; body: Partial<User> }) => {
           // 1. Check for existence of auto-generated fields
           expect(res.body).toHaveProperty('_id');
@@ -94,7 +68,7 @@ describe('Auth Module E2E Tests', () => {
     });
 
     it('should fail with 400 if passwords do not match', () => {
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/register')
         .send({ ...registerDto, confirmPassword: 'wrong-password' })
         .expect(400)
@@ -108,15 +82,15 @@ describe('Auth Module E2E Tests', () => {
     });
 
     it('should fail with 400 if username already exists', async () => {
-      await request(app.getHttpServer())
+      await request(appUrl)
         .post('/auth/register')
         .send(registerDto)
-        .expect(201);
+        .expect(200);
 
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/register')
         .send(registerDto)
-        .expect(400)
+        .expect(409)
         .then(
           (
             res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
@@ -129,7 +103,7 @@ describe('Auth Module E2E Tests', () => {
     it('should fail with 400 if required fields are missing', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { username, ...dtoWithoutUsername } = registerDto;
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/register')
         .send(dtoWithoutUsername)
         .expect(400);
@@ -141,7 +115,7 @@ describe('Auth Module E2E Tests', () => {
         password: 's',
         confirmPassword: 's',
       };
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/register')
         .send(shortPasswordDto)
         .expect(400)
@@ -159,20 +133,20 @@ describe('Auth Module E2E Tests', () => {
     const loginDto = {
       username: 'e2e-login-user',
       password: 'Password123!',
+      deviceId: 'e2e-login-user',
     };
 
     // Before each test in this block, register a user to ensure a clean state.
     beforeEach(async () => {
-      await request(app.getHttpServer())
-        .post('/auth/register')
-        .send({
-          ...loginDto,
-          confirmPassword: loginDto.password,
-        });
+      await request(appUrl).post('/auth/register').send({
+        username: 'e2e-login-user',
+        password: 'Password123!',
+        confirmPassword: loginDto.password,
+      });
     });
 
     it('should return tokens and user on successful login', () => {
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/login')
         .send(loginDto)
         .expect(200)
@@ -196,7 +170,7 @@ describe('Auth Module E2E Tests', () => {
     });
 
     it('should fail with 401 for incorrect password', () => {
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/login')
         .send({ ...loginDto, password: 'wrong-password' })
         .expect(401)
@@ -208,7 +182,7 @@ describe('Auth Module E2E Tests', () => {
     });
 
     it('should fail with 401 for non-existent user', () => {
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/login')
         .send({ ...loginDto, username: 'non-existent-user' })
         .expect(401)
@@ -222,10 +196,123 @@ describe('Auth Module E2E Tests', () => {
     it('should fail with 400 if password is not provided', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { password, ...dtoWithoutPassword } = loginDto;
-      return request(app.getHttpServer())
+      return request(appUrl)
         .post('/auth/login')
         .send(dtoWithoutPassword)
         .expect(400);
+    });
+  });
+
+  describe('/auth/refresh (POST)', () => {
+    const userDto = {
+      username: 'refresh-test-user',
+      password: 'Password123!',
+      confirmPassword: 'Password123!',
+    };
+    const loginDto = {
+      username: userDto.username,
+      password: userDto.password,
+      deviceId: 'refresh-device',
+    };
+    let refreshToken: string;
+    let accessToken: string;
+
+    beforeEach(async () => {
+      await request(appUrl).post('/auth/register').send(userDto);
+      const res: { [key: string]: any; body: LoginResult } = await request(
+        appUrl,
+      )
+        .post('/auth/login')
+        .send(loginDto);
+      refreshToken = res.body.refreshToken;
+      accessToken = res.body.accessToken;
+    });
+
+    it('should return new tokens on successful refresh', async () => {
+      const res = await request(appUrl)
+        .post('/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
+
+      const body = res.body as RefreshTokenResult;
+      expect(body).toHaveProperty('accessToken');
+      expect(body).toHaveProperty('refreshToken');
+      expect(body.accessToken).not.toBe(accessToken);
+      expect(body.refreshToken).not.toBe(refreshToken);
+    });
+
+    it('should fail with 401 if refresh token is invalid', () => {
+      return request(appUrl)
+        .post('/auth/refresh')
+        .send({ refreshToken: 'invalid-token' })
+        .expect(401);
+    });
+
+    it('should fail with 401 if refresh token is reused (revoked)', async () => {
+      // 1. Refresh once (success) - this invalidates the old refresh token
+      await request(appUrl)
+        .post('/auth/refresh')
+        .send({ refreshToken })
+        .expect(200);
+
+      // 2. Try to refresh again with the same old token
+      return request(appUrl)
+        .post('/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
+    });
+  });
+
+  describe('/auth/logout (POST)', () => {
+    const userDto = {
+      username: 'logout-test-user',
+      password: 'Password123!',
+      confirmPassword: 'Password123!',
+    };
+    const loginDto = {
+      username: userDto.username,
+      password: userDto.password,
+      deviceId: 'logout-device',
+    };
+    let accessToken: string;
+    let refreshToken: string;
+
+    beforeEach(async () => {
+      await request(appUrl).post('/auth/register').send(userDto);
+      const res: { [key: string]: any; body: LoginResult } = await request(
+        appUrl,
+      )
+        .post('/auth/login')
+        .send(loginDto);
+      accessToken = res.body.accessToken;
+      refreshToken = res.body.refreshToken;
+    });
+
+    it('should logout successfully', () => {
+      return request(appUrl)
+        .post('/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+    });
+
+    it('should fail with 401 if not authenticated', () => {
+      return request(appUrl).post('/auth/logout').expect(401);
+    });
+
+    it('should invalidate access token and refresh token after logout', async () => {
+      await request(appUrl)
+        .post('/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      await request(appUrl)
+        .get('/users/me')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(401);
+      await request(appUrl)
+        .post('/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
     });
   });
 });
