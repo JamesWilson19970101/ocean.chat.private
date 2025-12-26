@@ -28,7 +28,7 @@ export class UserRepository extends BaseRepository<User> {
         username,
         'providers.provider': provider,
       })
-      .select('+providers.passwordHash') // I need to explicitly include passwordHash since it's excluded by default
+      .select('+providers +providers.passwordHash') // I need to explicitly include passwordHash since it's excluded by default
       .lean() // Use lean() to get a plain JavaScript object
       .exec();
 

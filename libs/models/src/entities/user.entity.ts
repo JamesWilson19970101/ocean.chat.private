@@ -143,7 +143,7 @@ export class User extends Document {
   /**
    * The authentication providers associated with the user.
    */
-  @Prop({ type: [AuthProvidersSchema], default: [] })
+  @Prop({ type: [AuthProvidersSchema], default: [], select: false })
   providers: AuthProviders[];
 
   /**
