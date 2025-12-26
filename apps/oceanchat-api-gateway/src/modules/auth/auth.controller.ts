@@ -91,6 +91,7 @@ export class AuthController {
    */
   @SkipAuth()
   @Post('register')
+  @HttpCode(HttpStatus.OK)
   async register(@Body() registerDto: RegisterDto): Promise<Partial<User>> {
     // Registration logic is handled by the user microservice
     return this.circuitBreakerService.fire(
