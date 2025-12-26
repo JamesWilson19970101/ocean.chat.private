@@ -34,7 +34,7 @@ export class UserRepository extends BaseRepository<User> {
 
     if (!user) return null;
 
-    const localProvider = user.providers.find((p) => p.provider === provider);
+    const localProvider = user.providers!.find((p) => p.provider === provider);
     if (!localProvider?.passwordHash) return null;
 
     return { ...user };

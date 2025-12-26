@@ -62,7 +62,7 @@ export class UserDevice {
    * The last time this device logged in.
    */
   @Prop({ type: Date, default: Date.now })
-  lastLogin: Date;
+  lastLogin?: Date;
 }
 
 const UserDeviceSchema = SchemaFactory.createForClass(UserDevice);
@@ -143,14 +143,19 @@ export class User extends Document {
   /**
    * The authentication providers associated with the user.
    */
-  @Prop({ type: [AuthProvidersSchema], default: [], select: false })
-  providers: AuthProviders[];
+  @Prop({
+    type: [AuthProvidersSchema],
+    default: [],
+    select: false,
+    required: true,
+  })
+  providers?: AuthProviders[]; // optional property, reflect status of runtime when find in code
 
   /**
    * The list of devices that have logged in to this account.
    */
-  @Prop({ type: [UserDeviceSchema], default: [] })
-  devices: UserDevice[];
+  @Prop({ type: [UserDeviceSchema], default: [], required: true })
+  devices?: UserDevice[];
 
   /**
    * The timestamp of the user's last login.
@@ -167,7 +172,7 @@ export class User extends Document {
 export class UserIdentifier {
   /** The unique ID of the user. */
   @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
-  _id: User | MongooseSchema.Types.ObjectId;
+  _id: string | MongooseSchema.Types.ObjectId;
 
   /** The unique username of the user. */
   @Prop({ required: true })
