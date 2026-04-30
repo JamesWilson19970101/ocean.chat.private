@@ -33,4 +33,9 @@ export interface IJwtPayload {
    * Expiration timestamp (seconds since Unix epoch).
    */
   exp?: number;
+
+  /**
+   * Other keys I do not know but in JwtPayload of jsonwebtoken package
+   */
+  [key: string]: any;
 }
