@@ -1,8 +1,8 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthProvider } from '@ocean.chat/models';
+import { CreateUserDto, ValidatePasswordDto } from '@ocean.chat/types';
 
-import { CreateUserDto } from './dto/create-user.dto';
 import { OceanchatUserService } from './oceanchat-user.service';
 
 @Controller()
@@ -55,10 +55,8 @@ export class OceanchatUserController {
    * @returns A partial user object if credentials are valid, otherwise null.
    */
   @MessagePattern('user.validate.password')
-  async validatePassword(
-    @Payload() payload: { username: string; password: string },
-  ) {
+  async validatePassword(@Payload() payload: ValidatePasswordDto) {
     const { username, password } = payload;
-    return this.oceanchatUserService.validatePassword(username, password);
+    return await this.oceanchatUserService.validatePassword(username, password);
   }
 }
