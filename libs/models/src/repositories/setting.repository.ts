@@ -17,7 +17,10 @@ export class SettingsRepository extends BaseRepository<Setting> {
    * @returns The setting document that matches the provided key, or null if no such document exists.
    */
   async findByKey(key: string): Promise<Setting | null> {
-    return this.model.findOne({ _id: key }).exec();
+    return (await this.model
+      .findOne({ _id: key })
+      .lean()
+      .exec()) as unknown as Setting | null;
   }
 
   /**
@@ -27,9 +30,10 @@ export class SettingsRepository extends BaseRepository<Setting> {
    * @returns The upserted setting document.
    */
   async upsert(key: string, value: Setting['value']): Promise<Setting> {
-    return this.model
+    return (await this.model
       .findOneAndUpdate({ _id: key }, { value }, { upsert: true, new: true })
-      .exec();
+      .lean()
+      .exec()) as unknown as Setting;
   }
 
   /**
@@ -40,12 +44,13 @@ export class SettingsRepository extends BaseRepository<Setting> {
    * @returns The created or existing setting document.
    */
   async createIfNotExists(setting: Partial<Setting>): Promise<Setting> {
-    return this.model
+    return (await this.model
       .findOneAndUpdate(
         { _id: setting._id },
         { $setOnInsert: setting },
         { upsert: true, new: true },
       )
-      .exec();
+      .lean()
+      .exec()) as unknown as Setting;
   }
 }
