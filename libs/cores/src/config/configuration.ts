@@ -13,9 +13,11 @@ export const redisConfiguration = registerAs('redis', () => ({
 }));
 
 export const jwtConfiguration = registerAs('jwt', () => ({
-  accessSecret: process.env.JWT_ACCESS_SECRET,
+  accessPublicKey: process.env.JWT_ACCESS_PUBLIC_KEY?.replace(/\\n/g, '\n'),
+  accessPrivateKey: process.env.JWT_ACCESS_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15Mins',
-  refreshSecret: process.env.JWT_REFRESH_SECRET,
+  refreshPublicKey: process.env.JWT_REFRESH_PUBLIC_KEY?.replace(/\\n/g, '\n'),
+  refreshPrivateKey: process.env.JWT_REFRESH_PRIVATE_KEY?.replace(/\\n/g, '\n'),
   refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7Days',
 }));
 
@@ -25,4 +27,8 @@ export const natsConfiguration = registerAs('nats', () => ({
 
 export const restConfiguration = registerAs('rest', () => ({
   rate_limit: parseInt(process.env.REST_RATE_LIMIT || '10', 10),
+}));
+
+export const cacheConfiguration = registerAs('cache', () => ({
+  maxItems: parseInt(process.env.CACHE_MAX_ITEMS || '100000', 10),
 }));

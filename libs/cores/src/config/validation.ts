@@ -21,17 +21,25 @@ export const validationSchema = Joi.object({
     'number.base': 'REDIS_DB must be a number',
     'any.required': 'REDIS_DB is required',
   }),
-  JWT_ACCESS_SECRET: Joi.string().required().messages({
-    'string.empty': 'JWT_ACCESS_SECRET is required',
-    'any.required': 'JWT_ACCESS_SECRET is required',
+  JWT_ACCESS_PUBLIC_KEY: Joi.string().required().messages({
+    'string.empty': 'JWT_ACCESS_PUBLIC_KEY is required',
+    'any.required': 'JWT_ACCESS_PUBLIC_KEY is required',
+  }),
+  JWT_ACCESS_PRIVATE_KEY: Joi.string().required().messages({
+    'string.empty': 'JWT_ACCESS_PRIVATE_KEY is required',
+    'any.required': 'JWT_ACCESS_PRIVATE_KEY is required',
   }),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15Mins').messages({
     'string.empty': 'JWT_ACCESS_EXPIRES_IN cannot be empty',
     'any.required': 'JWT_ACCESS_EXPIRES_IN is required',
   }),
-  JWT_REFRESH_SECRET: Joi.string().required().messages({
-    'string.empty': 'JWT_REFRESH_SECRET is required',
-    'any.required': 'JWT_REFRESH_SECRET is required',
+  JWT_REFRESH_PUBLIC_KEY: Joi.string().required().messages({
+    'string.empty': 'JWT_REFRESH_PUBLIC_KEY is required',
+    'any.required': 'JWT_REFRESH_PUBLIC_KEY is required',
+  }),
+  JWT_REFRESH_PRIVATE_KEY: Joi.string().required().messages({
+    'string.empty': 'JWT_REFRESH_PRIVATE_KEY is required',
+    'any.required': 'JWT_REFRESH_PRIVATE_KEY is required',
   }),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7Days').messages({
     'string.empty': 'JWT_REFRESH_EXPIRES_IN cannot be empty',
@@ -44,5 +52,8 @@ export const validationSchema = Joi.object({
   REST_RATE_LIMIT: Joi.number().default(10).messages({
     'string.empty': 'REST_RATE_LIMIT cannot be empty',
     'any.required': 'REST_RATE_LIMIT is required',
+  }),
+  CACHE_MAX_ITEMS: Joi.number().default(100000).messages({
+    'number.base': 'CACHE_MAX_ITEMS must be a number',
   }),
 });
