@@ -26,6 +26,9 @@ export enum ErrorCodes {
   // idempotency key conflict error
   IDEMPOTENCY_CONFLICT = 10050,
 
+  // Event/Message errors
+  MALFORMED_EVENT = 40001, // e.g., when a NATS event fails schema validation
+
   // Authorization errors
   FAILED_TO_FETCH_SCOPED_ROLES = 20001, // e.g., when the scope provider fails to return roles
   ERROR_CODE_TOKEN_EXPIRED = 20002, // e.g., token expired

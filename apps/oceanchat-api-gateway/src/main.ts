@@ -9,8 +9,11 @@ propagation.setGlobalPropagator(new W3CTraceContextPropagator()); // This ensure
 
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
+import { existsSync, unlinkSync, writeFileSync } from 'fs';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
 
@@ -56,6 +59,25 @@ async function bootstrap() {
   const logger = app.get(Logger);
   app.useLogger(logger);
 
+  if (process.env.NODE_ENV !== 'production') {
+    const options = new DocumentBuilder()
+      .setTitle('Ocean Chat API')
+      .setDescription('Ocean Chat API Detail')
+      .setVersion('1.0')
+      .addTag('oceanchat')
+      .addBearerAuth()
+      .build();
+    const document = SwaggerModule.createDocument(app, options);
+
+    const swaggerFilePath = 'swagger.json';
+    if (existsSync(swaggerFilePath)) {
+      unlinkSync(swaggerFilePath);
+    }
+    writeFileSync(swaggerFilePath, JSON.stringify(document, null, 2));
+
+    SwaggerModule.setup('api', app, document);
+  }
+
   // Security Middleware
   app.use(helmet());
 
@@ -69,6 +91,14 @@ async function bootstrap() {
   // Trust the proxy (Ingress/Nginx/LoadBalancer) to get the real client IP via X-Forwarded-For.
   // Without this, rate limiting will block the LoadBalancer's IP, affecting all users.
   app.set('trust proxy', 1);
+
+  app.connectMicroservice<MicroserviceOptions>({
+    transport: Transport.NATS,
+    options: {
+      servers: [process.env.NATS_URL || 'nats://localhost:4222'],
+    },
+  });
+  await app.startAllMicroservices();
 
   app.useGlobalPipes(
     new ValidationPipe({

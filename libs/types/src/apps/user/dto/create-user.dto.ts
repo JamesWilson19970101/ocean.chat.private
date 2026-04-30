@@ -1,3 +1,4 @@
+import { Match } from '@ocean.chat/cores';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class CreateUserDto {
@@ -11,5 +12,6 @@ export class CreateUserDto {
 
   @IsString()
   @IsNotEmpty()
+  @Match('password', { message: 'Passwords do not match' })
   confirmPassword: string;
 }

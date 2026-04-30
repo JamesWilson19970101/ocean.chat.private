@@ -20,11 +20,14 @@ export abstract class BaseRepository<T extends Document>
   }
 
   async find(filter: FilterQuery<T>): Promise<T[]> {
-    return this.model.find(filter).exec();
+    return (await this.model.find(filter).lean().exec()) as unknown as T[];
   }
 
   async findOne(filter: FilterQuery<T>): Promise<T | null> {
-    return this.model.findOne(filter).exec();
+    return (await this.model
+      .findOne(filter)
+      .lean()
+      .exec()) as unknown as T | null;
   }
 
   async updateOne(
@@ -32,23 +35,27 @@ export abstract class BaseRepository<T extends Document>
     update: UpdateQuery<T>,
     options?: Record<string, unknown>,
   ): Promise<UpdateWriteOpResult> {
-    return this.model.updateOne(filter, update, options).exec();
+    return await this.model.updateOne(filter, update, options).exec();
   }
 
   async findById(id: any): Promise<Partial<T> | null> {
-    return this.model.findById(id).exec();
+    return (await this.model.findById(id).lean().exec()) as unknown as T | null;
   }
 
   async create(entity: Partial<T>): Promise<T> {
     const model = new this.model(entity);
-    return model.save();
+    const saved = await model.save();
+    return saved.toObject() as unknown as T;
   }
 
   async update(
     id: any,
     entity: UpdateQuery<Partial<T>>,
   ): Promise<Partial<T> | null> {
-    return this.model.findByIdAndUpdate(id, entity, { new: true }).exec();
+    return (await this.model
+      .findByIdAndUpdate(id, entity, { new: true })
+      .lean()
+      .exec()) as unknown as Partial<T> | null;
   }
 
   async delete(id: any): Promise<boolean> {

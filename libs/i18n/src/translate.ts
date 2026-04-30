@@ -107,6 +107,14 @@ export default {
         "Stream '{{streamName}}' provisioned successfully.",
       NATS_STREAM_DESCRIPTION:
         'Stream for the {{serviceName}} microservice ({{environment}})',
+      AUTH_STATE_STREAM_DESCRIPTION:
+        'Global Security Stream for Zero-I/O local authentication',
+      AUTH_DLQ_STREAM_DESCRIPTION:
+        'Dead-letter queue for auth events that failed initial publishing.',
+      AUTH_EVENTS_STREAM_DESCRIPTION:
+        'Stream for authentication events (e.g., user login)',
+      USER_EVENTS_STREAM_DESCRIPTION:
+        'Stream for user-related events (e.g., user creation, profile updates)',
       ENVIRONMENT_PRODUCTION: 'Production',
       ENVIRONMENT_DEVELOPMENT: 'Development',
       REFRESH_TOKEN_REUSED_OR_REVOKED:
@@ -149,6 +157,52 @@ export default {
       CircuitBreaker_Close:
         '[CircuitBreaker] CLOSE: {{name}} - Service recovered',
       Service_Unavailable: 'Service Unavailable',
+      TOKEN_JTI_ADDED_TO_BLACKLIST:
+        'Token JTI added to local memory blacklist.',
+      FAILED_TO_PUBLISH_REVOKE_EVENT_LOGOUT:
+        'Failed to publish auth.jwt.revoke event during logout',
+      FAILED_TO_PARSE_SESSION_OR_PUBLISH_REVOCATION:
+        'Failed to parse session or publish revocation event',
+      CORRUPTED_SESSION_DATA_IN_REDIS: 'Corrupted session data in Redis',
+      REPLAY_ATTACK_DETECTED:
+        'Refresh Token Replay Attack detected! Revoking all user sessions.',
+      FAILED_TO_PUBLISH_REVOKE_EVENT_REPLAY:
+        'Failed to publish revocation during replay attack handling',
+      FAILED_TO_PUBLISH_OLD_TOKEN_REVOCATION:
+        'Failed to publish old token revocation during refresh',
+      SUCCESSFULLY_PROCESSED_LOGGEDIN_EVENT:
+        'Successfully processed auth.event.user.loggedIn event.',
+      NATS_URL_NOT_FOUND: 'NATS URL not found in configuration.',
+      FAILED_TO_UPDATE_CONSUMER_CONFIG:
+        'Failed to update existing durable consumer configuration. Falling back to existing consumer config.',
+      SUCCESSFULLY_PROCESSED_CONSUMER:
+        'Successfully provisioned {{type}} consumer.',
+      FAILED_TO_ADD_CONSUMER:
+        'Failed to add consumer for stream {{streamName}}. Ensure the stream is provisioned.',
+      PULL_CONSUMER_FATAL_ERROR: 'Pull Consumer loop exited with fatal error.',
+      FAILED_TO_INITIALIZE_PULL_CONSUMER:
+        'Failed to initialize NATS pull consumer.',
+      DISCARDING_MALFORMED_EVENT: 'Discarding malformed NATS event.',
+      FAILED_TO_PROCESS_EVENT_REQUEUEING:
+        'Failed to process NATS event. Requeueing.',
+      MESSAGE_MOVED_TO_DLQ: 'Message moved to DLQ after max failed attempts.',
+      FATAL_FAILED_TO_MOVE_TO_DLQ:
+        'FATAL: Failed to move message to DLQ! Message might be dropped or stuck.',
+      ERROR_DURING_NATS_SHUTDOWN: 'Error during NATS connection shutdown.',
+      NO_STREAM_CONFIGS_PROVIDED:
+        'No stream configurations provided for JetStream provisioner.',
+      FAILED_TO_PROVISION_JETSTREAM_STREAMS:
+        'Failed to provision JetStream streams.',
+      BOUNDED_PUBLISHER_NOT_OPERATIONAL:
+        'BoundedPublisher is not operational (no JetStream client). Message dropped.',
+      CRITICAL_SECURITY_SIGNAL_DROPPED:
+        'CRITICAL SECURITY SIGNAL DROPPED! Queue is completely exhausted.',
+      NORMAL_EVENT_DROPPED: 'Normal event dropped due to backpressure.',
+      QUEUE_LIMIT_REACHED: 'Queue limit reached: {{msg}}',
+      BOUNDED_PUBLISHER_TASK_FAILED:
+        'Bounded publisher task failed. Attempting to route to DLQ.',
+      FATAL_FAILED_TO_PUBLISH_TO_DLQ:
+        'FATAL: Failed to publish to DLQ. Message is lost.',
     },
   },
   zh: {
@@ -238,6 +292,12 @@ export default {
       NATS_STREAM_PROVISIONED_SUCCESSFULLY: "流 '{{streamName}}' 配置成功。",
       NATS_STREAM_DESCRIPTION:
         '用于 {{serviceName}} 微服务的流 ({{environment}})',
+      AUTH_STATE_STREAM_DESCRIPTION: '用于零 I/O 本地身份验证的全局安全流',
+      AUTH_DLQ_STREAM_DESCRIPTION: '用于初始发布失败的身份验证事件的死信队列。',
+      AUTH_EVENTS_STREAM_DESCRIPTION:
+        '用于身份验证相关事件的流（例如，用户登录）',
+      USER_EVENTS_STREAM_DESCRIPTION:
+        '用于用户相关事件的流（例如，用户创建、个人资料更新）',
       ENVIRONMENT_PRODUCTION: '生产环境',
       ENVIRONMENT_DEVELOPMENT: '开发环境',
       REFRESH_TOKEN_REUSED_OR_REVOKED: '刷新令牌已使用或已撤销。',
@@ -270,6 +330,41 @@ export default {
       CircuitBreaker_HalfOpen: '[熔断器] 半开启: {{name}} - 测试服务',
       CircuitBreaker_Close: '[熔断器] 关闭: {{name}} - 服务已恢复',
       Service_Unavailable: '服务不可用',
+      TOKEN_JTI_ADDED_TO_BLACKLIST: 'Token JTI 已加入本地内存黑名单。',
+      FAILED_TO_PUBLISH_REVOKE_EVENT_LOGOUT:
+        '登出时发布 auth.jwt.revoke 事件失败',
+      FAILED_TO_PARSE_SESSION_OR_PUBLISH_REVOCATION:
+        '解析会话或发布撤销事件失败',
+      CORRUPTED_SESSION_DATA_IN_REDIS: 'Redis 中的会话数据已损坏',
+      REPLAY_ATTACK_DETECTED: '检测到刷新令牌重放攻击！正在撤销所有用户会话。',
+      FAILED_TO_PUBLISH_REVOKE_EVENT_REPLAY: '处理重放攻击时发布撤销事件失败',
+      FAILED_TO_PUBLISH_OLD_TOKEN_REVOCATION: '刷新时发布旧令牌撤销事件失败',
+      SUCCESSFULLY_PROCESSED_LOGGEDIN_EVENT:
+        '成功处理 auth.event.user.loggedIn 事件。',
+      NATS_URL_NOT_FOUND: '配置中未找到 NATS URL。',
+      FAILED_TO_UPDATE_CONSUMER_CONFIG:
+        '更新现有持久化消费者配置失败。回退到现有配置。',
+      SUCCESSFULLY_PROCESSED_CONSUMER: '成功配置 {{type}} 消费者。',
+      FAILED_TO_ADD_CONSUMER:
+        '为流 {{streamName}} 添加消费者失败。请确保该流已配置。',
+      PULL_CONSUMER_FATAL_ERROR: 'Pull Consumer 循环因致命错误退出。',
+      FAILED_TO_INITIALIZE_PULL_CONSUMER: '初始化 NATS pull 消费者失败。',
+      DISCARDING_MALFORMED_EVENT: '丢弃格式错误的 NATS 事件。',
+      FAILED_TO_PROCESS_EVENT_REQUEUEING: '处理 NATS 事件失败。正在重新入队。',
+      MESSAGE_MOVED_TO_DLQ:
+        '达到最大失败尝试次数后，消息已移至死信队列 (DLQ)。',
+      FATAL_FAILED_TO_MOVE_TO_DLQ:
+        '致命错误：将消息移至 DLQ 失败！消息可能被丢弃或卡住。',
+      ERROR_DURING_NATS_SHUTDOWN: '关闭 NATS 连接时出错。',
+      NO_STREAM_CONFIGS_PROVIDED: '未提供 JetStream provisioner 的流配置。',
+      FAILED_TO_PROVISION_JETSTREAM_STREAMS: '配置 JetStream 流失败。',
+      BOUNDED_PUBLISHER_NOT_OPERATIONAL:
+        'BoundedPublisher 不可用（无 JetStream 客户端）。消息已丢弃。',
+      CRITICAL_SECURITY_SIGNAL_DROPPED: '关键安全信号被丢弃！队列已完全耗尽。',
+      NORMAL_EVENT_DROPPED: '由于背压，正常事件被丢弃。',
+      QUEUE_LIMIT_REACHED: '达到队列限制：{{msg}}',
+      BOUNDED_PUBLISHER_TASK_FAILED: '有界发布任务失败。尝试路由到 DLQ。',
+      FATAL_FAILED_TO_PUBLISH_TO_DLQ: '致命错误：发布到 DLQ 失败。消息丢失。',
     },
   },
 };

@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { AuthKeyUtil } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
+import { BoundedPublisherService } from '@ocean.chat/nats-jetstream-provisioner';
 import { NatsJetStreamProvisionerService } from '@ocean.chat/nats-jetstream-provisioner';
 import { RedisService } from '@ocean.chat/redis';
 import { IJwtPayload, ITokenStorage } from '@ocean.chat/types';
@@ -26,9 +27,11 @@ export class OceanchatAuthService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly natsProvisioner: NatsJetStreamProvisionerService,
     private readonly i18nService: I18nService,
+    private readonly boundedPublisher: BoundedPublisherService,
     @InjectPinoLogger('oceanchat.auth.service')
     private readonly logger: PinoLogger,
   ) {}
+
   onModuleInit() {
     const meter = metrics.getMeter('oceanchat-auth');
     this.loginCounter = meter.createCounter('auth.logins.total', {
@@ -54,32 +57,29 @@ export class OceanchatAuthService implements OnModuleInit {
     this.loginCounter.add(1, { 'login.method': 'password' });
     // generate accessToken & refreshToken if `@UseGuards(JwtAuthGuard)` runs successfully.
     const [accessToken, refreshToken] = await this.generateTokens(user);
-
-    // Publish a domain event to NATS JetStream for other services to consume.
-    const js = this.natsProvisioner.getJetStreamClient();
-    if (js) {
-      // Fire-and-forget: publish the event but don't await it.
-      // Attach a .catch() to handle potential errors (e.g., NATS server is down)
-      // and prevent an unhandled promise rejection, while not blocking the login response.
-      // TODO: Distributed tracing integration for NATS publishing
-      void js
-        .publish(
-          'auth.event.user.loggedIn',
-          JSON.stringify({
+    // Fire-and-forget: publish the event but don't await it.
+    // The BoundedPublisherService will handle backpressure and DLQ internally.
+    // The .catch() here only handles the case where the internal queue is full.
+    void this.boundedPublisher
+      .publishSafe(
+        'auth.event.user.loggedIn',
+        {
+          pattern: 'auth.event.user.loggedIn',
+          data: {
             userId: user._id,
             deviceId: user.deviceId,
             loginTime: new Date().toISOString(),
-          }),
-        )
-        .catch((err) => {
-          // TODO: Set up a logging system and record the error.
-          // This exception will not be caught by AllExceptionsFilter. Since it occurs in a separate, unawaited Promise chain, it becomes a detached unhandledRejection, which is exactly what we want to avoid.
-          this.logger.error(
-            { userId: user._id, err },
-            this.i18nService.translate('FAILED_TO_PUBLISH_LOGGEDIN_EVENT'),
-          );
-        });
-    }
+          },
+        },
+        'login_event',
+        { isCritical: false },
+      )
+      .catch((err) => {
+        this.logger.error(
+          { userId: user._id, err },
+          this.i18nService.translate('FAILED_TO_PUBLISH_LOGGEDIN_EVENT'),
+        );
+      });
     return { accessToken, refreshToken, user };
   }
 
@@ -90,6 +90,49 @@ export class OceanchatAuthService implements OnModuleInit {
    */
   async logout(userId: string, deviceId: string): Promise<number> {
     const userKey = AuthKeyUtil.getUserKey(userId);
+
+    // Zero-I/O Authentication: Broadcast token revocation to Gateways
+    try {
+      const sessionStr = await this.redisService.hget(userKey, deviceId);
+      if (sessionStr) {
+        const session: ITokenStorage = JSON.parse(sessionStr);
+        const decodedAT: IJwtPayload = this.jwtService.decode(
+          session.accessToken,
+        );
+
+        if (session.accessJti && decodedAT?.exp) {
+          void this.boundedPublisher
+            .publishSafe(
+              'auth.jwt.revoke',
+              {
+                pattern: 'auth.jwt.revoke',
+                data: {
+                  jti: session.accessJti,
+                  exp: decodedAT.exp,
+                },
+              },
+              'logout_event',
+              { isCritical: true },
+            )
+            .catch((err) => {
+              this.logger.error(
+                { userId, deviceId, err },
+                this.i18nService.translate(
+                  'FAILED_TO_PUBLISH_REVOKE_EVENT_LOGOUT',
+                ),
+              );
+            });
+        }
+      }
+    } catch (e) {
+      this.logger.error(
+        { userId, deviceId, e },
+        this.i18nService.translate(
+          'FAILED_TO_PARSE_SESSION_OR_PUBLISH_REVOCATION',
+        ),
+      );
+    }
+
     return await this.redisService.hdel(userKey, deviceId);
   }
 
@@ -105,17 +148,14 @@ export class OceanchatAuthService implements OnModuleInit {
       payload = await this.jwtService.verifyAsync<IJwtPayload>(
         oldRefreshToken,
         {
-          secret: this.configService.get<string>('jwt.refreshSecret'),
+          secret: this.configService.get<string>('jwt.refreshPublicKey'),
+          algorithms: ['RS256'],
         },
       );
     } catch (error) {
-      // If the underlying layer has already packaged the error (e.g., failure to obtain role, database connection timeout, etc.),
-      // this means that the underlying layer has a clear definition of the error, and the upper layer should directly "pass it through" without tampering with it.
       if (error instanceof BaseRpcException) {
         throw error;
       }
-      // If the refresh token is invalid or expired, deny access.
-      // Only those "unexpected" errors or errors that actually belong to the current level of semantics (such as the native JsonWebTokenError thrown by verify token) are uniformly wrapped.
       throw new BaseRpcException(
         this.i18nService.translate('UNAUTHORIZED'),
         HttpStatus.UNAUTHORIZED,
@@ -128,7 +168,6 @@ export class OceanchatAuthService implements OnModuleInit {
     const lockKey = `auth:refresh:lock:${userId}:${deviceId}`;
 
     // Attempt to acquire the lock independently.
-    // If Redis fails here, we catch it specifically to avoid entering the critical section or the finally block incorrectly.
     let isLockAcquired: string | null = null;
     try {
       isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
@@ -154,27 +193,83 @@ export class OceanchatAuthService implements OnModuleInit {
       const userKey = AuthKeyUtil.getUserKey(userId);
 
       // Check if the device session exists in Redis Hash
-      const storage = await this.redisService.hget(userKey, deviceId);
+      const storageStr = await this.redisService.hget(userKey, deviceId);
 
-      if (
-        !storage ||
-        (JSON.parse(storage) as ITokenStorage).refreshJti !== jti
-      ) {
-        // If storage is missing, the user was kicked out or expired.
-        // If JTI mismatch, the token was already refreshed (reuse attempt) or replaced.
-        // I return a specific error code to differentiate this from a fundamentally invalid token
-        // (which fails at the jwt.verifyAsync step).
-        // This allows the frontend to handle race conditions gracefully (e.g., by ignoring this
-        // specific error and waiting for the successful concurrent request's response)
-        // instead of logging the user out immediately.
+      if (!storageStr) {
         throw new BaseRpcException(
           this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
           HttpStatus.UNAUTHORIZED,
           ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
-          {
-            userId,
-            jti,
-          },
+          { userId, jti },
+        );
+      }
+
+      let storage: ITokenStorage;
+      try {
+        storage = JSON.parse(storageStr);
+      } catch (parseError) {
+        this.logger.error(
+          { userId, deviceId, parseError },
+          this.i18nService.translate('CORRUPTED_SESSION_DATA_IN_REDIS'),
+        );
+        throw new BaseRpcException(
+          this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          { userId, jti },
+        );
+      }
+
+      if (storage.refreshJti !== jti) {
+        // Replay Attack Detected!
+        this.logger.warn(
+          { userId, jti, deviceId },
+          this.i18nService.translate('REPLAY_ATTACK_DETECTED'),
+        );
+
+        // Fetch all active sessions to revoke their Access Tokens
+        const allSessions = await this.redisService.hgetall(userKey);
+        if (allSessions) {
+          Object.values(allSessions).forEach((sessStr) => {
+            try {
+              const sess = JSON.parse(sessStr) as ITokenStorage;
+              const decodedAT: IJwtPayload = this.jwtService.decode(
+                sess.accessToken,
+              );
+              if (sess.accessJti && decodedAT?.exp) {
+                void this.boundedPublisher
+                  .publishSafe(
+                    'auth.jwt.revoke',
+                    {
+                      jti: sess.accessJti,
+                      exp: decodedAT.exp,
+                    },
+                    'replay_attack_revoke_event',
+                    { isCritical: true },
+                  )
+                  .catch((err) => {
+                    this.logger.error(
+                      { err, userId, jti: sess.accessJti },
+                      this.i18nService.translate(
+                        'FAILED_TO_PUBLISH_REVOKE_EVENT_REPLAY',
+                      ),
+                    );
+                  });
+              }
+            } catch {
+              // Ignore parse errors for individual sessions
+            }
+          });
+        }
+
+        // Delete all sessions for this user (family revocation)
+        await this.redisService.del(userKey);
+
+        throw new BaseRpcException(
+          this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
+          HttpStatus.UNAUTHORIZED,
+          ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          { userId, jti },
         );
       }
 
@@ -202,6 +297,31 @@ export class OceanchatAuthService implements OnModuleInit {
         deviceId,
       });
 
+      // Revoke the old access token since we've rotated it
+      const decodedOldAT: IJwtPayload = this.jwtService.decode(
+        storage.accessToken,
+      );
+      if (storage.accessJti && decodedOldAT?.exp) {
+        void this.boundedPublisher
+          .publishSafe(
+            'auth.jwt.revoke',
+            {
+              jti: storage.accessJti,
+              exp: decodedOldAT.exp,
+            },
+            'refresh_token_revoke_event',
+            { isCritical: true },
+          )
+          .catch((err) => {
+            this.logger.error(
+              { err, userId },
+              this.i18nService.translate(
+                'FAILED_TO_PUBLISH_OLD_TOKEN_REVOCATION',
+              ),
+            );
+          });
+      }
+
       return { accessToken: newAccessToken, refreshToken: newRefreshToken };
     } catch (error) {
       if (error instanceof BaseRpcException) {
@@ -216,8 +336,6 @@ export class OceanchatAuthService implements OnModuleInit {
         },
       );
     } finally {
-      // Only release the lock if we acquired it (which is implied since we are in this try block).
-      // Add a catch to prevent errors during release from masking the original business logic error.
       await this.redisService.del(lockKey).catch((err) => {
         this.logger.error(
           { err, lockKey },
@@ -263,12 +381,14 @@ export class OceanchatAuthService implements OnModuleInit {
 
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(accessTokenPayload, {
-        secret: this.configService.get<string>('jwt.accessSecret'),
+        privateKey: this.configService.get<string>('jwt.accessPrivateKey'),
         expiresIn: accessExpiresIn,
+        algorithm: 'RS256',
       }),
       this.jwtService.signAsync(refreshTokenPayload, {
-        secret: this.configService.get<string>('jwt.refreshSecret'),
+        privateKey: this.configService.get<string>('jwt.refreshPrivateKey'),
         expiresIn: refreshExpiresIn,
+        algorithm: 'RS256',
       }),
     ]);
 
@@ -282,16 +402,10 @@ export class OceanchatAuthService implements OnModuleInit {
 
     try {
       // Atomically store both tokens' JTIs in Redis using a transaction (MULTI/EXEC).
-      // This ensures that either both keys are set successfully, or neither is,
-      // preventing a partial state where only one token is valid.
-
-      // Store the token info in the Redis Hash: auth:user:{userId} -> {deviceId}
       const userKey = AuthKeyUtil.getUserKey(userId);
-
       const refreshTtl = ms(refreshExpiresIn) / 1000;
 
       // Add jitter to TTLs to prevent mass expiry (cache avalanche)
-      // e.g., add up to 10% of the original TTL as random jitter.
       const refreshExpiresInSeconds =
         refreshTtl + Math.floor(Math.random() * refreshTtl * 0.1);
 
@@ -307,8 +421,6 @@ export class OceanchatAuthService implements OnModuleInit {
       if (error instanceof BaseRpcException) {
         throw error;
       }
-      // If storing the session in Redis fails, I should not issue the token.
-      // This prevents issuing a token that can never be validated.
       throw new BaseRpcException(
         this.i18nService.translate('Login_Session_Store_Failed'),
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -318,11 +430,6 @@ export class OceanchatAuthService implements OnModuleInit {
     }
   }
 
-  /**
-   * decode the token
-   * @param token token used for decode
-   * @returns
-   */
   decodeToken(token: string): Record<string, unknown> | null {
     return this.jwtService.decode(token);
   }

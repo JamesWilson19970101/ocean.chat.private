@@ -187,6 +187,15 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Get all fields and values of a hash.
+   * @param key The key of the hash.
+   * @returns An object representing the hash fields and values.
+   */
+  async hgetall(key: RedisKey): Promise<Record<string, string>> {
+    return await this.redisClient.hgetall(key);
+  }
+
+  /**
    * Sets multiple key-value pairs in Redis.
    * @param args An array of key-value pairs, e.g., ['key1', 'value1', 'key2', 'value2'].
    * @returns 'OK' if all keys were set successfully.

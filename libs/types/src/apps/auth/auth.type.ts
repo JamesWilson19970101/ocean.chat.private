@@ -5,7 +5,6 @@ import { User } from '@ocean.chat/models';
  * It's a subset of the main User entity.
  */
 export type AuthenticatedUser = Pick<User, '_id' | 'username'> & {
-  sub: string;
   deviceId: string;
 };
 

@@ -1,16 +1,17 @@
-import { Controller, Get, HttpStatus, Inject, Req } from '@nestjs/common';
+import { Controller, Get, HttpStatus, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
   BaseException,
   ErrorCodes,
-  ErrorResponseDto,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { CircuitBreakerService } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
-import { Request } from 'express';
+import { IJwtPayload } from '@ocean.chat/types';
 import { catchError, firstValueFrom, map, throwError, timeout } from 'rxjs';
+
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('users')
 export class UsersController {
@@ -26,9 +27,9 @@ export class UsersController {
    * For a more detailed profile, we query the user microservice.
    */
   @Get('me')
-  async getMyProfile(@Req() req: Request) {
+  async getMyProfile(@CurrentUser() user: IJwtPayload) {
     // req.user is populated by JwtAuthGuard from the token payload
-    const { sub: userId } = req.user as { sub: string };
+    const { sub: userId } = user;
 
     // Call the user service to get the full, safe-to-expose profile
     return this.circuitBreakerService.fire(
@@ -51,7 +52,7 @@ export class UsersController {
                 }
                 return profile;
               }),
-              catchError((err: ErrorResponseDto) => {
+              catchError((err: unknown) => {
                 // If it's the BaseException (404) we just threw in the map, just throw it out directly without changing the status code.
                 if (err instanceof BaseException) {
                   return throwError(() => err);
@@ -74,7 +75,7 @@ export class UsersController {
                       this.i18nService.translate('INTERNAL_SERVER_ERROR'),
                       HttpStatus.INTERNAL_SERVER_ERROR,
                       ErrorCodes.UNEXPECTED_ERROR,
-                      { cause: err },
+                      { cause: err as any },
                     ),
                 );
               }),

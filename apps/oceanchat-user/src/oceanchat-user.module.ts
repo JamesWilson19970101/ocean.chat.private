@@ -7,6 +7,8 @@ import {
   databaseConfiguration,
   Env,
   natsConfiguration,
+  PinoLevelToSeverityNumber,
+  PinoLevelToSeverityText,
   redisConfiguration,
   validationSchema,
 } from '@ocean.chat/cores';
@@ -24,33 +26,13 @@ import { Connection } from 'mongoose';
 import { RetentionPolicy, StorageType } from 'nats';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
+import { NatsEventsService } from './modules/nats-events/nats-events.service';
 import { OceanchatUserController } from './oceanchat-user.controller';
 import { OceanchatUserService } from './oceanchat-user.service';
 import { PasswordService } from './password.service';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
-
-// map SeverityNumber
-// https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
-const PinoLevelToSeverityNumber = {
-  10: 1, // TRACE
-  20: 5, // DEBUG
-  30: 9, // INFO
-  40: 13, // WARN
-  50: 17, // ERROR
-  60: 21, // FATAL
-};
-
-// map SeverityNumber to text
-const PinoLevelToSeverityText = {
-  10: 'TRACE',
-  20: 'DEBUG',
-  30: 'INFO',
-  40: 'WARN',
-  50: 'ERROR',
-  60: 'FATAL',
-};
 
 interface OceanchatUserModuleOptions {
   serviceName: string;
@@ -175,33 +157,24 @@ export class OceanchatUserModule {
           inject: [I18nService],
           useFactory: (i18nService: I18nService) => {
             const isProduction = process.env.NODE_ENV === 'production';
-            const environment = isProduction
-              ? i18nService.translate('ENVIRONMENT_PRODUCTION')
-              : i18nService.translate('ENVIRONMENT_DEVELOPMENT');
             return {
               // NATS server URL, configurable via environment variables.
               natsUrl: process.env.NATS_URL || 'nats://localhost:4222',
-              streamConfig: {
-                // The unique name for the Stream.
-                name: 'USER',
-                // Capture all subjects starting with 'auth.' to aggregate all auth-related messages.
-                subjects: ['user.event.>'],
-                // Retention policy: 'Limits' for production (for auditing/replay), 'Workqueue' for development (for efficiency).
-                retention: isProduction
-                  ? RetentionPolicy.Limits
-                  : RetentionPolicy.Workqueue,
-                // Persist messages to disk to ensure no data loss.
-                storage: StorageType.File,
-                // Number of replicas for high availability: 3 recommended for a production cluster, 1 for a single-node dev environment.
-                replicas: isProduction ? 3 : 1,
-                // In production, retain messages for 24 hours even after consumption. 0 means no time limit.
-                max_age: isProduction ? 24 * 60 * 60 * 1_000_000_000 : 0, // 24 hours in nanoseconds
-                // Provide a human-readable description for the stream for easier operations.
-                description: i18nService.translate('NATS_STREAM_DESCRIPTION', {
-                  serviceName: 'oceanchat-user',
-                  environment,
-                }),
-              },
+              streamConfigs: [
+                {
+                  name: 'USER',
+                  subjects: ['user.event.>'],
+                  retention: isProduction
+                    ? RetentionPolicy.Limits
+                    : RetentionPolicy.Workqueue,
+                  storage: StorageType.File,
+                  replicas: isProduction ? 3 : 1,
+                  max_age: isProduction ? 24 * 60 * 60 * 1_000_000_000 : 0, // 24 hours in nanoseconds
+                  description: i18nService.translate(
+                    'USER_EVENTS_STREAM_DESCRIPTION',
+                  ),
+                },
+              ],
             };
           },
         }),
@@ -213,6 +186,7 @@ export class OceanchatUserModule {
       providers: [
         OceanchatUserService,
         PasswordService,
+        NatsEventsService,
         {
           provide: APP_INTERCEPTOR,
           useClass: NatsTraceInterceptor,

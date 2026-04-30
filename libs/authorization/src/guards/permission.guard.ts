@@ -86,7 +86,7 @@ export class PermissionGuard implements CanActivate {
       requestData = { ...req.query, ...req.params, ...req.body };
     } else if (context.getType() === 'rpc') {
       const data = context.switchToRpc().getData<AuthenticatedUser>();
-      userId = data.sub || (data._id as string);
+      // userId = data.sub || (data._id as string);
       requestData = data || {};
     }
 

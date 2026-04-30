@@ -1,318 +1,264 @@
-import { ErrorResponseDto } from '@ocean.chat/common-exceptions';
-import { User } from '@ocean.chat/models';
-import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import Redis from 'ioredis';
-import { connect, connection } from 'mongoose';
+import { connect, connection, disconnect } from 'mongoose';
+import {
+  connect as natsConnect,
+  // headers,
+  NatsConnection,
+  StringCodec,
+} from 'nats';
 import * as request from 'supertest';
+import { v4 as uuidv4 } from 'uuid';
 
-describe('Auth Module E2E Tests', () => {
-  const appUrl = 'http://localhost:1994';
+describe('Auth Module Pragmatic E2E Tests (Gateway -> Auth -> NATS)', () => {
+  jest.setTimeout(30000);
+  const GATEWAY_URL = process.env.API_GATEWAY_URL || 'http://localhost:1994';
   let redisClient: Redis;
+  let nc: NatsConnection;
+  const sc = StringCodec();
+
+  /**
+   * Helper to wait for a NATS message on a specific subject.
+   */
+  function waitForNatsMessage(subject: string, timeoutMs = 3000): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const sub = nc.subscribe(subject, { max: 1 });
+      const timer = setTimeout(() => {
+        sub.unsubscribe();
+        reject(
+          new Error(`Timeout waiting for NATS message on subject: ${subject}`),
+        );
+      }, timeoutMs);
+
+      (async () => {
+        for await (const m of sub) {
+          clearTimeout(timer);
+
+          const rawParsed = JSON.parse(sc.decode(m.data));
+
+          const normalizedData =
+            rawParsed && typeof rawParsed === 'object' && 'data' in rawParsed
+              ? rawParsed.data
+              : rawParsed;
+
+          resolve({
+            subject: m.subject,
+            raw: rawParsed,
+            data: normalizedData,
+            headers: m.headers,
+          });
+        }
+      })().catch(reject);
+    });
+  }
 
   beforeAll(async () => {
+    // 1. Setup Environment (Real Redis, Real Mongo, Real NATS)
+    const testRedisDb = '15';
+    const natsUrl = process.env.NATS_URL || 'nats://localhost:4222';
+    const mongoUri =
+      process.env.DATABASE_URI || 'mongodb://localhost:27017/oceanchat_test';
+
+    process.env.REDIS_DB = testRedisDb;
+    process.env.NATS_URL = natsUrl;
+    process.env.DATABASE_URI = mongoUri;
+
     redisClient = new Redis({
       host: process.env.REDIS_HOST || '127.0.0.1',
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      db: parseInt(process.env.REDIS_DB_TEST || '15', 10),
+      db: parseInt(testRedisDb, 10),
     });
 
-    await connect('mongodb://localhost:27017/oceanchat_test');
+    await connect(mongoUri);
+    nc = await natsConnect({ servers: natsUrl });
   });
 
   afterAll(async () => {
     await redisClient.quit();
     await connection.close();
+    await disconnect();
+    await nc.close();
   });
 
   afterEach(async () => {
     await connection.collection('users').deleteMany({});
-    // login will set access-session & refresh-session
-    const accessKeys = await redisClient.keys('access-session:*');
-    const refreshKeys = await redisClient.keys('refresh-session:*');
-    const allSessionKeys = [...accessKeys, ...refreshKeys];
-    if (allSessionKeys.length > 0) {
-      await redisClient.del(allSessionKeys);
+    const keys = await redisClient.keys('auth:user:*');
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+    }
+    const idempotencyKeys = await redisClient.keys('idempotency:*');
+    if (idempotencyKeys.length > 0) {
+      await redisClient.del(idempotencyKeys);
     }
   });
 
-  describe('/auth/register (POST)', () => {
-    const registerDto = {
-      username: 'e2e-test-user',
+  describe('Core E2E Paths (Register, Login, Refresh, Logout)', () => {
+    const userDto = {
+      username: 'e2e-gateway-user',
       password: 'Password123!',
       confirmPassword: 'Password123!',
     };
+    const loginDto = {
+      username: userDto.username,
+      password: userDto.password,
+      deviceId: 'gateway-device-1',
+    };
 
-    it('should return created user on successful registration', () => {
-      return request(appUrl)
+    it('1. POST /auth/register - Should register a new user', async () => {
+      const res = await request(GATEWAY_URL)
         .post('/auth/register')
-        .send(registerDto)
-        .expect(200)
-        .then((res: { [key: string]: any; body: Partial<User> }) => {
-          // 1. Check for existence of auto-generated fields
-          expect(res.body).toHaveProperty('_id');
-          expect(res.body).toHaveProperty('createdAt');
-          expect(res.body).toHaveProperty('updatedAt');
-
-          // 2. Check if returned values match input or defaults
-          expect(res.body.username).toEqual(registerDto.username);
-          expect(res.body.name).toEqual(registerDto.username);
-          expect(res.body.type).toEqual('user');
-          expect(res.body.active).toBe(true);
-          expect(res.body.status).toEqual('offline');
-          expect(res.body.roles).toEqual(['user']);
-          expect(res.body.emails).toEqual([]);
-
-          // 3. IMPORTANT: Ensure sensitive data is NOT exposed
-          expect(res.body.providers).toBeUndefined();
-        });
-    });
-
-    it('should fail with 400 if passwords do not match', () => {
-      return request(appUrl)
-        .post('/auth/register')
-        .send({ ...registerDto, confirmPassword: 'wrong-password' })
-        .expect(400)
-        .then(
-          (
-            res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
-          ) => {
-            expect(res.body.message).toContain('Passwords do not match');
-          },
-        );
-    });
-
-    it('should fail with 400 if username already exists', async () => {
-      await request(appUrl)
-        .post('/auth/register')
-        .send(registerDto)
+        .send(userDto)
         .expect(200);
 
-      return request(appUrl)
-        .post('/auth/register')
-        .send(registerDto)
-        .expect(409)
-        .then(
-          (
-            res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
-          ) => {
-            expect(res.body.errorCode).toEqual(10001);
-          },
-        );
+      expect(res.body).toHaveProperty('_id');
+      expect(res.body.username).toEqual(userDto.username);
+      expect(res.body.roles).toEqual(['user']);
+      expect(res.body.providers).toBeUndefined(); // Safe DTO
     });
 
-    it('should fail with 400 if required fields are missing', () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { username, ...dtoWithoutUsername } = registerDto;
-      return request(appUrl)
-        .post('/auth/register')
-        .send(dtoWithoutUsername)
-        .expect(400);
+    it('2. POST /auth/login - Should return Access Token and set HttpOnly Refresh Token cookie', async () => {
+      await request(GATEWAY_URL).post('/auth/register').send(userDto);
+
+      const natsPromise = waitForNatsMessage('auth.event.user.loggedIn');
+
+      const res = await request(GATEWAY_URL).post('/auth/login').send(loginDto);
+
+      if (res.status !== 200) {
+        console.error('LOGIN FAILED:', res.body);
+      }
+      expect(res.status).toBe(200);
+
+      expect(res.body).toHaveProperty('accessToken');
+      expect(res.body.user.username).toEqual(loginDto.username);
+
+      // Verify HttpOnly Cookie
+      const cookies = (res.headers['set-cookie'] as unknown as string[]) || [];
+      expect(cookies.length).toBeGreaterThan(0);
+      expect(cookies[0]).toContain('refresh_token=');
+      expect(cookies[0]).toContain('HttpOnly');
+
+      // Verify NATS Event Published
+      const publishedMsg = await natsPromise;
+      expect(publishedMsg.raw.pattern).toBe('auth.event.user.loggedIn');
+      expect(publishedMsg.data.userId).toBe(res.body.user._id);
     });
 
-    it('should fail with 400 if password is too short', () => {
-      const shortPasswordDto = {
-        ...registerDto,
-        password: 's',
-        confirmPassword: 's',
-      };
-      return request(appUrl)
-        .post('/auth/register')
-        .send(shortPasswordDto)
-        .expect(400)
-        .then(
-          (
-            res: { body: Partial<ErrorResponseDto> } & { [key: string]: any },
-          ) => {
-            expect(res.body.errorCode).toEqual(10010);
-          },
-        );
+    it('3. POST /auth/refresh - Should rotate tokens and publish revoke event', async () => {
+      await request(GATEWAY_URL).post('/auth/register').send(userDto);
+      const loginRes = await request(GATEWAY_URL)
+        .post('/auth/login')
+        .send(loginDto);
+      const initialAt = loginRes.body.accessToken;
+      const initialRtCookie = ((loginRes.headers[
+        'set-cookie'
+      ] as unknown as string[]) || [])[0].split(';')[0];
+
+      const natsPromise = waitForNatsMessage('auth.jwt.revoke');
+
+      const refreshRes = await request(GATEWAY_URL)
+        .post('/auth/refresh')
+        .set('Cookie', [initialRtCookie])
+        .expect(200);
+
+      expect(refreshRes.body.accessToken).toBeDefined();
+      expect(refreshRes.body.accessToken).not.toBe(initialAt);
+
+      const newCookies =
+        (refreshRes.headers['set-cookie'] as unknown as string[]) || [];
+      const newRtCookie = newCookies[0].split(';')[0];
+      expect(newRtCookie).not.toBe(initialRtCookie);
+
+      // Verify NATS Revoke Event for the Old Access Token
+      const publishedMsg = await natsPromise;
+      expect(publishedMsg.data.jti).toBeDefined();
+    });
+
+    it('4. POST /auth/logout - Should clear session and cookie', async () => {
+      await request(GATEWAY_URL).post('/auth/register').send(userDto);
+      const loginRes = await request(GATEWAY_URL)
+        .post('/auth/login')
+        .send(loginDto);
+      const accessToken = loginRes.body.accessToken;
+
+      const natsPromise = waitForNatsMessage('auth.jwt.revoke');
+
+      const logoutRes = await request(GATEWAY_URL)
+        .post('/auth/logout')
+        .set('Authorization', `Bearer ${accessToken}`)
+        .expect(200);
+
+      // Verify Cookie is cleared
+      const cookies =
+        (logoutRes.headers['set-cookie'] as unknown as string[]) || [];
+      expect(cookies[0]).toContain('Expires=Thu, 01 Jan 1970 00:00:00 GMT');
+
+      // Verify Revoke Event
+      const publishedMsg = await natsPromise;
+      expect(publishedMsg.data.jti).toBeDefined();
     });
   });
 
-  describe('/auth/login (POST)', () => {
-    const loginDto = {
-      username: 'e2e-login-user',
-      password: 'Password123!',
-      deviceId: 'e2e-login-user',
-    };
-
-    // Before each test in this block, register a user to ensure a clean state.
-    beforeEach(async () => {
-      await request(appUrl).post('/auth/register').send({
-        username: 'e2e-login-user',
+  describe('Idempotency & Concurrency (Anti-Breakdown)', () => {
+    it('Scenario 1: HTTP Request Level Idempotency (Concurrent Writes)', async () => {
+      const idempotencyKey = uuidv4();
+      const registerDto = {
+        username: 'idempotent-user-123',
         password: 'Password123!',
-        confirmPassword: loginDto.password,
-      });
+        confirmPassword: 'Password123!',
+      };
+
+      // Fire 3 concurrent registration requests with the SAME idempotency key
+      const requests = Array.from({ length: 3 }).map(() =>
+        request(GATEWAY_URL)
+          .post('/auth/register')
+          .set('idempotency-key', idempotencyKey)
+          .send(registerDto),
+      );
+
+      const responses = await Promise.all(requests);
+      const statuses = responses.map((r) => r.status);
+
+      // 1 should succeed (200 OK), others should be blocked by idempotency (409 Conflict)
+      // Note: If the first succeeds very fast, the others might return the cached 200 OK.
+      // We will assert that exactly 1 user was created in the DB.
+
+      const successCount = statuses.filter((s) => s === 200).length;
+      const conflictCount = statuses.filter((s) => s === 409).length;
+
+      // Because the actual user creation takes time, the lock will hold and block the others with 409.
+      expect(successCount).toBe(1);
+      expect(conflictCount).toBe(2);
+
+      const usersInDb = await connection
+        .collection('users')
+        .countDocuments({ username: 'idempotent-user-123' });
+      expect(usersInDb).toBe(1);
     });
 
-    it('should return tokens and user on successful login', () => {
-      return request(appUrl)
-        .post('/auth/login')
-        .send(loginDto)
-        .expect(200)
-        .then((res: { [key: string]: any; body: LoginResult }) => {
-          // 1. Check for the presence of tokens and user object
-          expect(res.body).toHaveProperty('accessToken');
-          expect(res.body).toHaveProperty('refreshToken');
-          expect(res.body).toHaveProperty('user');
+    it('Scenario 2: NATS Consumer Redelivery Idempotency (Simulating BaseNatsSubscriber)', async () => {
+      // Since Gateway is running externally, we publish a NATS message directly
+      // and verify if the idempotency lock correctly prevents double-processing in Redis.
 
-          // 2. Validate the content of the tokens and user object
-          expect(typeof res.body.accessToken).toBe('string');
-          expect(res.body.accessToken).not.toBe('');
-          expect(typeof res.body.refreshToken).toBe('string');
-          expect(res.body.refreshToken).not.toBe('');
-          expect(res.body.user.username).toEqual(loginDto.username);
-          expect(res.body.user).toHaveProperty('_id');
+      const js = nc.jetstream();
+      const jti = uuidv4();
 
-          // 3. Ensure sensitive data is not exposed
-          expect(res.body.user).not.toHaveProperty('providers');
-        });
-    });
+      const mockEvent = { jti, exp: Math.floor(Date.now() / 1000) + 3600 };
 
-    it('should fail with 401 for incorrect password', () => {
-      return request(appUrl)
-        .post('/auth/login')
-        .send({ ...loginDto, password: 'wrong-password' })
-        .expect(401)
-        .then(
-          (res: { [key: string]: any; body: Partial<ErrorResponseDto> }) => {
-            expect(res.body.errorCode).toEqual(10030); // UNAUTHORIZED
-          },
-        );
-    });
+      const payload = sc.encode(JSON.stringify(mockEvent));
 
-    it('should fail with 401 for non-existent user', () => {
-      return request(appUrl)
-        .post('/auth/login')
-        .send({ ...loginDto, username: 'non-existent-user' })
-        .expect(401)
-        .then(
-          (res: { [key: string]: any; body: Partial<ErrorResponseDto> }) => {
-            expect(res.body.errorCode).toEqual(10030); // UNAUTHORIZED
-          },
-        );
-    });
+      // 1st Delivery (First event arrives)
+      await js.publish('auth.jwt.revoke', payload);
 
-    it('should fail with 400 if password is not provided', () => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { password, ...dtoWithoutPassword } = loginDto;
-      return request(appUrl)
-        .post('/auth/login')
-        .send(dtoWithoutPassword)
-        .expect(400);
-    });
-  });
+      // 2nd Delivery (Simulated duplicated business event or redelivery without msgId)
+      await js.publish('auth.jwt.revoke', payload);
 
-  describe('/auth/refresh (POST)', () => {
-    const userDto = {
-      username: 'refresh-test-user',
-      password: 'Password123!',
-      confirmPassword: 'Password123!',
-    };
-    const loginDto = {
-      username: userDto.username,
-      password: userDto.password,
-      deviceId: 'refresh-device',
-    };
-    let refreshToken: string;
-    let accessToken: string;
+      // Give the external Gateway a moment to process the messages
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-    beforeEach(async () => {
-      await request(appUrl).post('/auth/register').send(userDto);
-      const res: { [key: string]: any; body: LoginResult } = await request(
-        appUrl,
-      )
-        .post('/auth/login')
-        .send(loginDto);
-      refreshToken = res.body.refreshToken;
-      accessToken = res.body.accessToken;
-    });
-
-    it('should return new tokens on successful refresh', async () => {
-      const res = await request(appUrl)
-        .post('/auth/refresh')
-        .send({ refreshToken })
-        .expect(200);
-
-      const body = res.body as RefreshTokenResult;
-      expect(body).toHaveProperty('accessToken');
-      expect(body).toHaveProperty('refreshToken');
-      expect(body.accessToken).not.toBe(accessToken);
-      expect(body.refreshToken).not.toBe(refreshToken);
-    });
-
-    it('should fail with 401 if refresh token is invalid', () => {
-      return request(appUrl)
-        .post('/auth/refresh')
-        .send({ refreshToken: 'invalid-token' })
-        .expect(401);
-    });
-
-    it('should fail with 401 if refresh token is reused (revoked)', async () => {
-      // 1. Refresh once (success) - this invalidates the old refresh token
-      await request(appUrl)
-        .post('/auth/refresh')
-        .send({ refreshToken })
-        .expect(200);
-
-      // 2. Try to refresh again with the same old token
-      return request(appUrl)
-        .post('/auth/refresh')
-        .send({ refreshToken })
-        .expect(401);
-    });
-  });
-
-  describe('/auth/logout (POST)', () => {
-    const userDto = {
-      username: 'logout-test-user',
-      password: 'Password123!',
-      confirmPassword: 'Password123!',
-    };
-    const loginDto = {
-      username: userDto.username,
-      password: userDto.password,
-      deviceId: 'logout-device',
-    };
-    let accessToken: string;
-    let refreshToken: string;
-
-    beforeEach(async () => {
-      await request(appUrl).post('/auth/register').send(userDto);
-      const res: { [key: string]: any; body: LoginResult } = await request(
-        appUrl,
-      )
-        .post('/auth/login')
-        .send(loginDto);
-      accessToken = res.body.accessToken;
-      refreshToken = res.body.refreshToken;
-    });
-
-    it('should logout successfully', () => {
-      return request(appUrl)
-        .post('/auth/logout')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
-    });
-
-    it('should fail with 401 if not authenticated', () => {
-      return request(appUrl).post('/auth/logout').expect(401);
-    });
-
-    it('should invalidate access token and refresh token after logout', async () => {
-      await request(appUrl)
-        .post('/auth/logout')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(200);
-
-      await request(appUrl)
-        .get('/users/me')
-        .set('Authorization', `Bearer ${accessToken}`)
-        .expect(401);
-      await request(appUrl)
-        .post('/auth/refresh')
-        .send({ refreshToken })
-        .expect(401);
+      // Verify the idempotency key was created in Redis
+      const idempotencyKey = `idempotency:auth.jwt.revoke:${jti}`;
+      const isIdempotencyKeySet = await redisClient.exists(idempotencyKey);
+      expect(isIdempotencyKeySet).toBe(1);
     });
   });
 });

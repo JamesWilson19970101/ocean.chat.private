@@ -10,6 +10,8 @@ import {
   Env,
   jwtConfiguration,
   natsConfiguration,
+  PinoLevelToSeverityNumber,
+  PinoLevelToSeverityText,
   redisConfiguration,
   validationSchema,
 } from '@ocean.chat/cores';
@@ -29,26 +31,6 @@ import { OceanchatAuthController } from './oceanchat-auth.controller';
 import { OceanchatAuthService } from './oceanchat-auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from './users/users.module';
-// map SeverityNumber
-// https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
-const PinoLevelToSeverityNumber = {
-  10: 1, // TRACE
-  20: 5, // DEBUG
-  30: 9, // INFO
-  40: 13, // WARN
-  50: 17, // ERROR
-  60: 21, // FATAL
-};
-
-// map SeverityNumber to text
-const PinoLevelToSeverityText = {
-  10: 'TRACE',
-  20: 'DEBUG',
-  30: 'INFO',
-  40: 'WARN',
-  50: 'ERROR',
-  60: 'FATAL',
-};
 
 interface OceanchatAuthModuleOptions {
   serviceName: string;
@@ -170,33 +152,46 @@ export class OceanchatAuthModule {
           inject: [I18nService],
           useFactory: (i18nService: I18nService) => {
             const isProduction = process.env.NODE_ENV === 'production';
-            const environment = isProduction
-              ? i18nService.translate('ENVIRONMENT_PRODUCTION')
-              : i18nService.translate('ENVIRONMENT_DEVELOPMENT');
             return {
               // NATS server URL, configurable via environment variables.
               natsUrl: process.env.NATS_URL || 'nats://localhost:4222',
-              streamConfig: {
-                // The unique name for the Stream.
-                name: 'AUTH',
-                // Capture all subjects starting with 'auth.' to aggregate all auth-related messages.
-                subjects: ['auth.event.>'],
-                // Retention policy: 'Limits' for production (for auditing/replay), 'Workqueue' for development (for efficiency).
-                retention: isProduction
-                  ? RetentionPolicy.Limits
-                  : RetentionPolicy.Workqueue,
-                // Persist messages to disk to ensure no data loss.
-                storage: StorageType.File,
-                // Number of replicas for high availability: 3 recommended for a production cluster, 1 for a single-node dev environment.
-                replicas: isProduction ? 3 : 1,
-                // In production, retain messages for 24 hours even after consumption. 0 means no time limit.
-                max_age: isProduction ? 24 * 60 * 60 * 1_000_000_000 : 0, // 24 hours in nanoseconds
-                // Provide a human-readable description for the stream for easier operations.
-                description: i18nService.translate('NATS_STREAM_DESCRIPTION', {
-                  serviceName: 'oceanchat-auth',
-                  environment,
-                }),
-              },
+              streamConfigs: [
+                {
+                  name: 'AUTH_STATE',
+                  subjects: ['auth.jwt.revoke'],
+                  retention: RetentionPolicy.Limits,
+                  storage: StorageType.Memory,
+                  replicas: isProduction ? 3 : 1,
+                  max_age: 30 * 60 * 1_000_000_000, // 30 minutes in nanoseconds
+                  description: i18nService.translate(
+                    'AUTH_STATE_STREAM_DESCRIPTION',
+                  ),
+                },
+                {
+                  name: 'AUTH_EVENTS',
+                  subjects: ['auth.event.>'],
+                  retention: isProduction
+                    ? RetentionPolicy.Limits
+                    : RetentionPolicy.Workqueue,
+                  storage: StorageType.File,
+                  replicas: isProduction ? 3 : 1,
+                  max_age: 24 * 60 * 60 * 1_000_000_000, // 24 hours
+                  description: i18nService.translate(
+                    'AUTH_EVENTS_STREAM_DESCRIPTION',
+                  ),
+                },
+                {
+                  name: 'AUTH_DLQ',
+                  subjects: ['dlq.auth.event.>', 'dlq.auth.jwt.revoke'],
+                  retention: RetentionPolicy.Limits,
+                  storage: StorageType.File,
+                  replicas: isProduction ? 3 : 1,
+                  max_age: 7 * 24 * 60 * 60 * 1_000_000_000, // 7 days
+                  description: i18nService.translate(
+                    'AUTH_DLQ_STREAM_DESCRIPTION',
+                  ),
+                },
+              ],
             };
           },
         }),
@@ -209,14 +204,16 @@ export class OceanchatAuthModule {
           imports: [ConfigModule],
           // eslint-disable-next-line @typescript-eslint/require-await
           useFactory: async (configService: ConfigService) => ({
-            secret: configService.get<string>('jwt.accessSecret'),
+            privateKey: configService.get<string>('jwt.accessPrivateKey'),
+            publicKey: configService.get<string>('jwt.accessPublicKey'),
             signOptions: {
               expiresIn: configService.get<string>('jwt.accessExpiresIn'),
+              algorithm: 'RS256',
             },
           }),
           inject: [ConfigService],
         }),
-        ModelsModule.forFeature([OceanModel.Setting, OceanModel.User]),
+        ModelsModule.forFeature([OceanModel.Setting]),
         UsersModule,
       ],
       controllers: [OceanchatAuthController],

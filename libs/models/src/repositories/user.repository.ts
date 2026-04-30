@@ -12,11 +12,11 @@ export class UserRepository extends BaseRepository<User> {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.model.findOne({ email }).exec();
+    return await this.findOne({ email });
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    return this.model.findOne({ username }).exec();
+    return await this.findOne({ username });
   }
 
   async findOneByUsernameAndProvider(

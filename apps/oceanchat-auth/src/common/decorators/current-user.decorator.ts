@@ -1,4 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
+import { User } from '@ocean.chat/models';
 import { AuthenticatedUser } from '@ocean.chat/types';
 /**
  * Custom parameter decorator to extract the user object that was manually
@@ -9,11 +10,17 @@ export const CurrentUser = createParamDecorator(
     _data: unknown,
     context: ExecutionContext,
   ): Pick<AuthenticatedUser, 'username' | '_id' | 'deviceId'> => {
-    const rpcUser = context.switchToRpc().getData<AuthenticatedUser>();
+    const data = context
+      .switchToRpc()
+      .getData<Record<'authenticatedUser', User> & AuthenticatedUser>();
+
+    // Read from the non-enumerable property set by LocalAuthGuard
+    const rpcUser = data.authenticatedUser;
+
     return {
       username: rpcUser.username,
       _id: rpcUser._id,
-      deviceId: rpcUser.deviceId,
+      deviceId: data.deviceId, // keep deviceId from the original payload
     };
   },
 );

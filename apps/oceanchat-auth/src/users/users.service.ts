@@ -53,7 +53,7 @@ export class UsersService {
         .send<Partial<User> | null>('user.query.profile', { userId: id })
         .pipe(
           timeout(5000),
-          catchError((err: ErrorResponseDto | Error) => {
+          catchError((err: unknown) => {
             return this.handleRpcError(err);
           }),
         ),
