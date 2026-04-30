@@ -17,6 +17,7 @@ import { WebSocket } from 'ws';
 import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '../common-exceptions.module';
 import { ErrorCodes } from '../constants/error-codes.enum';
 import { ErrorResponseDto } from '../dto/error-response.dto';
+import { AppException } from '../exceptions/app.exception';
 import { BaseException } from '../exceptions/base.exception';
 import { BaseRpcException } from '../exceptions/rpc.exception';
 import { BaseWsException } from '../exceptions/ws.exception';
@@ -249,6 +250,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message = typeof wsError === 'string' ? wsError : JSON.stringify(wsError);
       errorCode = ErrorCodes.UNEXPECTED_ERROR;
       statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+    } else if (
+      exception !== null &&
+      typeof exception === 'object' &&
+      'getErrorCode' in exception &&
+      typeof (exception as AppException).getErrorCode === 'function'
+    ) {
+      // process any exception that implements IAppException (e.g., AppException)
+      const appEx = exception as AppException;
+      message = appEx.message || message;
+      errorCode = appEx.getErrorCode();
+      statusCode =
+        typeof appEx.getStatusCode === 'function'
+          ? appEx.getStatusCode()
+          : HttpStatus.BAD_REQUEST;
+      details =
+        typeof appEx.getDetails === 'function' ? appEx.getDetails() : undefined;
     } else {
       // Fallback for any other type of error, including native JS errors and non-Error objects.
       if (exception instanceof Error) {
