@@ -12,6 +12,8 @@ import {
   IdempotencyInterceptor,
   jwtConfiguration,
   natsConfiguration,
+  PinoLevelToSeverityNumber,
+  PinoLevelToSeverityText,
   redisConfiguration,
   restConfiguration,
   validationSchema,
@@ -23,32 +25,13 @@ import { context, trace } from '@opentelemetry/api';
 import { LoggerModule } from 'nestjs-pino';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
+import { CommonServicesModule } from './common/services/common-services.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { NatsEventsModule } from './modules/nats-events/nats-events.module';
 import { UsersModule } from './modules/users/users.module';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
-
-// map SeverityNumber
-// https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber
-const PinoLevelToSeverityNumber = {
-  10: 1, // TRACE
-  20: 5, // DEBUG
-  30: 9, // INFO
-  40: 13, // WARN
-  50: 17, // ERROR
-  60: 21, // FATAL
-};
-
-// map SeverityNumber to text
-const PinoLevelToSeverityText = {
-  10: 'TRACE',
-  20: 'DEBUG',
-  30: 'INFO',
-  40: 'WARN',
-  50: 'ERROR',
-  60: 'FATAL',
-};
 
 interface OceanchatApiGatewayModuleOptions {
   serviceName: string;
@@ -175,6 +158,8 @@ export class OceanchatApiGatewayModule {
             }),
           }),
         }),
+        CommonServicesModule,
+        NatsEventsModule,
         CircuitBreakerModule,
         AuthorizationModule,
         AuthModule,
