@@ -1,9 +1,11 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import * as i18next from 'i18next';
+import * as i18n from 'i18next';
 import { PinoLogger } from 'nestjs-pino';
 
 import { I18nService } from './i18n.service';
 import translate from './translate';
+
+const i18next = i18n.default || i18n;
 
 @Module({})
 export class I18nModule {
@@ -15,16 +17,30 @@ export class I18nModule {
           provide: I18nService,
           useFactory: async (logger: PinoLogger): Promise<I18nService> => {
             logger.setContext('i18n.module');
+            const defaultLang = process.env.APP_LANG;
+
             try {
-              await i18next.init({
-                lng: 'zh', // default language
-                fallbackLng: 'en', // fallbackLng
-                resources: {
-                  ...translate,
-                },
-                returnObjects: false, // Ensure t() returns a string even if key not found
-                interpolation: { escapeValue: false },
-              });
+              if (!i18next.isInitialized) {
+                await i18next.init({
+                  lng: defaultLang, // default language
+                  fallbackLng: 'en', // fallbackLng
+                  resources: {
+                    ...translate,
+                  },
+                  returnObjects: false, // Ensure t() returns a string even if key not found
+                  interpolation: { escapeValue: false },
+                });
+                logger.info(
+                  { defaultLang },
+                  `I18nService initialized with language: ${defaultLang}`,
+                );
+              } else if (i18next.language !== defaultLang) {
+                await i18next.changeLanguage(defaultLang);
+                logger.info(
+                  { defaultLang },
+                  `I18nService language changed to: ${defaultLang}`,
+                );
+              }
             } catch (error) {
               logger.error({ err: error }, 'Failed to initialize I18nService.');
               throw error; // Re-throw the error to prevent the application from starting with a broken i18n setup
