@@ -1,8 +1,203 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/ocean.chat/src",
   "compilerOptions": {
-    "deleteOutDir": true
-  }
+    "deleteOutDir": true,
+    "webpack": false,
+    "assets": [
+      {
+        "include": "oceanchat_assets/**/*",
+        "outDir": "dist/apps/ocean.chat/src"
+      },
+      {
+        "include": "oceanchat_router_assets/**/*",
+        "outDir": "dist/apps/oceanchat-router"
+      }
+    ]
+  },
+  "projects": {
+    "authorization": {
+      "type": "library",
+      "root": "libs/authorization",
+      "entryFile": "index",
+      "sourceRoot": "libs/authorization/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/authorization/tsconfig.lib.json"
+      }
+    },
+    "common-exceptions": {
+      "type": "library",
+      "root": "libs/common-exceptions",
+      "entryFile": "index",
+      "sourceRoot": "libs/common-exceptions/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/common-exceptions/tsconfig.lib.json"
+      }
+    },
+    "cores": {
+      "type": "library",
+      "root": "libs/cores",
+      "entryFile": "index",
+      "sourceRoot": "libs/cores/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/cores/tsconfig.lib.json"
+      }
+    },
+    "i18n": {
+      "type": "library",
+      "root": "libs/i18n",
+      "entryFile": "index",
+      "sourceRoot": "libs/i18n/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/i18n/tsconfig.lib.json"
+      }
+    },
+    "models": {
+      "type": "library",
+      "root": "libs/models",
+      "entryFile": "index",
+      "sourceRoot": "libs/models/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/models/tsconfig.lib.json"
+      }
+    },
+    "nats-jetstream-provisioner": {
+      "type": "library",
+      "root": "libs/nats-jetstream-provisioner",
+      "entryFile": "index",
+      "sourceRoot": "libs/nats-jetstream-provisioner/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/nats-jetstream-provisioner/tsconfig.lib.json"
+      }
+    },
+    "nats-opentelemetry-tracing": {
+      "type": "library",
+      "root": "libs/nats-opentelemetry-tracing",
+      "entryFile": "index",
+      "sourceRoot": "libs/nats-opentelemetry-tracing/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/nats-opentelemetry-tracing/tsconfig.lib.json"
+      }
+    },
+    "ocean.chat": {
+      "type": "application",
+      "root": "apps/ocean.chat",
+      "entryFile": "main",
+      "sourceRoot": "apps/ocean.chat/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ocean.chat/tsconfig.app.json"
+      }
+    },
+    "oceanchat-api-gateway": {
+      "type": "application",
+      "root": "apps/oceanchat-api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-api-gateway/tsconfig.app.json"
+      }
+    },
+    "oceanchat-auth": {
+      "type": "application",
+      "root": "apps/oceanchat-auth",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-auth/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-auth/tsconfig.app.json"
+      }
+    },
+    "oceanchat-group": {
+      "type": "application",
+      "root": "apps/oceanchat-group",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-group/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-group/tsconfig.app.json"
+      }
+    },
+    "oceanchat-message": {
+      "type": "application",
+      "root": "apps/oceanchat-message",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-message/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-message/tsconfig.app.json"
+      }
+    },
+    "oceanchat-router": {
+      "type": "application",
+      "root": "apps/oceanchat-router",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-router/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-router/tsconfig.app.json"
+      }
+    },
+    "oceanchat-user": {
+      "type": "application",
+      "root": "apps/oceanchat-user",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-user/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-user/tsconfig.app.json"
+      }
+    },
+    "oceanchat-ws-gateway": {
+      "type": "application",
+      "root": "apps/oceanchat-ws-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-ws-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-ws-gateway/tsconfig.app.json"
+      }
+    },
+    "redis": {
+      "type": "library",
+      "root": "libs/redis",
+      "entryFile": "index",
+      "sourceRoot": "libs/redis/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/redis/tsconfig.lib.json"
+      }
+    },
+    "settings": {
+      "type": "library",
+      "root": "libs/settings",
+      "entryFile": "index",
+      "sourceRoot": "libs/settings/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/settings/tsconfig.lib.json"
+      }
+    },
+    "stream": {
+      "type": "application",
+      "root": "apps/stream",
+      "entryFile": "main",
+      "sourceRoot": "apps/stream/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/stream/tsconfig.app.json"
+      }
+    },
+    "tracing": {
+      "type": "library",
+      "root": "libs/tracing",
+      "entryFile": "index",
+      "sourceRoot": "libs/tracing/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/tracing/tsconfig.lib.json"
+      }
+    },
+    "types": {
+      "type": "library",
+      "root": "libs/types",
+      "entryFile": "index",
+      "sourceRoot": "libs/types/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/types/tsconfig.lib.json"
+      }
+    }
+  },
+  "monorepo": true,
+  "root": "apps/ocean.chat"
 }

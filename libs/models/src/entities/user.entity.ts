@@ -1,0 +1,194 @@
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { Document, Schema as MongooseSchema } from 'mongoose';
+
+/**
+ * @enum {string}
+ * @description Defines the possible online statuses for a user.
+ */
+export enum UserStatus {
+  ONLINE = 'online',
+  AWAY = 'away',
+  BUSY = 'busy',
+  OFFLINE = 'offline',
+}
+
+/**
+ * @enum {string}
+ * @description Defines the possible authentication providers for a user.
+ */
+export enum AuthProvider {
+  LOCAL = 'local',
+  // TODO： Implement third-party & email authentication providers
+  GOOGLE = 'google',
+  WECHAT = 'wechat',
+  PHONE = 'phone',
+  EMAIL = 'email',
+}
+
+@Schema({ _id: false })
+class AuthProviders {
+  /**
+   * The authentication provider used by the user.
+   * This field is required and must be one of the values defined in the AuthProvider enum.
+   */
+  @Prop({ type: String, enum: AuthProvider, required: true })
+  provider: AuthProvider;
+
+  /**
+   * The unique identifier provided by the authentication provider.
+   */
+  @Prop({ type: String, required: true })
+  providerId: string; // e.g., username for 'local', Google's ID for 'google'
+
+  /**
+   * `passwordHash` is the hashed password of the user.
+   * It is used for authentication purposes and is not selected by default in queries for security reasons.
+   */
+  @Prop({ type: String, select: false })
+  passwordHash?: string;
+}
+
+const AuthProvidersSchema = SchemaFactory.createForClass(AuthProviders);
+
+@Schema({ _id: false })
+export class UserDevice {
+  /**
+   * The unique identifier of the device.
+   */
+  @Prop({ required: true })
+  deviceId: string;
+
+  /**
+   * The last time this device logged in.
+   */
+  @Prop({ type: Date, default: Date.now })
+  lastLogin?: Date;
+}
+
+const UserDeviceSchema = SchemaFactory.createForClass(UserDevice);
+
+/**
+ * @class User
+ * Represents a user entity in the system.
+ * This entity is used to store user-related information.
+ * @extends Document
+ */
+@Schema({ timestamps: true })
+export class User extends Document {
+  /**
+   * The name of the user. Users can customize the name.
+   */
+  @Prop({ type: String })
+  name?: string;
+  /**
+   * The unique username of the user.
+   */
+  @Prop({ type: String, required: true, unique: true })
+  username: string;
+
+  /**
+   * The type of user, e.g., 'user', 'bot', 'guest'.
+   * @default 'user'
+   */
+  @Prop({ type: String, required: true, default: 'user' })
+  type: string;
+
+  /**
+   * The active status of the user. A disabled user cannot log in.
+   * @default true
+   */
+  @Prop({ type: Boolean, default: true })
+  active: boolean;
+
+  /**
+   * The current online status of the user.
+   * @default 'offline'
+   */
+  @Prop({ type: String, enum: UserStatus, default: UserStatus.OFFLINE })
+  status: UserStatus;
+
+  /**
+   * The roles assigned to the user.
+   * @default ['user']
+   */
+  @Prop({ type: [String], default: ['user'] })
+  roles: string[];
+
+  /**
+   * The email addresses associated with the user.
+   * Each email object contains:
+   * - address: The email address (must be unique).
+   * - verified: A boolean indicating if the email has been verified.
+   * The array allows for multiple email addresses per user.
+   * The 'sparse' option allows multiple documents to have a null value for 'address'.
+   */
+  @Prop({
+    type: [
+      {
+        address: { type: String, required: true, unique: true, sparse: true },
+        verified: { type: Boolean, required: true, default: false },
+        _id: false, // Do not create a separate _id for sub-documents in the array
+      },
+    ],
+  })
+  emails?: { address: string; verified: boolean }[];
+
+  /**
+   * Avatar Hash (ETag).
+   * Used for client-side caching. If the hash changes, the client re-fetches the avatar.
+   */
+  @Prop({ type: String })
+  avatarETag?: string;
+
+  /**
+   * The authentication providers associated with the user.
+   */
+  @Prop({
+    type: [AuthProvidersSchema],
+    default: [],
+    select: false,
+    required: true,
+  })
+  providers?: AuthProviders[]; // optional property, reflect status of runtime when find in code
+
+  /**
+   * The list of devices that have logged in to this account.
+   */
+  @Prop({ type: [UserDeviceSchema], default: [], required: true })
+  devices?: UserDevice[];
+
+  /**
+   * The timestamp of the user's last login.
+   */
+  @Prop({ type: Date })
+  lastLogin?: Date;
+}
+
+/**
+ * @class UserIdentifier
+ * @description A lean, identifiable representation of a user, used for message authors, mentions, etc.
+ */
+@Schema({ _id: false })
+export class UserIdentifier {
+  /** The unique ID of the user. */
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  _id: string | MongooseSchema.Types.ObjectId;
+
+  /** The unique username of the user. */
+  @Prop({ required: true })
+  username: string;
+
+  /** The display name of the user. */
+  @Prop()
+  name?: string;
+
+  /** * The avatar hash of the user.
+   * Essential for list views (like Recent Chats) to render avatars efficiently.
+   */
+  @Prop()
+  avatarETag?: string;
+}
+export const UserIdentifierSchema =
+  SchemaFactory.createForClass(UserIdentifier);
+
+export const UserSchema = SchemaFactory.createForClass(User);

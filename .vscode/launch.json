@@ -1,0 +1,143 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug i18n/generator.spec.ts",
+      "cwd": "${workspaceFolder}/packages/i18n",
+      "skipFiles": ["<node_internals>/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "jest",
+        "test/generator.spec.ts"
+      ],
+      "env": {
+        "NODE_ENV": "test"
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Ocean.chat",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:ocean.chat"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Account",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:account"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug test of oceanchat-auth",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "test:app/oceanchat.auth"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug oceanchat-auth",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:oceanchat-auth-for-testing"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug oceanchat-user",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:oceanchat-user-for-testing"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug oceanchat-api-gateway",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "start:oceanchat-api-gateway-for-testing"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug test:oceanchat-api-gateway",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "--inspect-brk", // Enable the debugger and break at the beginning
+        "test:app/oceanchat-api-gateway"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    }
+  ]
+}

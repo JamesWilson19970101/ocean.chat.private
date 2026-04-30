@@ -1,0 +1,9 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["libs/models/src/**/*.ts"],
+  "out": "oceanchat-doc",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "strictNullChecks": false
+  }
+}

@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 15s # Get data every 15s
+
+# example
+scrape_configs:
+  - job_name: 'oceanchat-auth'
+    static_configs:
+      - targets: ['otel-collector:8889'] # first instance of oceanchat-auth
+      # - targets: ['host.docker.internal:9465'] # second instance of oceanchat-auth
+      # ...
+
+  # - job_name: 'oceanchat-api-gateway'
+  # static_configs:
+  # - targets:
+  # - 'order-service-instance-1:946x' # first instance of oceanchat-api-gateway
+  # - 'order-service-instance-2:946x' # second instance of oceanchat-api-gateway
+  # ...

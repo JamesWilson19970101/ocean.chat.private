@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "moduleResolution": "node",
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -16,6 +17,83 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "lib": [
+      "es2023"
+    ],
+    "types": [
+      "node",
+      "jest",
+      "express",
+      "ws"
+    ],
+    "paths": {
+      "@ocean.chat/authorization": [
+        "libs/authorization/src"
+      ],
+      "@ocean.chat/authorization/*": [
+        "libs/authorization/src/*"
+      ],
+      "@ocean.chat/common-exceptions": [
+        "libs/common-exceptions/src"
+      ],
+      "@ocean.chat/common-exceptions/*": [
+        "libs/common-exceptions/src/*"
+      ],
+      "@ocean.chat/cores": [
+        "libs/cores/src"
+      ],
+      "@ocean.chat/cores/*": [
+        "libs/cores/src/*"
+      ],
+      "@ocean.chat/i18n": [
+        "libs/i18n/src"
+      ],
+      "@ocean.chat/i18n/*": [
+        "libs/i18n/src/*"
+      ],
+      "@ocean.chat/models": [
+        "libs/models/src"
+      ],
+      "@ocean.chat/models/*": [
+        "libs/models/src/*"
+      ],
+      "@ocean.chat/nats-jetstream-provisioner": [
+        "libs/nats-jetstream-provisioner/src"
+      ],
+      "@ocean.chat/nats-jetstream-provisioner/*": [
+        "libs/nats-jetstream-provisioner/src/*"
+      ],
+      "@ocean.chat/nats-opentelemetry-tracing": [
+        "libs/nats-opentelemetry-tracing/src"
+      ],
+      "@ocean.chat/nats-opentelemetry-tracing/*": [
+        "libs/nats-opentelemetry-tracing/src/*"
+      ],
+      "@ocean.chat/redis": [
+        "libs/redis/src"
+      ],
+      "@ocean.chat/redis/*": [
+        "libs/redis/src/*"
+      ],
+      "@ocean.chat/settings": [
+        "libs/settings/src"
+      ],
+      "@ocean.chat/settings/*": [
+        "libs/settings/src/*"
+      ],
+      "@ocean.chat/tracing": [
+        "libs/tracing/src"
+      ],
+      "@ocean.chat/tracing/*": [
+        "libs/tracing/src/*"
+      ],
+      "@ocean.chat/types": [
+        "libs/types/src"
+      ],
+      "@ocean.chat/types/*": [
+        "libs/types/src/*"
+      ]
+    }
   }
 }

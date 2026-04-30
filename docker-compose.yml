@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # Jaeger for distributed tracing
+  jaeger:
+    image: jaegertracing/all-in-one:1.74.0
+    container_name: jaeger
+    ports:
+      - '16686:16686' # Jaeger UI
+      # - '4317:4317' # OTLP gRPC receiver
+      # - '4318:4318' # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - monitoring-net
+
+  # Prometheus Collect data
+  prometheus:
+    image: prom/prometheus:v3.7.1
+    container_name: prometheus
+    ports:
+      - '9090:9090' # Prometheus UI
+    volumes:
+      - ./envConfig/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml # mount conf file
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - monitoring-net
+
+  # Grafana UI
+  grafana:
+    image: grafana/grafana:12.3.0-18578466485-ubuntu
+    container_name: grafana
+    ports:
+      - '3000:3000' # Grafana UI
+    volumes:
+      - ./envConfig/grafana/provisioning/:/etc/grafana/provisioning/ # monut conf file
+    depends_on:
+      - prometheus
+      - jaeger
+    networks:
+      - monitoring-net
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib
+    volumes:
+      - ./envConfig/otelcol/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 1888:1888 # pprof extension
+      - 8888:8888 # Prometheus metrics exposed by the Collector
+      - 8889:8889 # Prometheus exporter metrics
+      - 13133:13133 # health_check extension
+      - 4317:4317 # OTLP gRPC receiver
+      - 4318:4318 # OTLP http receiver
+      - 55679:55679 # zpages extension
+    networks:
+      - monitoring-net
+
+networks:
+  monitoring-net:
+    name: oceanchat-monitoring-network
+    driver: bridge

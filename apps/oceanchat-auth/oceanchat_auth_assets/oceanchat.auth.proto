@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package auth;
+
+// The authentication service definition.
+service AuthService {
+  // User login
+  rpc Login (LoginRequest) returns (LoginResponse);
+  // Validate a JWT
+  rpc ValidateToken (ValidateTokenRequest) returns (ValidateTokenResponse);
+  // Refresh a JWT
+  rpc RefreshToken (RefreshTokenRequest) returns (RefreshTokenResponse);
+  // Decode a JWT (for testing)
+  rpc DecodeToken (DecodeTokenRequest) returns (DecodeTokenResponse);
+  // User registration
+  rpc Register (RegisterRequest) returns (RegisterResponse);
+}
+
+// Requests
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message RefreshTokenRequest {
+  string refreshToken = 1;
+}
+
+message DecodeTokenRequest {
+  string token = 1;
+}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string confirmPassword = 3;
+}
+
+// Responses
+message User {
+    string _id = 1;
+    string username = 2;
+}
+
+message LoginResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+  User user = 3;
+}
+
+message ValidateTokenResponse {
+    string sub = 1;
+    string username = 2;
+}
+
+message RefreshTokenResponse {
+  string accessToken = 1;
+  string refreshToken = 2;
+}
+
+message DecodeTokenResponse {
+    string data = 1; // The decoded token is a JSON object, represented as a string.
+}
+
+message RegisterResponse {
+  User user = 1;
+}
+
