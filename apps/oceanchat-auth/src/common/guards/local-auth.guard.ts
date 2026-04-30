@@ -71,16 +71,17 @@ export class LocalAuthGuard extends AuthGuard('local') {
       );
     }
 
-    const data: AuthenticatedUser = context.switchToRpc().getData();
+    const data: any = context.switchToRpc().getData();
 
-    // must explicitly found the data properties, because default behavior of passport-local is to attach the user to req.user
-    // but here is a RPC context, I want to return the user object directly
-    // so I copy the properties from user to data;
-    // the user object returned from LocalStrategy.validate is just can be used in http request context
-    // I need to manually attach the user info to the RPC data object
-    delete data['password']; // default behavior of passport-local is to attach the username and password to req.body, but I don't want to return the password for security reason
-    data['username'] = user.username;
-    data['_id'] = user._id;
+    // Attach the validated user to the data object as a non-enumerable property
+    // so that the global ValidationPipe (which uses class-transformer) ignores it
+    // and doesn't throw a forbidNonWhitelisted error.
+    Object.defineProperty(data, 'authenticatedUser', {
+      value: user,
+      enumerable: false,
+      configurable: false,
+      writable: true,
+    });
 
     return user;
   }

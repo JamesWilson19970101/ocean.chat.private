@@ -1,6 +1,12 @@
-import { Controller, UseGuards } from '@nestjs/common';
+import { Controller, HttpStatus, UseGuards } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { AuthenticatedUser } from '@ocean.chat/types';
+import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  AuthenticatedUser,
+  LoginDto,
+  LogoutDto,
+  RefreshTokenDto,
+} from '@ocean.chat/types';
 
 import { CurrentUser } from './common/decorators/current-user.decorator';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
@@ -17,6 +23,7 @@ export class OceanchatAuthController {
   @UseGuards(LocalAuthGuard)
   @MessagePattern('auth.login')
   async login(
+    @Payload() _loginDto: LoginDto, // ValidationPipe
     @CurrentUser()
     user: Pick<AuthenticatedUser, 'username' | '_id' | 'deviceId'>,
   ) {
@@ -29,8 +36,17 @@ export class OceanchatAuthController {
    * @returns A new pair of access and refresh tokens.
    */
   @MessagePattern('auth.token.refresh')
-  async refreshToken(@Payload('refreshToken') refreshToken: string) {
-    return this.oceanchatAuthService.refreshToken(refreshToken);
+  async refreshToken(@Payload() refreshTokenDto: RefreshTokenDto) {
+    if (!refreshTokenDto.refreshToken) {
+      // This case should ideally not be reached if the gateway always provides a token.
+      // This is a defensive check.
+      throw new BaseRpcException(
+        'Refresh token is missing in the payload.',
+        HttpStatus.BAD_REQUEST,
+        ErrorCodes.UNEXPECTED_ERROR,
+      );
+    }
+    return this.oceanchatAuthService.refreshToken(refreshTokenDto.refreshToken);
   }
 
   @MessagePattern('auth.token.decode')
@@ -44,7 +60,11 @@ export class OceanchatAuthController {
    * NATS message handler for user logout.
    */
   @MessagePattern('auth.logout')
-  async logout(@Payload() payload: { userId: string; deviceId: string }) {
+  async logout(@Payload() logoutDto: LogoutDto) {
+    const payload = logoutDto as unknown as {
+      userId: string;
+      deviceId: string;
+    };
     return this.oceanchatAuthService.logout(payload.userId, payload.deviceId);
   }
 }
