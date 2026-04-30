@@ -473,6 +473,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@cacheable/utils@npm:^2.3.3":
+  version: 2.4.1
+  resolution: "@cacheable/utils@npm:2.4.1"
+  dependencies:
+    hashery: "npm:^1.5.1"
+    keyv: "npm:^5.6.0"
+  checksum: 10c0/ca2af47636ed27ab26dfedf12add639f42b90c289ecd5d816fb7a299074d9df463751745a83abfb81f6236a70c8ea40f0902e984869638a5ca3a7274e203f987
+  languageName: node
+  linkType: hard
+
 "@casbin/expression-eval@npm:^5.3.0":
   version: 5.3.0
   resolution: "@casbin/expression-eval@npm:5.3.0"
@@ -1269,6 +1279,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@keyv/serialize@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "@keyv/serialize@npm:1.1.1"
+  checksum: 10c0/b0008cae4a54400c3abf587b8cc2474c6f528ee58969ce6cf9cb07a04006f80c73c85971d6be6544408318a2bc40108236a19a82aea0a6de95aae49533317374
+  languageName: node
+  linkType: hard
+
 "@lukeed/csprng@npm:^1.0.0":
   version: 1.1.0
   resolution: "@lukeed/csprng@npm:1.1.0"
@@ -1500,6 +1517,19 @@ __metadata:
     "@nestjs/terminus":
       optional: true
   checksum: 10c0/5f499a2c707d76a69c517dc1f98191522ec0eaa23997a3e8d0815b2e79f66e9153c5fc06e8747aae3f5168788cb8afebf9388cc0413494ab10f94ab37c08427b
+  languageName: node
+  linkType: hard
+
+"@nestjs/cache-manager@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "@nestjs/cache-manager@npm:3.1.0"
+  peerDependencies:
+    "@nestjs/common": ^9.0.0 || ^10.0.0 || ^11.0.0
+    "@nestjs/core": ^9.0.0 || ^10.0.0 || ^11.0.0
+    cache-manager: ">=6"
+    keyv: ">=5"
+    rxjs: ^7.8.1
+  checksum: 10c0/b8ebcaeae53425e4093ae2ec6bd3199bcdb22c7558810dc4c616c87617de4bbb1aca944c34de1dc14d5afb0b7bbda7223a449b39e0319df2a9e4c2953407b12b
   languageName: node
   linkType: hard
 
@@ -3725,16 +3755,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/jsonwebtoken@npm:*":
-  version: 9.0.10
-  resolution: "@types/jsonwebtoken@npm:9.0.10"
-  dependencies:
-    "@types/ms": "npm:*"
-    "@types/node": "npm:*"
-  checksum: 10c0/0688ac8fb75f809201cb7e18a12b9d80ce539cb9dd27e1b01e11807cb1a337059e899b8ee3abc3f2c9417f02e363a3069d9eab9ef9724b1da1f0e10713514f94
-  languageName: node
-  linkType: hard
-
 "@types/jsonwebtoken@npm:9.0.7":
   version: 9.0.7
   resolution: "@types/jsonwebtoken@npm:9.0.7"
@@ -3767,7 +3787,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/ms@npm:*, @types/ms@npm:^2":
+"@types/ms@npm:^2":
   version: 2.1.0
   resolution: "@types/ms@npm:2.1.0"
   checksum: 10c0/5ce692ffe1549e1b827d99ef8ff71187457e0eb44adbae38fdf7b9a74bae8d20642ee963c14516db1d35fa2652e65f47680fdf679dcbde52bbfadd021f497225
@@ -3816,16 +3836,6 @@ __metadata:
   dependencies:
     "@types/node": "npm:*"
   checksum: 10c0/16e6d2e4247222dddf7be01273946b7f6a686327ce440be861671a2a0b98fe1a0d42df849d039a3f58aa1014f1c9d803f3c9793531a476077d762423ac911e65
-  languageName: node
-  linkType: hard
-
-"@types/passport-jwt@npm:^4":
-  version: 4.0.1
-  resolution: "@types/passport-jwt@npm:4.0.1"
-  dependencies:
-    "@types/jsonwebtoken": "npm:*"
-    "@types/passport-strategy": "npm:*"
-  checksum: 10c0/0ced0eaa7bb379d674821108d9bc6758223f1a5f2b9790ec78d3eaaccce6a58a424cf8ed22b53d813740ec53d929e21d92cf794ef0fb30c732866750763c0d7a
   languageName: node
   linkType: hard
 
@@ -5080,6 +5090,16 @@ __metadata:
     tar: "npm:^7.4.3"
     unique-filename: "npm:^4.0.0"
   checksum: 10c0/01f2134e1bd7d3ab68be851df96c8d63b492b1853b67f2eecb2c37bb682d37cb70bb858a16f2f0554d3c0071be6dfe21456a1ff6fa4b7eed996570d6a25ffe9c
+  languageName: node
+  linkType: hard
+
+"cache-manager@npm:^7.2.8":
+  version: 7.2.8
+  resolution: "cache-manager@npm:7.2.8"
+  dependencies:
+    "@cacheable/utils": "npm:^2.3.3"
+    keyv: "npm:^5.5.5"
+  checksum: 10c0/d620f8489cbdd549574c5b42ce27eb5a99841af059b1ed0ffcceaa897e7f5093aff68186e1af306d125685f4e565ae96da2c3e632bb23b45938bdd5a01d5b7f3
   languageName: node
   linkType: hard
 
@@ -7031,6 +7051,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hashery@npm:^1.5.1":
+  version: 1.5.1
+  resolution: "hashery@npm:1.5.1"
+  dependencies:
+    hookified: "npm:^1.15.0"
+  checksum: 10c0/ab4225b655a7b0d05df99b1a59d5b3a51fe433f82422ca25e6f3f4c4ddd30adb49ebd38e0047ef9bded93319c1e9fc857e16aa382e554929c871cb77d39fc463
+  languageName: node
+  linkType: hard
+
 "hasown@npm:^2.0.2":
   version: 2.0.2
   resolution: "hasown@npm:2.0.2"
@@ -7058,6 +7087,13 @@ __metadata:
   version: 2.0.0
   resolution: "hexoid@npm:2.0.0"
   checksum: 10c0/a9d5e6f4adeaefcb4a53803dd48bf0a242d92e8ec699555aea616c4bf8f91788f03093595085976f63d6830815dd080c063503540fabc7e854ebfb11161687c6
+  languageName: node
+  linkType: hard
+
+"hookified@npm:^1.15.0":
+  version: 1.15.1
+  resolution: "hookified@npm:1.15.1"
+  checksum: 10c0/6b691374fa97ae57169fb29f90e723499fda5e85494654fbe55c4768b3ccbf3e14c0adc8d0f365f32c503b60d7c06f907781f5966c03d41c423575eb5e16860c
   languageName: node
   linkType: hard
 
@@ -8149,7 +8185,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jsonwebtoken@npm:9.0.2, jsonwebtoken@npm:^9.0.0":
+"jsonwebtoken@npm:9.0.2":
   version: 9.0.2
   resolution: "jsonwebtoken@npm:9.0.2"
   dependencies:
@@ -8201,6 +8237,15 @@ __metadata:
   dependencies:
     json-buffer: "npm:3.0.1"
   checksum: 10c0/aa52f3c5e18e16bb6324876bb8b59dd02acf782a4b789c7b2ae21107fab95fab3890ed448d4f8dba80ce05391eeac4bfabb4f02a20221342982f806fa2cf271e
+  languageName: node
+  linkType: hard
+
+"keyv@npm:^5.5.5, keyv@npm:^5.6.0":
+  version: 5.6.0
+  resolution: "keyv@npm:5.6.0"
+  dependencies:
+    "@keyv/serialize": "npm:^1.1.1"
+  checksum: 10c0/c3ea795b6e03593ca57c8f70928a69bad14c13389a7fb75649a115ff55615244b04d8902798d841c17f0bb4a8a8866c97133b543b93f151b440170bba09176db
   languageName: node
   linkType: hard
 
@@ -9206,6 +9251,7 @@ __metadata:
     "@grpc/proto-loader": "npm:^0.8.0"
     "@nest-lab/throttler-storage-redis": "npm:^1.1.0"
     "@nestjs-modules/ioredis": "npm:^2.0.2"
+    "@nestjs/cache-manager": "npm:^3.1.0"
     "@nestjs/cli": "npm:^11.0.0"
     "@nestjs/common": "npm:^11.0.1"
     "@nestjs/config": "npm:^4.0.1"
@@ -9252,12 +9298,12 @@ __metadata:
     "@types/node": "npm:^22.13.10"
     "@types/opossum": "npm:^8.1.9"
     "@types/passport": "npm:^0"
-    "@types/passport-jwt": "npm:^4"
     "@types/passport-local": "npm:^1"
     "@types/supertest": "npm:^6.0.2"
     "@types/uuid": "npm:^9.0.0"
     "@types/ws": "npm:8.18.1"
     argon2: "npm:^0.41.1"
+    cache-manager: "npm:^7.2.8"
     casbin: "npm:^5.38.0"
     class-transformer: "npm:^0.5.1"
     class-validator: "npm:^0.14.1"
@@ -9273,6 +9319,7 @@ __metadata:
     ioredis: "npm:5.3.2"
     jest: "npm:^29.7.0"
     joi: "npm:^17.13.3"
+    keyv: "npm:^5.6.0"
     mongodb: "npm:^6.17.0"
     mongodb-memory-server: "npm:^10.1.4"
     mongoose: "npm:^8.13.1"
@@ -9280,8 +9327,8 @@ __metadata:
     nats: "npm:^2.29.3"
     nestjs-pino: "npm:^4.3.1"
     opossum: "npm:^9.0.0"
+    p-limit: "npm:^3.1.0"
     passport: "npm:^0.7.0"
-    passport-jwt: "npm:^4.0.1"
     passport-local: "npm:^1.0.0"
     pino: "npm:^9.6.0"
     pino-http: "npm:^10.4.0"
@@ -9491,16 +9538,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"passport-jwt@npm:^4.0.1":
-  version: 4.0.1
-  resolution: "passport-jwt@npm:4.0.1"
-  dependencies:
-    jsonwebtoken: "npm:^9.0.0"
-    passport-strategy: "npm:^1.0.0"
-  checksum: 10c0/d7e2b472d399f596a1db31310f8e63d10777ab7468b9a378c964156e5f0a772598b007417356ead578cfdaf60dc2bba39a55f0033ca865186fdb2a2b198e2e7e
-  languageName: node
-  linkType: hard
-
 "passport-local@npm:^1.0.0":
   version: 1.0.0
   resolution: "passport-local@npm:1.0.0"
@@ -9510,7 +9547,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"passport-strategy@npm:1.x.x, passport-strategy@npm:^1.0.0":
+"passport-strategy@npm:1.x.x":
   version: 1.0.0
   resolution: "passport-strategy@npm:1.0.0"
   checksum: 10c0/cf4cd32e1bf2538a239651581292fbb91ccc83973cde47089f00d2014c24bed63d3e65af21da8ddef649a8896e089eb9c3ac9ca639f36c797654ae9ee4ed65e1
