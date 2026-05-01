@@ -1,5 +1,8 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  ErrorCodes,
+  InfrastructureException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { IScopeDataProvider } from '@ocean.chat/types';
 
@@ -125,10 +128,11 @@ export class PermissionCheckerService {
       // Merge and deduplicate (Set handles deduplication)
       return [...new Set([...globalRoles, ...scopedRoles])];
     } catch (error) {
-      throw new BaseRpcException(
+      throw new InfrastructureException(
         this.i18nService.translate('FAILED_TO_RETRIEVE_SCOPED_ROLES'),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.FAILED_TO_FETCH_SCOPED_ROLES,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         { cause: error },
       );
     }

@@ -1,5 +1,9 @@
 import { HttpStatus, Injectable, Optional } from '@nestjs/common';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  ErrorCodes,
+  InfrastructureException,
+  isAppException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
 import { IRoleDataSource } from '@ocean.chat/types';
@@ -98,20 +102,26 @@ export class RoleCacheService {
         );
         if (typeof result === 'string') {
           roles = JSON.parse(result);
+        } else {
+          roles = result;
         }
-        roles = result as string[] | null;
       } else {
         const result = await this.redis.get(key);
         if (typeof result === 'string') {
           roles = JSON.parse(result);
+        } else {
+          roles = result as string[] | null;
         }
-        roles = result as string[] | null;
       }
     } catch (err) {
-      throw new BaseRpcException(
+      if (isAppException(err)) {
+        throw err;
+      }
+      throw new InfrastructureException(
         this.i18nService.translate('ROLE_CACHE_FETCH_FAILED'),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         { cause: err },
       );
     }
@@ -151,20 +161,26 @@ export class RoleCacheService {
         );
         if (typeof result === 'string') {
           roles = JSON.parse(result);
+        } else {
+          roles = result;
         }
-        roles = result as string[] | null;
       } else {
         const result = await this.redis.get(key);
         if (typeof result === 'string') {
           roles = JSON.parse(result);
+        } else {
+          roles = result as string[] | null;
         }
-        roles = result as string[] | null;
       }
     } catch (err) {
-      throw new BaseRpcException(
+      if (isAppException(err)) {
+        throw err;
+      }
+      throw new InfrastructureException(
         this.i18nService.translate('PERMISSION_CACHE_FETCH_FAILED'),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         { cause: err },
       );
     }

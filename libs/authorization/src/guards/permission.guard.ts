@@ -2,7 +2,6 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { I18nService } from '@ocean.chat/i18n';
 import { IAuthenticatedRequest } from '@ocean.chat/types';
-import { AuthenticatedUser } from '@ocean.chat/types';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { PERMISSIONS_METADATA_KEY } from '../constants/metadata-keys';
@@ -85,8 +84,12 @@ export class PermissionGuard implements CanActivate {
       // Aggregate all possible sources for parameters
       requestData = { ...req.query, ...req.params, ...req.body };
     } else if (context.getType() === 'rpc') {
-      const data = context.switchToRpc().getData<AuthenticatedUser>();
-      // userId = data.sub || (data._id as string);
+      const data = context.switchToRpc().getData<Record<string, any>>();
+      userId =
+        data?.user?._id?.toString() ||
+        data?._id?.toString() ||
+        data?.userId?.toString() ||
+        null;
       requestData = data || {};
     }
 

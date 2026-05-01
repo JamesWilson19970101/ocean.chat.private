@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { IRoomContext, IRoomValidator } from '@ocean.chat/types';
 
+import { DiscussionValidator } from './discussion.validator';
 import { MembershipValidator } from './membership.validator';
 import { PublicRoomValidator } from './public-room.validator';
 import { TeamRoomValidator } from './team-room.validator';
@@ -23,9 +24,12 @@ export class RoomAccessValidator {
     private readonly publicRoomValidator: PublicRoomValidator,
     private readonly teamRoomValidator: TeamRoomValidator,
     private readonly membershipValidator: MembershipValidator,
+    @Inject(forwardRef(() => DiscussionValidator))
+    private readonly discussionValidator: DiscussionValidator,
   ) {
     // Order matters: Check cheapest/most common rules first
     this.validators = [
+      this.discussionValidator, // 0. Check Discussion (fast check if prid exists)
       this.teamRoomValidator, // 1. Check Team logic (complex hierarchy)
       this.publicRoomValidator, // 2. Check Public logic (simple)
       this.membershipValidator, // 3. Check Membership (db query)

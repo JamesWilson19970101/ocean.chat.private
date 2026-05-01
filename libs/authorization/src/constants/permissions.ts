@@ -34,29 +34,29 @@ export const permissions: IPermissionDefinition[] = [
   { _id: 'create-d', roles: ['admin', 'user', 'bot', 'app'] }, // Create Direct Message
 
   // --- Room Operations (Public) ---
-  { _id: 'view-c-room', roles: ['admin', 'user', 'bot', 'app', 'anonymous'] },
+  { _id: 'view-c-room', roles: ['admin', 'user', 'bot', 'app'] },
   { _id: 'add-user-to-any-c-room', roles: ['admin'] },
   { _id: 'kick-user-from-any-c-room', roles: ['admin'] },
   { _id: 'delete-c', roles: ['admin', 'owner'] },
 
   // --- Room Operations (Private) ---
-  { _id: 'view-p-room', roles: ['admin', 'user', 'anonymous', 'guest'] },
+  { _id: 'view-p-room', roles: ['admin', 'user', 'guest'] },
   { _id: 'add-user-to-any-p-room', roles: [] }, // No one by default
   { _id: 'kick-user-from-any-p-room', roles: [] }, // No one by default
   { _id: 'delete-p', roles: ['admin', 'owner'] },
 
   // --- Room Operations (General) ---
   { _id: 'view-d-room', roles: ['admin', 'user', 'bot', 'app', 'guest'] },
-  { _id: 'view-joined-room', roles: ['guest', 'bot', 'app', 'anonymous'] },
-  { _id: 'view-history', roles: ['admin', 'user', 'anonymous'] },
+  { _id: 'view-joined-room', roles: ['guest', 'bot', 'app'] },
+  { _id: 'view-history', roles: ['admin', 'user'] },
   { _id: 'add-user-to-joined-room', roles: ['admin', 'owner', 'moderator'] },
   { _id: 'archive-room', roles: ['admin', 'owner'] },
   { _id: 'unarchive-room', roles: ['admin'] },
   { _id: 'edit-room', roles: ['admin', 'owner', 'moderator'] },
   { _id: 'edit-room-avatar', roles: ['admin', 'owner', 'moderator'] },
-  { _id: 'leave-c', roles: ['admin', 'user', 'bot', 'anonymous', 'app'] },
-  { _id: 'leave-p', roles: ['admin', 'user', 'bot', 'anonymous', 'app'] },
-  { _id: 'preview-c-room', roles: ['admin', 'user', 'anonymous'] }, // Preview Public Channel
+  { _id: 'leave-c', roles: ['admin', 'user', 'bot', 'app'] },
+  { _id: 'leave-p', roles: ['admin', 'user', 'bot', 'app'] },
+  { _id: 'preview-c-room', roles: ['admin', 'user'] }, // Preview Public Channel
 
   // --- Member Management ---
   { _id: 'set-moderator', roles: ['admin', 'owner'] },
