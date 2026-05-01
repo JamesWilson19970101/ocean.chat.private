@@ -1,5 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { AppException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  ErrorCodes,
+  InfrastructureException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { headers, MsgHdrs, StringCodec } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -69,7 +72,11 @@ export class BoundedPublisherService {
         'BOUNDED_PUBLISHER_NOT_OPERATIONAL',
       );
       this.logger.error({ context, subject }, errorMsg);
-      throw new AppException(errorMsg, ErrorCodes.SERVICE_UNAVAILABLE, 503);
+      throw new InfrastructureException(
+        errorMsg,
+        ErrorCodes.SERVICE_UNAVAILABLE,
+        503,
+      );
     }
 
     const isCritical = options.isCritical ?? false;
@@ -95,7 +102,11 @@ export class BoundedPublisherService {
       const throwMsg = this.i18nService.translate('QUEUE_LIMIT_REACHED', {
         msg,
       });
-      throw new AppException(throwMsg, ErrorCodes.SERVICE_UNAVAILABLE, 503);
+      throw new InfrastructureException(
+        throwMsg,
+        ErrorCodes.SERVICE_UNAVAILABLE,
+        503,
+      );
     }
 
     return new Promise<void>((resolve) => {

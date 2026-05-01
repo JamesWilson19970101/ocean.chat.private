@@ -1,6 +1,10 @@
 import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  ErrorCodes,
+  InfrastructureException,
+  isAppException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { plainToInstance } from 'class-transformer';
 import { validateOrReject, ValidationError } from 'class-validator';
@@ -85,38 +89,81 @@ export abstract class BaseNatsSubscriber<T extends object>
 
       let actualConsumerName: string;
       try {
-        let consumerInfo: ConsumerInfo;
-        if (this.durableName) {
-          const existing = await jsm.consumers
-            .info(this.streamName, this.durableName)
-            .catch(() => null);
+        let consumerInfo: ConsumerInfo | undefined;
+        let retryAttempts = 0;
+        const MAX_RETRIES = 12; // about 60s
+        const RETRY_DELAY_MS = 5000;
 
-          if (existing) {
-            try {
-              // Attempt to gracefully apply new configuration (e.g., max_deliver updates)
-              consumerInfo = await jsm.consumers.update(
+        while (!consumerInfo && retryAttempts < MAX_RETRIES) {
+          try {
+            if (this.durableName) {
+              const existing = await jsm.consumers
+                .info(this.streamName, this.durableName)
+                .catch(() => null);
+
+              if (existing) {
+                try {
+                  // Attempt to gracefully apply new configuration (e.g., max_deliver updates)
+                  consumerInfo = await jsm.consumers.update(
+                    this.streamName,
+                    this.durableName,
+                    finalConfig,
+                  );
+                } catch (updateErr) {
+                  this.logger.warn(
+                    { err: updateErr, durableName: this.durableName },
+                    this.i18nService.translate(
+                      'FAILED_TO_UPDATE_CONSUMER_CONFIG',
+                    ),
+                  );
+                  consumerInfo = existing;
+                }
+              } else {
+                consumerInfo = await jsm.consumers.add(
+                  this.streamName,
+                  finalConfig,
+                );
+              }
+            } else {
+              // Ephemeral consumers always use add()
+              consumerInfo = await jsm.consumers.add(
                 this.streamName,
-                this.durableName,
                 finalConfig,
               );
-            } catch (updateErr) {
-              this.logger.warn(
-                { err: updateErr, durableName: this.durableName },
-                this.i18nService.translate('FAILED_TO_UPDATE_CONSUMER_CONFIG'),
-              );
-              consumerInfo = existing;
             }
-          } else {
-            consumerInfo = await jsm.consumers.add(
-              this.streamName,
-              finalConfig,
+          } catch (err) {
+            retryAttempts++;
+            if (retryAttempts >= MAX_RETRIES) {
+              throw new InfrastructureException(
+                this.i18nService.translate('FAILED_TO_ADD_CONSUMER', {
+                  streamName: this.streamName,
+                }),
+                ErrorCodes.SERVICE_UNAVAILABLE,
+                500,
+                false,
+                { cause: err },
+              );
+            }
+            this.logger.warn(
+              { err, streamName: this.streamName, attempt: retryAttempts },
+              this.i18nService.translate('NATS_CONSUMER_ADD_RETRYING', {
+                streamName: this.streamName,
+                delay: RETRY_DELAY_MS,
+                attempt: retryAttempts,
+                maxAttempts: MAX_RETRIES,
+              }),
             );
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
           }
-        } else {
-          // Ephemeral consumers always use add()
-          consumerInfo = await jsm.consumers.add(this.streamName, finalConfig);
         }
 
+        if (!consumerInfo) {
+          throw new InfrastructureException(
+            `Failed to initialize consumer for stream ${this.streamName}`,
+            ErrorCodes.SERVICE_UNAVAILABLE,
+            500,
+          );
+        }
         actualConsumerName = consumerInfo.name;
         this.logger.info(
           {
@@ -130,6 +177,10 @@ export abstract class BaseNatsSubscriber<T extends object>
           }),
         );
       } catch (err) {
+        if (isAppException(err)) {
+          throw err;
+        }
+
         const errorMsg = this.i18nService.translate('FAILED_TO_ADD_CONSUMER', {
           streamName: this.streamName,
         });
@@ -138,9 +189,15 @@ export abstract class BaseNatsSubscriber<T extends object>
           errorMsg,
         );
         // Fail-Fast: Let the application crash and be restarted by orchestrator
-        throw new AppException(errorMsg, ErrorCodes.SERVICE_UNAVAILABLE, 500, {
-          cause: err,
-        });
+        throw new InfrastructureException(
+          errorMsg,
+          ErrorCodes.SERVICE_UNAVAILABLE,
+          500,
+          false,
+          {
+            cause: err,
+          },
+        );
       }
 
       const consumer = await this.js.consumers.get(

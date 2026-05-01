@@ -179,6 +179,8 @@ export default {
         'Successfully provisioned {{type}} consumer.',
       FAILED_TO_ADD_CONSUMER:
         'Failed to add consumer for stream {{streamName}}. Ensure the stream is provisioned.',
+      NATS_CONSUMER_ADD_RETRYING:
+        'Stream {{streamName}} might not be ready. Retrying to add consumer in {{delay}}ms... (Attempt {{attempt}}/{{maxAttempts}})',
       PULL_CONSUMER_FATAL_ERROR: 'Pull Consumer loop exited with fatal error.',
       FAILED_TO_INITIALIZE_PULL_CONSUMER:
         'Failed to initialize NATS pull consumer.',
@@ -347,6 +349,8 @@ export default {
       SUCCESSFULLY_PROCESSED_CONSUMER: '成功配置 {{type}} 消费者。',
       FAILED_TO_ADD_CONSUMER:
         '为流 {{streamName}} 添加消费者失败。请确保该流已配置。',
+      NATS_CONSUMER_ADD_RETRYING:
+        '流 {{streamName}} 可能尚未就绪。将在 {{delay}}ms 后重试添加消费者... (第 {{attempt}}/{{maxAttempts}} 次尝试)',
       PULL_CONSUMER_FATAL_ERROR: 'Pull Consumer 循环因致命错误退出。',
       FAILED_TO_INITIALIZE_PULL_CONSUMER: '初始化 NATS pull 消费者失败。',
       DISCARDING_MALFORMED_EVENT: '丢弃格式错误的 NATS 事件。',

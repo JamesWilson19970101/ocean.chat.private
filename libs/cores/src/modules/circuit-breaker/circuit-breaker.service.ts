@@ -1,5 +1,8 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  ErrorCodes,
+  InfrastructureException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as CircuitBreaker from 'opossum';
@@ -65,10 +68,10 @@ export class CircuitBreakerService {
     } catch (err: unknown) {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       if ((err as any).code === 'EOPENBREAKER') {
-        throw new BaseException(
+        throw new InfrastructureException(
           this.i18nService.translate('Service_Unavailable'),
-          HttpStatus.SERVICE_UNAVAILABLE,
           ErrorCodes.SERVICE_UNAVAILABLE,
+          HttpStatus.SERVICE_UNAVAILABLE,
         );
       }
       throw err;

@@ -6,7 +6,7 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { DomainException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisService } from '@ocean.chat/redis';
 import { CachedResponse } from '@ocean.chat/types';
@@ -87,10 +87,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
       }
       const message = this.i18nService.translate('IDEMPOTENCY_CONFLICT');
       // For conflicts, throw an exception that will be handled by the global filter.
-      throw new BaseException(
+      throw new DomainException(
         message,
+        ErrorCodes.IDEMPOTENCY_CONFLICT,
         HttpStatus.CONFLICT,
-        ErrorCodes.IDEMPOTENCY_CONFLICT, // Assuming this error code exists or will be added.
         { idempotencyKey },
       );
     }

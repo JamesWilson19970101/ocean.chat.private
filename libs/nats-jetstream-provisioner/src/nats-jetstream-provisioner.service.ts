@@ -4,7 +4,10 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { AppException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  ErrorCodes,
+  InfrastructureException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import {
   connect,
@@ -79,7 +82,11 @@ export class NatsJetStreamProvisionerService
             'NATS_STREAM_NAME_REQUIRED',
           );
           this.logger.error({ streamName, streamConfig }, errorMsg);
-          throw new AppException(errorMsg, ErrorCodes.SERVICE_ERROR, 500);
+          throw new InfrastructureException(
+            errorMsg,
+            ErrorCodes.SERVICE_ERROR,
+            500,
+          );
         }
 
         const streamInfo = await jsm.streams.info(streamName).catch(() => null);
@@ -114,10 +121,15 @@ export class NatsJetStreamProvisionerService
       const errorMsg = this.i18nService.translate(
         'FAILED_TO_PROVISION_JETSTREAM_STREAMS',
       );
-      this.logger.error({ error }, errorMsg);
-      throw new AppException(errorMsg, ErrorCodes.SERVICE_ERROR, 500, {
-        cause: error,
-      });
+      throw new InfrastructureException(
+        errorMsg,
+        ErrorCodes.SERVICE_ERROR,
+        500,
+        false,
+        {
+          cause: error,
+        },
+      );
     }
   }
 }
