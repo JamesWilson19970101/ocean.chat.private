@@ -1,7 +1,12 @@
 import { HttpStatus, Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import {
+  DomainException,
+  ErrorCodes,
+  InfrastructureException,
+  isAppException,
+} from '@ocean.chat/common-exceptions';
 import { AuthKeyUtil } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { BoundedPublisherService } from '@ocean.chat/nats-jetstream-provisioner';
@@ -153,13 +158,13 @@ export class OceanchatAuthService implements OnModuleInit {
         },
       );
     } catch (error) {
-      if (error instanceof BaseRpcException) {
+      if (isAppException(error)) {
         throw error;
       }
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('UNAUTHORIZED'),
-        HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
         { cause: error },
       );
     }
@@ -172,19 +177,20 @@ export class OceanchatAuthService implements OnModuleInit {
     try {
       isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
     } catch (error) {
-      throw new BaseRpcException(
+      throw new InfrastructureException(
         this.i18nService.translate('Redis_Client_Error'),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.TOKEN_REFRESH_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         { cause: error },
       );
     }
 
     if (isLockAcquired !== 'OK') {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-        HttpStatus.UNAUTHORIZED,
         ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+        HttpStatus.UNAUTHORIZED,
         { userId, jti },
       );
     }
@@ -196,10 +202,10 @@ export class OceanchatAuthService implements OnModuleInit {
       const storageStr = await this.redisService.hget(userKey, deviceId);
 
       if (!storageStr) {
-        throw new BaseRpcException(
+        throw new DomainException(
           this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-          HttpStatus.UNAUTHORIZED,
           ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          HttpStatus.UNAUTHORIZED,
           { userId, jti },
         );
       }
@@ -212,10 +218,10 @@ export class OceanchatAuthService implements OnModuleInit {
           { userId, deviceId, parseError },
           this.i18nService.translate('CORRUPTED_SESSION_DATA_IN_REDIS'),
         );
-        throw new BaseRpcException(
+        throw new DomainException(
           this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-          HttpStatus.UNAUTHORIZED,
           ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          HttpStatus.UNAUTHORIZED,
           { userId, jti },
         );
       }
@@ -265,10 +271,10 @@ export class OceanchatAuthService implements OnModuleInit {
         // Delete all sessions for this user (family revocation)
         await this.redisService.del(userKey);
 
-        throw new BaseRpcException(
+        throw new DomainException(
           this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-          HttpStatus.UNAUTHORIZED,
           ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          HttpStatus.UNAUTHORIZED,
           { userId, jti },
         );
       }
@@ -276,10 +282,10 @@ export class OceanchatAuthService implements OnModuleInit {
       // Fetch user to generate new tokens
       const user = await this.usersService.findOneById(userId);
       if (!user) {
-        throw new BaseRpcException(
+        throw new DomainException(
           this.i18nService.translate('User_not_found'),
-          HttpStatus.UNAUTHORIZED,
           ErrorCodes.UNAUTHORIZED,
+          HttpStatus.UNAUTHORIZED,
           {
             userId,
             jti,
@@ -324,13 +330,14 @@ export class OceanchatAuthService implements OnModuleInit {
 
       return { accessToken: newAccessToken, refreshToken: newRefreshToken };
     } catch (error) {
-      if (error instanceof BaseRpcException) {
+      if (isAppException(error)) {
         throw error;
       }
-      throw new BaseRpcException(
+      throw new InfrastructureException(
         this.i18nService.translate('TOKEN_REFRESH_ERROR'),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.TOKEN_REFRESH_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         {
           cause: error,
         },
@@ -418,13 +425,14 @@ export class OceanchatAuthService implements OnModuleInit {
 
       return [accessToken, refreshToken];
     } catch (error) {
-      if (error instanceof BaseRpcException) {
+      if (isAppException(error)) {
         throw error;
       }
-      throw new BaseRpcException(
+      throw new InfrastructureException(
         this.i18nService.translate('Login_Session_Store_Failed'),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         { cause: error },
       );
     }

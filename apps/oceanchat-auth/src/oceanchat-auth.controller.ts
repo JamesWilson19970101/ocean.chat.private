@@ -1,6 +1,6 @@
 import { Controller, HttpStatus, UseGuards } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { DomainException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import {
   AuthenticatedUser,
   LoginDto,
@@ -40,10 +40,10 @@ export class OceanchatAuthController {
     if (!refreshTokenDto.refreshToken) {
       // This case should ideally not be reached if the gateway always provides a token.
       // This is a defensive check.
-      throw new BaseRpcException(
+      throw new DomainException(
         'Refresh token is missing in the payload.',
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.BAD_REQUEST,
       );
     }
     return this.oceanchatAuthService.refreshToken(refreshTokenDto.refreshToken);

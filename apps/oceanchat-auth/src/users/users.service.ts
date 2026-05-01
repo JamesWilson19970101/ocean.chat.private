@@ -1,9 +1,10 @@
 import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
-  BaseRpcException,
+  DomainException,
   ErrorCodes,
   ErrorResponseDto,
+  InfrastructureException,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
@@ -88,7 +89,7 @@ export class UsersService {
     if (isErrorResponseDto(err)) {
       return throwError(
         () =>
-          new BaseRpcException(err.message, err.statusCode, err.errorCode, {
+          new DomainException(err.message, err.errorCode, err.statusCode, {
             cause: err as ErrorResponseDto,
           }),
       );
@@ -98,10 +99,11 @@ export class UsersService {
     const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
     return throwError(
       () =>
-        new BaseRpcException(
+        new InfrastructureException(
           message,
-          HttpStatus.INTERNAL_SERVER_ERROR,
           ErrorCodes.UNEXPECTED_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          false,
           {
             cause: err as any,
           },
