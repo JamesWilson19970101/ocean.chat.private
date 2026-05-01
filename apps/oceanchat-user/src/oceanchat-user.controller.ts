@@ -59,4 +59,28 @@ export class OceanchatUserController {
     const { username, password } = payload;
     return await this.oceanchatUserService.validatePassword(username, password);
   }
+
+  /**
+   * Fetches global roles for a specific user.
+   * @param userId - The user's ID
+   * @returns An array of role names
+   */
+  @MessagePattern('auth.roles.getUserGlobalRoles')
+  async getUserGlobalRoles(
+    @Payload('userId') userId: string,
+  ): Promise<string[]> {
+    return this.oceanchatUserService.getUserGlobalRoles(userId);
+  }
+
+  /**
+   * Fetches roles associated with a specific permission.
+   * @param permissionId - The permission ID
+   * @returns An array of role names
+   */
+  @MessagePattern('auth.roles.getRolesForPermission')
+  async getRolesForPermission(
+    @Payload('permissionId') permissionId: string,
+  ): Promise<string[]> {
+    return this.oceanchatUserService.getRolesForPermission(permissionId);
+  }
 }

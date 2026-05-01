@@ -179,7 +179,12 @@ export class OceanchatUserModule {
           },
         }),
         // TODO: add params for init repository
-        ModelsModule.forFeature([OceanModel.Setting, OceanModel.User]), // Provides *Repository
+        ModelsModule.forFeature([
+          OceanModel.Setting,
+          OceanModel.User,
+          OceanModel.Role,
+          OceanModel.Permission,
+        ]), // Provides *Repository
         SettingsModule.register({ runSeeds: false }),
       ],
       controllers: [OceanchatUserController],

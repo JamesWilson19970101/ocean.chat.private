@@ -1,9 +1,21 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { BaseRpcException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { InjectModel } from '@nestjs/mongoose';
+import {
+  DomainException,
+  ErrorCodes,
+  InfrastructureException,
+  isAppException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
-import { AuthProvider, UserRepository } from '@ocean.chat/models';
+import {
+  AuthProvider,
+  Permission,
+  User,
+  UserRepository,
+} from '@ocean.chat/models';
 import { SettingsService } from '@ocean.chat/settings';
 import { CreateUserDto } from '@ocean.chat/types';
+import { Model } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { PasswordService } from './password.service';
@@ -17,7 +29,48 @@ export class OceanchatUserService {
     private readonly userRepository: UserRepository,
     private readonly passwordService: PasswordService,
     private readonly settingsService: SettingsService,
+    @InjectModel(User.name) private readonly userModel: Model<User>,
+    @InjectModel(Permission.name)
+    private readonly permissionModel: Model<Permission>,
   ) {}
+
+  async getUserGlobalRoles(userId: string): Promise<string[]> {
+    try {
+      const user = await this.userModel
+        .findById(userId, { roles: 1 })
+        .lean()
+        .exec();
+
+      return user?.roles || [];
+    } catch (error) {
+      throw new InfrastructureException(
+        this.i18nService.translate('FAILED_TO_FETCH_GLOBAL_ROLES'),
+        ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        { cause: error },
+      );
+    }
+  }
+
+  async getRolesForPermission(permissionId: string): Promise<string[]> {
+    try {
+      const permission = await this.permissionModel
+        .findById(permissionId, { roles: 1 })
+        .lean()
+        .exec();
+
+      return permission?.roles || [];
+    } catch (error) {
+      throw new InfrastructureException(
+        this.i18nService.translate('FAILED_TO_FETCH_PERMISSION_ROLES'),
+        ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        { cause: error },
+      );
+    }
+  }
 
   async create(createUserDto: CreateUserDto) {
     const { username, password } = createUserDto;
@@ -41,20 +94,21 @@ export class OceanchatUserService {
         'code' in error &&
         error.code === 11000
       ) {
-        throw new BaseRpcException(
+        throw new DomainException(
           this.i18nService.translate('USERNAME_ALREADY_EXISTS'),
-          HttpStatus.CONFLICT,
           ErrorCodes.USERNAME_ALREADY_EXISTS,
+          HttpStatus.CONFLICT,
         );
       }
-      if (error instanceof BaseRpcException) {
+      if (isAppException(error)) {
         throw error;
       }
       const errorMessage = this.i18nService.translate('USER_CREATION_ERROR');
-      throw new BaseRpcException(
+      throw new InfrastructureException(
         errorMessage,
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.CREATION_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
         {
           cause: error as any,
         },
@@ -93,41 +147,41 @@ export class OceanchatUserService {
       typeof usernameMinLength !== 'number' ||
       username.length < usernameMinLength
     ) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('USERNAME_TOO_SHORT', {
           minLength: usernameMinLength,
         }),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.USERNAME_TOO_SHORT,
+        HttpStatus.BAD_REQUEST,
       );
     }
     if (
       typeof usernameMaxLength !== 'number' ||
       username.length > usernameMaxLength
     ) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('USERNAME_TOO_LONG', {
           maxLength: usernameMaxLength,
         }),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.USERNAME_TOO_LONG,
+        HttpStatus.BAD_REQUEST,
       );
     }
     if (typeof usernameRegexString !== 'string') {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate(
           'USERNAME_VALIDATION_REGEX_NOT_CONFIGURED_SUCCESSFULLY',
         ),
-        HttpStatus.INTERNAL_SERVER_ERROR,
         ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
     const usernameRegex = new RegExp(usernameRegexString);
     if (!usernameRegex.test(username)) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('USERNAME_INVALID_CHARACTERS'),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.USERNAME_INVALID_CHARACTERS,
+        HttpStatus.BAD_REQUEST,
       );
     }
 
@@ -135,41 +189,41 @@ export class OceanchatUserService {
       typeof passwordMinLength !== 'number' ||
       password.length < passwordMinLength
     ) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('PASSWORD_TOO_SHORT'),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_TOO_SHORT,
+        HttpStatus.BAD_REQUEST,
       );
     }
     if (passwordRequireDigit && !/\d/.test(password)) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('PASSWORD_NO_DIGIT'),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_DIGIT,
+        HttpStatus.BAD_REQUEST,
       );
     }
     if (passwordRequireLowercase && !/[a-z]/.test(password)) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('PASSWORD_NO_LOWERCASE'),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_LOWERCASE,
+        HttpStatus.BAD_REQUEST,
       );
     }
     if (passwordRequireUppercase && !/[A-Z]/.test(password)) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('PASSWORD_NO_UPPERCASE'),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_UPPERCASE,
+        HttpStatus.BAD_REQUEST,
       );
     }
     if (
       passwordRequireSpecialChar &&
       !/[!@#$%^&*(),.?":{}|<>]/.test(password)
     ) {
-      throw new BaseRpcException(
+      throw new DomainException(
         this.i18nService.translate('PASSWORD_NO_SPECIAL_CHAR'),
-        HttpStatus.BAD_REQUEST,
         ErrorCodes.PASSWORD_NO_SPECIAL_CHAR,
+        HttpStatus.BAD_REQUEST,
       );
     }
   }
