@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
-import { BaseException, ErrorCodes } from '@ocean.chat/common-exceptions';
+import { DomainException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { IS_PUBLIC_KEY } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { IJwtPayload } from '@ocean.chat/types';
@@ -44,10 +44,10 @@ export class JwtAuthGuard implements CanActivate {
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
-      throw new BaseException(
+      throw new DomainException(
         this.i18nService.translate('UNAUTHORIZED'),
-        HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -62,10 +62,10 @@ export class JwtAuthGuard implements CanActivate {
       const isRevoked = await this.tokenBlacklistService.isRevoked(payload.jti);
 
       if (isRevoked) {
-        throw new BaseException(
+        throw new DomainException(
           this.i18nService.translate('UNAUTHORIZED'),
-          HttpStatus.UNAUTHORIZED,
           ErrorCodes.UNAUTHORIZED,
+          HttpStatus.UNAUTHORIZED,
         );
       }
 
@@ -77,18 +77,18 @@ export class JwtAuthGuard implements CanActivate {
       };
     } catch (error) {
       if (error instanceof Error && error.name === 'TokenExpiredError') {
-        throw new BaseException(
+        throw new DomainException(
           this.i18nService.translate('TOKEN_EXPIRED'),
-          HttpStatus.UNAUTHORIZED,
           ErrorCodes.ERROR_CODE_TOKEN_EXPIRED,
+          HttpStatus.UNAUTHORIZED,
           { cause: error },
         );
       }
 
-      throw new BaseException(
+      throw new DomainException(
         this.i18nService.translate('UNAUTHORIZED'),
-        HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
         { cause: error },
       );
     }

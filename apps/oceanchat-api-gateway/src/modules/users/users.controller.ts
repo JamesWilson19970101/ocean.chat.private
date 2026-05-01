@@ -1,8 +1,10 @@
 import { Controller, Get, HttpStatus, Inject } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
-  BaseException,
+  DomainException,
   ErrorCodes,
+  InfrastructureException,
+  isAppException,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { CircuitBreakerService } from '@ocean.chat/cores';
@@ -44,26 +46,26 @@ export class UsersController {
                 if (!profile) {
                   const message = this.i18nService.translate('USER_NOT_FOUND');
                   const errorCode = ErrorCodes.USER_NOT_FOUND;
-                  throw new BaseException(
+                  throw new DomainException(
                     message,
-                    HttpStatus.NOT_FOUND,
                     errorCode,
+                    HttpStatus.NOT_FOUND,
                   );
                 }
                 return profile;
               }),
               catchError((err: unknown) => {
                 // If it's the BaseException (404) we just threw in the map, just throw it out directly without changing the status code.
-                if (err instanceof BaseException) {
+                if (isAppException(err)) {
                   return throwError(() => err);
                 }
                 if (isErrorResponseDto(err)) {
                   return throwError(
                     () =>
-                      new BaseException(
+                      new DomainException(
                         err.message,
-                        err.statusCode,
                         err.errorCode,
+                        err.statusCode,
                         { cause: err },
                       ),
                   );
@@ -71,10 +73,11 @@ export class UsersController {
 
                 return throwError(
                   () =>
-                    new BaseException(
+                    new InfrastructureException(
                       this.i18nService.translate('INTERNAL_SERVER_ERROR'),
-                      HttpStatus.INTERNAL_SERVER_ERROR,
                       ErrorCodes.UNEXPECTED_ERROR,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      false,
                       { cause: err as any },
                     ),
                 );

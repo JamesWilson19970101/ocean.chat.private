@@ -11,8 +11,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { ClientProxy } from '@nestjs/microservices';
 import {
-  BaseException,
+  DomainException,
   ErrorCodes,
+  InfrastructureException,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
 import { CircuitBreakerService, SkipAuth } from '@ocean.chat/cores';
@@ -67,10 +68,10 @@ export class AuthController {
                 if (isErrorResponseDto(err)) {
                   return throwError(
                     () =>
-                      new BaseException(
+                      new DomainException(
                         err.message,
-                        err.statusCode,
                         err.errorCode,
+                        err.statusCode,
                         { cause: err },
                       ),
                   );
@@ -80,10 +81,11 @@ export class AuthController {
                 );
                 return throwError(
                   () =>
-                    new BaseException(
+                    new InfrastructureException(
                       message,
-                      HttpStatus.INTERNAL_SERVER_ERROR,
                       ErrorCodes.UNEXPECTED_ERROR,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      false,
                       { cause: err as any },
                     ),
                 );
@@ -129,20 +131,21 @@ export class AuthController {
               if (isErrorResponseDto(err)) {
                 return throwError(
                   () =>
-                    new BaseException(
+                    new DomainException(
                       err.message,
-                      err.statusCode,
                       err.errorCode,
+                      err.statusCode,
                       { cause: err },
                     ),
                 );
               }
               return throwError(
                 () =>
-                  new BaseException(
+                  new InfrastructureException(
                     this.i18nService.translate('REGISTRATION_FAILED'),
-                    HttpStatus.INTERNAL_SERVER_ERROR,
                     ErrorCodes.CREATION_ERROR,
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    false,
                     { cause: err as any },
                   ),
               );
@@ -180,10 +183,10 @@ export class AuthController {
       cookies['refresh_token'] || refreshTokenDto?.refreshToken;
 
     if (!refreshToken) {
-      throw new BaseException(
+      throw new DomainException(
         this.i18nService.translate('UNAUTHORIZED'),
-        HttpStatus.UNAUTHORIZED,
         ErrorCodes.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
       );
     }
 
@@ -201,20 +204,21 @@ export class AuthController {
                 if (isErrorResponseDto(err)) {
                   return throwError(
                     () =>
-                      new BaseException(
+                      new DomainException(
                         err.message,
-                        err.statusCode,
                         err.errorCode,
+                        err.statusCode,
                         { cause: err },
                       ),
                   );
                 }
                 return throwError(
                   () =>
-                    new BaseException(
+                    new InfrastructureException(
                       this.i18nService.translate('REFRESHTOKEN_ERROR'),
-                      HttpStatus.INTERNAL_SERVER_ERROR,
                       ErrorCodes.TOKEN_REFRESH_ERROR,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      false,
                       { cause: err as any },
                     ),
                 );
@@ -260,10 +264,10 @@ export class AuthController {
             if (isErrorResponseDto(err)) {
               return throwError(
                 () =>
-                  new BaseException(
+                  new DomainException(
                     err.message,
-                    err.statusCode,
                     err.errorCode,
+                    err.statusCode,
                     { cause: err },
                   ),
               );
@@ -271,10 +275,11 @@ export class AuthController {
             const message = this.i18nService.translate('INTERNAL_SERVER_ERROR');
             return throwError(
               () =>
-                new BaseException(
+                new InfrastructureException(
                   message,
-                  HttpStatus.INTERNAL_SERVER_ERROR,
                   ErrorCodes.UNEXPECTED_ERROR,
+                  HttpStatus.INTERNAL_SERVER_ERROR,
+                  false,
                   { cause: err as any },
                 ),
             );

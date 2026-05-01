@@ -1,6 +1,8 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Global, Module } from '@nestjs/common';
+import { IRoleDataSource } from '@ocean.chat/types';
 
+import { RpcRoleDataSource } from './rpc-role.data-source';
 import { TokenBlacklistService } from './token-blacklist.service';
 
 @Global()
@@ -11,7 +13,13 @@ import { TokenBlacklistService } from './token-blacklist.service';
       isGlobal: true,
     }),
   ],
-  providers: [TokenBlacklistService],
-  exports: [TokenBlacklistService],
+  providers: [
+    TokenBlacklistService,
+    {
+      provide: IRoleDataSource,
+      useClass: RpcRoleDataSource,
+    },
+  ],
+  exports: [TokenBlacklistService, IRoleDataSource],
 })
 export class CommonServicesModule {}
