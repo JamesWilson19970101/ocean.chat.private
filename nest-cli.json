@@ -8,11 +8,7 @@
     "assets": [
       {
         "include": "oceanchat_assets/**/*",
-        "outDir": "dist/apps/ocean.chat/src"
-      },
-      {
-        "include": "oceanchat_router_assets/**/*",
-        "outDir": "dist/apps/oceanchat-router"
+        "outDir": "dist/apps/oceanchat-api-gateway/src"
       }
     ]
   },
