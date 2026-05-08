@@ -78,12 +78,17 @@ export abstract class BaseNatsSubscriber<T extends object>
       };
 
       const userConfig = this.getConsumerConfig();
+
+      const cleanUserConfig = Object.fromEntries(
+        Object.entries(userConfig).filter(([, v]) => v !== undefined),
+      );
+
       const finalConfig: Partial<ConsumerConfig> = {
         ...baseConfig,
-        ...userConfig,
+        ...cleanUserConfig,
       };
 
-      if (this.durableName) {
+      if (this.durableName && !finalConfig.durable_name) {
         finalConfig.durable_name = this.durableName;
       }
 
