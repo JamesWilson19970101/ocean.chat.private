@@ -160,7 +160,7 @@ export class OceanchatAuthModule {
                   name: 'AUTH_STATE',
                   subjects: ['auth.jwt.revoke'],
                   retention: RetentionPolicy.Limits,
-                  storage: StorageType.Memory,
+                  storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,
                   max_age: 30 * 60 * 1_000_000_000, // 30 minutes in nanoseconds
                   description: i18nService.translate(
@@ -170,9 +170,7 @@ export class OceanchatAuthModule {
                 {
                   name: 'AUTH_EVENTS',
                   subjects: ['auth.event.>'],
-                  retention: isProduction
-                    ? RetentionPolicy.Limits
-                    : RetentionPolicy.Workqueue,
+                  retention: RetentionPolicy.Limits,
                   storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,
                   max_age: 24 * 60 * 60 * 1_000_000_000, // 24 hours
@@ -182,7 +180,7 @@ export class OceanchatAuthModule {
                 },
                 {
                   name: 'AUTH_DLQ',
-                  subjects: ['dlq.auth.event.>', 'dlq.auth.jwt.revoke'],
+                  subjects: ['dlq.auth.event.>', 'dlq.auth.jwt.revoke'], // TODO: do not forget add corresponding dlq
                   retention: RetentionPolicy.Limits,
                   storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,

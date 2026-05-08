@@ -164,9 +164,7 @@ export class OceanchatUserModule {
                 {
                   name: 'USER',
                   subjects: ['user.event.>'],
-                  retention: isProduction
-                    ? RetentionPolicy.Limits
-                    : RetentionPolicy.Workqueue,
+                  retention: RetentionPolicy.Limits,
                   storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,
                   max_age: isProduction ? 24 * 60 * 60 * 1_000_000_000 : 0, // 24 hours in nanoseconds
