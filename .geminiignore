@@ -1,0 +1,6 @@
+# Exclude directory and all subdirectories
+
+/scripts/
+/coverage/
+/dist/
+/node_modules/
