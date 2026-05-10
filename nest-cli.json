@@ -58,6 +58,15 @@
         "tsConfigPath": "libs/models/tsconfig.lib.json"
       }
     },
+    "monkey": {
+      "type": "library",
+      "root": "libs/monkey",
+      "entryFile": "index",
+      "sourceRoot": "libs/monkey/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/monkey/tsconfig.lib.json"
+      }
+    },
     "nats-jetstream-provisioner": {
       "type": "library",
       "root": "libs/nats-jetstream-provisioner",
