@@ -109,7 +109,7 @@ export default {
         'Stream for the {{serviceName}} microservice ({{environment}})',
       AUTH_STATE_STREAM_DESCRIPTION:
         'Global Security Stream for Zero-I/O local authentication',
-      AUTH_DLQ_STREAM_DESCRIPTION:
+      DLQ_STREAM_DESCRIPTION:
         'Dead-letter queue for auth events that failed initial publishing.',
       AUTH_EVENTS_STREAM_DESCRIPTION:
         'Stream for authentication events (e.g., user login)',
@@ -295,7 +295,7 @@ export default {
       NATS_STREAM_DESCRIPTION:
         '用于 {{serviceName}} 微服务的流 ({{environment}})',
       AUTH_STATE_STREAM_DESCRIPTION: '用于零 I/O 本地身份验证的全局安全流',
-      AUTH_DLQ_STREAM_DESCRIPTION: '用于初始发布失败的身份验证事件的死信队列。',
+      DLQ_STREAM_DESCRIPTION: '用于初始发布失败的身份验证事件的死信队列。',
       AUTH_EVENTS_STREAM_DESCRIPTION:
         '用于身份验证相关事件的流（例如，用户登录）',
       USER_EVENTS_STREAM_DESCRIPTION:
