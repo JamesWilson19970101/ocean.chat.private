@@ -179,15 +179,13 @@ export class OceanchatAuthModule {
                   ),
                 },
                 {
-                  name: 'AUTH_DLQ',
+                  name: 'DLQ',
                   subjects: ['dlq.auth.event.>', 'dlq.auth.jwt.revoke'], // TODO: do not forget add corresponding dlq
                   retention: RetentionPolicy.Limits,
                   storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,
                   max_age: 7 * 24 * 60 * 60 * 1_000_000_000, // 7 days
-                  description: i18nService.translate(
-                    'AUTH_DLQ_STREAM_DESCRIPTION',
-                  ),
+                  description: i18nService.translate('DLQ_STREAM_DESCRIPTION'),
                 },
               ],
             };
