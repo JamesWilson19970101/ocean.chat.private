@@ -5,5 +5,6 @@ export * from './exceptions/app.exception';
 export * from './exceptions/domain.exception';
 export * from './exceptions/infrastructure.exception';
 export * from './filters/all-exceptions.filter';
+export * from './filters/monkey-ws-exception.filter';
 export * from './utils/is-app-exception.util';
 export * from './utils/is-error-response-dto.utils';
