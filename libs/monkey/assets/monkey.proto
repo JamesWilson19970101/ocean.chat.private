@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package oceanchat.monkey;
+
+// MSG_UP: Client -> Server message
+message MsgUp {
+  string clientMsgId = 1;
+  string groupId = 2;
+  
+  enum MsgType {
+    TEXT = 0;
+    IMAGE = 1;
+    AUDIO = 2;
+    FILE = 3;
+  }
+  MsgType msgType = 3;
+  
+  // TEXT
+  string content = 4;
+  
+  // MEDIA
+  string url = 5;
+  int32 width = 6;
+  int32 height = 7;
+  int64 size = 8;
+  string format = 9;
+  int32 duration = 10;
+  string fileName = 11;
+  string extension = 12;
+  string thumbnailUrl = 13;
+}
+
+// MSG_UP_ACK: Server -> Client ack
+message MsgUpAck {
+  string clientMsgId = 1;
+  uint64 syncSeqId = 2;
+  bool success = 3;
+  string errorMessage = 4;
+}
+
+// MSG_NOTIFY: Global new message notification
+message MsgNotify {
+  string groupId = 1;
+  uint64 syncSeqId = 2;
+}
+
+// AUTH_REQ: Handshake auth request
+message AuthReq {
+  string deviceType = 1;
+  string deviceId = 2;
+  string jwt = 3;
+}
+
+// AUTH_ACK: Handshake auth response
+message AuthAck {
+  bool success = 1;
+  string errorMessage = 2;
+}
+
+// READ_RECEIPT: Cross-device read receipt sync
+message ReadReceipt {
+  string groupId = 1;
+  uint64 syncSeqId = 2;
+}
+
+// EXCEPTION_ACK: Global exception response
+message ExceptionAck {
+  int32 errorCode = 1;
+  string message = 2;
+  string timestamp = 3;
+}
+
