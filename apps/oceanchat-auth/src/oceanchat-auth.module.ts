@@ -21,6 +21,7 @@ import { NatsJetStreamProvisionerModule } from '@ocean.chat/nats-jetstream-provi
 import { NatsTraceInterceptor } from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
 import { SettingsModule } from '@ocean.chat/settings';
+import { TracingOptions } from '@ocean.chat/types';
 import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
 import { RetentionPolicy, StorageType } from 'nats';
@@ -32,17 +33,12 @@ import { OceanchatAuthService } from './oceanchat-auth.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from './users/users.module';
 
-interface OceanchatAuthModuleOptions {
-  serviceName: string;
-  serviceInstanceId: string;
-}
-
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
 
 @Module({})
 export class OceanchatAuthModule {
-  static forRoot(options: OceanchatAuthModuleOptions): DynamicModule {
+  static forRoot(options: TracingOptions): DynamicModule {
     return {
       module: OceanchatAuthModule,
       imports: [

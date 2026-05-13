@@ -58,6 +58,12 @@
       "@ocean.chat/models/*": [
         "libs/models/src/*"
       ],
+      "@ocean.chat/monkey": [
+        "libs/monkey/src"
+      ],
+      "@ocean.chat/monkey/*": [
+        "libs/monkey/src/*"
+      ],
       "@ocean.chat/nats-jetstream-provisioner": [
         "libs/nats-jetstream-provisioner/src"
       ],
