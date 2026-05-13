@@ -13,5 +13,6 @@ export * from './libs/authorization/room.type';
 export * from './libs/authorization/scope-provider.interface';
 export * from './libs/events/token-revoked.event';
 export * from './libs/events/user-logged-in.event';
+export * from './libs/id-generator/sync-seq.interface';
 export * from './libs/models/groups.type';
 export * from './libs/settings/settings.type';

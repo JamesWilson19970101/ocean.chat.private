@@ -205,6 +205,17 @@ export default {
         'Bounded publisher task failed. Attempting to route to DLQ.',
       FATAL_FAILED_TO_PUBLISH_TO_DLQ:
         'FATAL: Failed to publish to DLQ. Message is lost.',
+      ID_GENERATOR_SEGMENT_EXHAUSTED:
+        'Segment exhausted, triggering slow path allocation',
+      ID_GENERATOR_LOCK_ACQUIRED_BY_OTHER:
+        'Lock acquired by another pod, waiting and retrying...',
+      ID_GENERATOR_REDIS_EVAL_FAILED: 'Redis eval failed during ID generation',
+      ID_GENERATOR_ALLOCATION_ERROR: 'Failed to allocate sequence segment',
+      ID_GENERATOR_REDIS_ERROR: 'Redis service unavailable',
+      ID_GENERATOR_ALLOCATION_FAILED: 'Sequence allocation failed',
+      INVALID_SEQUENCE_KEY: 'Invalid sequence key format',
+      ID_GENERATOR_LOCK_TIMEOUT:
+        'Failed to acquire lock for sequence allocation',
     },
   },
   zh: {
@@ -369,6 +380,14 @@ export default {
       QUEUE_LIMIT_REACHED: '达到队列限制：{{msg}}',
       BOUNDED_PUBLISHER_TASK_FAILED: '有界发布任务失败。尝试路由到 DLQ。',
       FATAL_FAILED_TO_PUBLISH_TO_DLQ: '致命错误：发布到 DLQ 失败。消息丢失。',
+      ID_GENERATOR_SEGMENT_EXHAUSTED: '号段耗尽，触发慢路径分配',
+      ID_GENERATOR_LOCK_ACQUIRED_BY_OTHER: '锁已被其他 Pod 获取，等待并重试...',
+      ID_GENERATOR_REDIS_EVAL_FAILED: 'ID 生成期间 Redis eval 失败',
+      ID_GENERATOR_ALLOCATION_ERROR: '分配序列号段失败',
+      ID_GENERATOR_REDIS_ERROR: 'Redis 服务不可用',
+      ID_GENERATOR_ALLOCATION_FAILED: '序列分配失败',
+      INVALID_SEQUENCE_KEY: '无效的序列键格式',
+      ID_GENERATOR_LOCK_TIMEOUT: '获取序列分配锁失败，重试次数耗尽',
     },
   },
 };
