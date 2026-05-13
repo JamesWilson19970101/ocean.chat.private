@@ -13,12 +13,18 @@ import {
   PermissionSchema,
   Role,
   RoleSchema,
+  Sequence,
+  SequenceSchema,
   Setting,
   SettingSchema,
   User,
   UserSchema,
 } from '../entities';
-import { SettingsRepository, UserRepository } from '../repositories';
+import {
+  SequenceRepository,
+  SettingsRepository,
+  UserRepository,
+} from '../repositories';
 
 /**
  * Mapping for Mongoose Schema Definitions.
@@ -34,6 +40,7 @@ export const MODEL_DEFINITIONS: Record<OceanModel, ModelDefinition> = {
     name: GroupMember.name,
     schema: GroupMemberSchema,
   },
+  [OceanModel.Sequence]: { name: Sequence.name, schema: SequenceSchema },
 };
 
 /**
@@ -48,4 +55,5 @@ export const REPOSITORY_MAP: Record<OceanModel, Type<any> | undefined> = {
   [OceanModel.Message]: undefined,
   [OceanModel.Group]: undefined,
   [OceanModel.GroupMember]: undefined,
+  [OceanModel.Sequence]: SequenceRepository,
 };

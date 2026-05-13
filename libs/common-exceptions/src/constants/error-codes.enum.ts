@@ -26,6 +26,9 @@ export enum ErrorCodes {
   // idempotency key conflict error
   IDEMPOTENCY_CONFLICT = 10050,
 
+  // Sequence/ID Generator errors
+  INVALID_SEQUENCE_KEY = 40000, // e.g., when a sequence key contains invalid characters
+
   // Event/Message errors
   MALFORMED_EVENT = 40001, // e.g., when a NATS event fails schema validation
 

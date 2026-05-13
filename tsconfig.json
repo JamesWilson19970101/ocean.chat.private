@@ -52,6 +52,12 @@
       "@ocean.chat/i18n/*": [
         "libs/i18n/src/*"
       ],
+      "@ocean.chat/id-generator": [
+        "libs/id-generator/src"
+      ],
+      "@ocean.chat/id-generator/*": [
+        "libs/id-generator/src/*"
+      ],
       "@ocean.chat/models": [
         "libs/models/src"
       ],
