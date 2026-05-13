@@ -216,6 +216,8 @@ export default {
       INVALID_SEQUENCE_KEY: 'Invalid sequence key format',
       ID_GENERATOR_LOCK_TIMEOUT:
         'Failed to acquire lock for sequence allocation',
+      ID_GENERATOR_DELAYED_ALLOCATION_DISCARDED:
+        'Delayed allocation detected. Segment discarded to prevent sequence rollback.',
     },
   },
   zh: {
@@ -388,6 +390,8 @@ export default {
       ID_GENERATOR_ALLOCATION_FAILED: '序列分配失败',
       INVALID_SEQUENCE_KEY: '无效的序列键格式',
       ID_GENERATOR_LOCK_TIMEOUT: '获取序列分配锁失败，重试次数耗尽',
+      ID_GENERATOR_DELAYED_ALLOCATION_DISCARDED:
+        '检测到延迟分配。已丢弃该号段以防止序列回退。',
     },
   },
 };

@@ -114,7 +114,10 @@ export class IdGeneratorService implements ISyncSeqIdGenerator {
         if (!acquired) {
           this.logger.debug(
             { key, retries },
-            'Lock acquired by another pod, waiting and retrying...',
+            this.i18nService.translate('ID_GENERATOR_LOCK_ACQUIRED_BY_OTHER', {
+              defaultValue:
+                'Lock acquired by another pod, waiting and retrying...',
+            }),
           );
           retries++;
 
@@ -161,7 +164,13 @@ export class IdGeneratorService implements ISyncSeqIdGenerator {
             // Discard this obsolete segment and fetch a fresh ID.
             this.logger.warn(
               { key },
-              'Delayed allocation detected. Segment discarded to prevent sequence rollback.',
+              this.i18nService.translate(
+                'ID_GENERATOR_DELAYED_ALLOCATION_DISCARDED',
+                {
+                  defaultValue:
+                    'Delayed allocation detected. Segment discarded to prevent sequence rollback.',
+                },
+              ),
             );
 
             // Another pod allocated a newer segment while we were blocked.
