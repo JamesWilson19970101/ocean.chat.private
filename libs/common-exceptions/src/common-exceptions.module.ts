@@ -5,10 +5,12 @@ import { MonkeyModule } from '@ocean.chat/monkey';
 import { TracingOptions } from '@ocean.chat/types';
 import { PinoLogger } from 'nestjs-pino';
 
+import {
+  SERVICE_INSTANCE_ID,
+  SERVICE_NAME,
+} from './constants/common-exceptions.constants';
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
 import { MonkeyWsExceptionFilter } from './filters/monkey-ws-exception.filter';
-export const SERVICE_NAME = 'SERVICE_NAME';
-export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 
 @Global()
 @Module({})
@@ -31,6 +33,7 @@ export class CommonExceptionsModule {
 
     return {
       module: CommonExceptionsModule,
+      global: true,
       imports: [MonkeyModule],
       providers: [
         serviceNameProvider,

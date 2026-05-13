@@ -1,4 +1,5 @@
 export * from './common-exceptions.module';
+export * from './constants/common-exceptions.constants';
 export * from './constants/error-codes.enum';
 export * from './dto/error-response.dto';
 export * from './exceptions/app.exception';

@@ -4,7 +4,10 @@ import type { Request, Response } from 'express';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { Observable, throwError } from 'rxjs';
 
-import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '../common-exceptions.module';
+import {
+  SERVICE_INSTANCE_ID,
+  SERVICE_NAME,
+} from '../constants/common-exceptions.constants';
 import { BaseAppExceptionFilter } from './base-exception.filter';
 
 /**

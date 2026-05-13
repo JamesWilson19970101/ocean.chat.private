@@ -9,7 +9,10 @@ import {
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { WebSocket } from 'ws';
 
-import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '../common-exceptions.module';
+import {
+  SERVICE_INSTANCE_ID,
+  SERVICE_NAME,
+} from '../constants/common-exceptions.constants';
 import { BaseAppExceptionFilter } from './base-exception.filter';
 
 @Catch()
