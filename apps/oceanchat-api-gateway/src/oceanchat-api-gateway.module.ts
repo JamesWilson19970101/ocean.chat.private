@@ -21,6 +21,7 @@ import {
 import { I18nModule } from '@ocean.chat/i18n';
 import { NatsOpentelemetryTracingModule } from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
+import { TracingOptions } from '@ocean.chat/types';
 import { context, trace } from '@opentelemetry/api';
 import { LoggerModule } from 'nestjs-pino';
 
@@ -33,14 +34,9 @@ import { UsersModule } from './modules/users/users.module';
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
 
-interface OceanchatApiGatewayModuleOptions {
-  serviceName: string;
-  serviceInstanceId: string;
-}
-
 @Module({})
 export class OceanchatApiGatewayModule {
-  static forRoot(options: OceanchatApiGatewayModuleOptions): DynamicModule {
+  static forRoot(options: TracingOptions): DynamicModule {
     return {
       module: OceanchatApiGatewayModule,
       imports: [

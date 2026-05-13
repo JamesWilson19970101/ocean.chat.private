@@ -1,16 +1,14 @@
 import { DynamicModule, Global, Module, Provider } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { I18nService } from '@ocean.chat/i18n';
+import { MonkeyModule } from '@ocean.chat/monkey';
+import { TracingOptions } from '@ocean.chat/types';
 import { PinoLogger } from 'nestjs-pino';
 
 import { AllExceptionsFilter } from './filters/all-exceptions.filter';
+import { MonkeyWsExceptionFilter } from './filters/monkey-ws-exception.filter';
 export const SERVICE_NAME = 'SERVICE_NAME';
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
-
-export interface CommonExceptionModuleOptions {
-  serviceName: string;
-  serviceInstanceId: string;
-}
 
 @Global()
 @Module({})
@@ -20,7 +18,7 @@ export class CommonExceptionsModule {
    * @param options CommonExceptionModuleOptions
    * @returns DynamicModule
    */
-  static forRoot(options: CommonExceptionModuleOptions): DynamicModule {
+  static forRoot(options: TracingOptions): DynamicModule {
     const serviceNameProvider: Provider = {
       provide: SERVICE_NAME,
       useValue: options.serviceName || 'UnknownService',
@@ -33,6 +31,7 @@ export class CommonExceptionsModule {
 
     return {
       module: CommonExceptionsModule,
+      imports: [MonkeyModule],
       providers: [
         serviceNameProvider,
         serviceInstanceIdProvider,
@@ -54,8 +53,13 @@ export class CommonExceptionsModule {
           },
           inject: [SERVICE_NAME, SERVICE_INSTANCE_ID, PinoLogger, I18nService],
         },
+        MonkeyWsExceptionFilter,
       ],
-      exports: [serviceNameProvider, serviceInstanceIdProvider],
+      exports: [
+        serviceNameProvider,
+        serviceInstanceIdProvider,
+        MonkeyWsExceptionFilter,
+      ],
     };
   }
 }
