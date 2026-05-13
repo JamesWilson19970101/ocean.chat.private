@@ -29,6 +29,7 @@
     "test:app/oceanchat.user": "NODE_ENV=test jest --config ./apps/oceanchat-user/test/jest.config.json --runInBand",
     "test:app/oceanchat-api-gateway": "NODE_ENV=test jest --config ./apps/oceanchat-api-gateway/test/jest.config.json --runInBand",
     "test:oceanchat-router": "jest --config ./apps/oceanchat-router/test/jest.config.json",
+    "test:lib/id-generator": "NODE_ENV=test jest --config ./libs/id-generator/jest.config.json",
     "test:lib/authorization": "jest --config ./libs/authorization/test/jest.config.json",
     "test:lib/common-exceptions": "jest --config ./libs/common-exceptions/test/jest.config.json",
     "test:lib/models": "jest --config ./libs/models/jest.config.json",
@@ -99,7 +100,7 @@
     "pino-opentelemetry-transport": "^1.1.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "uuid": "^9.0.0",
+    "uuid": "11.1.1",
     "ws": "8.18.3"
   },
   "devDependencies": {
@@ -120,7 +121,7 @@
     "@types/passport": "^0",
     "@types/passport-local": "^1",
     "@types/supertest": "^6.0.2",
-    "@types/uuid": "^9.0.0",
+    "@types/uuid": "^11.0.0",
     "@types/ws": "8.18.1",
     "concurrently": "^9.1.2",
     "eslint": "^9.18.0",
@@ -170,6 +171,7 @@
       "^@ocean.chat/common-exceptions(|/.*)$": "<rootDir>/libs/common-exceptions/src/$1",
       "^@ocean.chat/cores(|/.*)$": "<rootDir>/libs/cores/src/$1",
       "^@ocean.chat/i18n(|/.*)$": "<rootDir>/libs/i18n/src/$1",
+      "^@ocean.chat/id-generator(|/.*)$": "<rootDir>/libs/id-generator/src/$1",
       "^@ocean.chat/models(|/.*)$": "<rootDir>/libs/models/src/$1",
       "^@ocean.chat/nats-jetstream-provisioner(|/.*)$": "<rootDir>/libs/nats-jetstream-provisioner/src/$1",
       "^@ocean.chat/nats-opentelemetry-tracing(|/.*)$": "<rootDir>/libs/nats-opentelemetry-tracing/src/$1",
