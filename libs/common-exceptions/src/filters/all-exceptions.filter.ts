@@ -38,6 +38,9 @@ export class AllExceptionsFilter
       this.handleHttpException(exception, host);
     } else if (contextType === 'rpc') {
       return this.handleRpcException(exception, host);
+    } else if (contextType === 'ws') {
+      // Silently ignore WS exceptions here, as they are handled exclusively by MonkeyWsExceptionFilter
+      return;
     } else {
       this.logger.error(
         { err: exception, contextType: String(contextType) },
