@@ -120,6 +120,29 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Atomically deletes a key only if its current value matches the expected value.
+   * This is crucial for safely releasing distributed locks to prevent deleting another pod's lock.
+   * @param key The key of the lock.
+   * @param expectedValue The value originally set when the lock was acquired.
+   * @returns 1 if the key was deleted, 0 otherwise.
+   */
+  async delIfEqual(key: RedisKey, expectedValue: RedisValue): Promise<number> {
+    const LUA_SCRIPT_DEL_IF_EQUAL = `
+      if redis.call("get", KEYS[1]) == ARGV[1] then
+        return redis.call("del", KEYS[1])
+      else
+        return 0
+      end
+    `;
+    const result = await this.eval(
+      LUA_SCRIPT_DEL_IF_EQUAL,
+      [key],
+      [expectedValue as string],
+    );
+    return result as number;
+  }
+
+  /**
    * Atomically gets the value of a key and then deletes the key.
    * Useful for implementing one-time-use tokens or locks.
    * @param key The key to get and delete.
@@ -156,14 +179,25 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * hset a field in a hash.
+   * Set a field in a hash, or multiple fields using an object.
    * @param key The key of the hash.
-   * @param field The field to set.
-   * @param value The value to set.
+   * @param fieldOrObj The field to set, or an object containing multiple field-value pairs.
+   * @param value The value to set (if setting a single field).
    * @returns The number of fields that were added.
    */
-  async hset(key: RedisKey, field: string, value: RedisValue): Promise<number> {
-    return await this.redisClient.hset(key, field, value);
+  hset(key: RedisKey, field: string, value: RedisValue): Promise<number>;
+  hset(key: RedisKey, obj: Record<string, RedisValue>): Promise<number>;
+  async hset(
+    key: RedisKey,
+    fieldOrObj: string | Record<string, RedisValue>,
+    value?: RedisValue,
+  ): Promise<number> {
+    if (typeof fieldOrObj === 'string') {
+      // TypeScript knows 'value' is provided in the single-field overload
+      return await this.redisClient.hset(key, fieldOrObj, value as RedisValue);
+    } else {
+      return await this.redisClient.hset(key, fieldOrObj);
+    }
   }
 
   /**
@@ -276,7 +310,10 @@ export class RedisService implements OnModuleDestroy {
       } finally {
         // Release the lock by deleting the lock key
         await this.del(lockKey).catch((err) =>
-          this.logger.error({ err, key }, 'Lock_Release_Failed'),
+          this.logger.error(
+            { err, key },
+            this.i18nService.translate('Lock_Release_Failed', { key }),
+          ),
         );
       }
     } else {
