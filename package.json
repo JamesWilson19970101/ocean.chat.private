@@ -32,10 +32,13 @@
     "test:lib/authorization": "jest --config ./libs/authorization/test/jest.config.json",
     "test:lib/common-exceptions": "jest --config ./libs/common-exceptions/test/jest.config.json",
     "test:lib/models": "jest --config ./libs/models/jest.config.json",
-    "test:lib/redis": "NODE_ENV=test jest --config ./libs//redis/test/jest.config.json",
-    "generatedoc": "typedoc"
+    "test:lib/monkey": "jest --config ./libs/monkey/jest.config.json",
+    "test:lib/redis": "NODE_ENV=test jest --config ./libs/redis/test/jest.config.json",
+    "generatedoc": "typedoc",
+    "proto:generate": "protoc --plugin=protoc-gen-ts_proto=$(yarn bin protoc-gen-ts_proto) --ts_proto_out=libs/monkey/src/proto --ts_proto_opt=esModuleInterop=true,forceLong=string,nestJs=true,addGrpcMetadata=true,outputEncodeMethods=true,outputJsonMethods=true -I=libs/monkey/assets libs/monkey/assets/*.proto"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.12.0",
     "@grpc/grpc-js": "^1.14.0",
     "@grpc/proto-loader": "^0.8.0",
     "@nest-lab/throttler-storage-redis": "^1.1.0",
@@ -97,6 +100,7 @@
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "pino-opentelemetry-transport": "^1.1.0",
+    "protobufjs": "^8.2.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "ts-proto": "^2.11.8",
@@ -133,6 +137,7 @@
     "mongodb-memory-server": "^10.1.4",
     "pino-pretty": "^13.0.0",
     "prettier": "^3.4.2",
+    "protobufjs-cli": "^2.2.0",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",
@@ -181,5 +186,10 @@
       "^@ocean.chat/types(|/.*)$": "<rootDir>/libs/types/src/$1"
     }
   },
-  "packageManager": "yarn@4.7.0"
+  "packageManager": "yarn@4.7.0",
+  "dependenciesMeta": {
+    "ts-proto@2.11.8": {
+      "unplugged": true
+    }
+  }
 }
