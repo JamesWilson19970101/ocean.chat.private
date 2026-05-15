@@ -13,10 +13,9 @@ import {
   TextMapGetter,
   trace,
 } from '@opentelemetry/api';
+import { MsgHdrs } from 'nats';
 import { Observable, throwError } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
-
-export type NatsHeaderCarrier = Record<string, unknown>;
 
 export const attr = {
   MESSAGING_SYSTEM: 'messaging.system',
@@ -24,16 +23,12 @@ export const attr = {
   MESSAGING_OPERATION: 'messaging.operation',
 };
 
-class NatsHeaderGetter implements TextMapGetter<NatsHeaderCarrier> {
-  keys(carrier: NatsHeaderCarrier): string[] {
-    return Object.keys(carrier);
+class NatsHeaderGetter implements TextMapGetter<MsgHdrs> {
+  keys(carrier: MsgHdrs): string[] {
+    return carrier.keys();
   }
-  get(carrier: NatsHeaderCarrier, key: string): string | undefined {
-    const value = carrier[key];
-    // NATS headers are an array of strings. I only need the first one.
-    return Array.isArray(value) && value.length > 0
-      ? (value[0] as string)
-      : undefined;
+  get(carrier: MsgHdrs, key: string): string | undefined {
+    return carrier.get(key) || undefined;
   }
 }
 
@@ -57,26 +52,12 @@ export class NatsTraceInterceptor implements NestInterceptor {
     const natsContext = rpcContext.getContext<NatsContext>();
 
     const subject = natsContext.getSubject();
-
-    // After extracting headers for tracing, we must remove them from the payload.
-    // This prevents validation errors in downstream pipes (like `ValidationPipe`)
-    // when `forbidNonWhitelisted: true` is enabled. This is a common issue with
-    // NestJS v11 where `forbidNonWhitelisted` runs before stripping.
-    const data = rpcContext.getData();
-    const headers =
-      typeof data === 'object' && data !== null && 'headers' in data
-        ? ((data as { headers?: unknown }).headers as NatsHeaderCarrier)
-        : {};
-    if (typeof data === 'object' && data !== null && 'headers' in data) {
-      delete (data as { headers?: unknown }).headers;
-    }
+    const headers = natsContext.getHeaders();
 
     // extract context
-    const parentContext = propagation.extract(
-      context.active(),
-      headers,
-      getter,
-    );
+    const parentContext = headers
+      ? propagation.extract(context.active(), headers, getter)
+      : context.active();
 
     // create span
     const span = this.tracer.startSpan(
@@ -86,7 +67,7 @@ export class NatsTraceInterceptor implements NestInterceptor {
         attributes: {
           [attr.MESSAGING_SYSTEM]: 'nats',
           [attr.MESSAGING_DESTINATION]: subject,
-          [attr.MESSAGING_OPERATION]: 'publish',
+          [attr.MESSAGING_OPERATION]: 'receive',
         },
       },
       parentContext,
@@ -96,7 +77,7 @@ export class NatsTraceInterceptor implements NestInterceptor {
     return context.with(trace.setSpan(context.active(), span), () => {
       return next.handle().pipe(
         catchError((error: { message: string; [key: string]: unknown }) => {
-          span.recordException(error);
+          span.recordException(error as any);
           span.setStatus({
             code: SpanStatusCode.ERROR,
             message: error.message,
