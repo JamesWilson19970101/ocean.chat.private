@@ -139,6 +139,7 @@ export class OceanchatUserModule {
               uri: configService.get<string>('database.uri'),
               dbName: configService.get<string>('database.name'),
               serverSelectionTimeoutMS: 5000,
+              directConnection: process.env.NODE_ENV !== 'production',
               onConnectionCreate: (connection: Connection) => {
                 connection.on('connected', () => {
                   logger.setContext('database.module');
