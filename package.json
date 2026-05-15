@@ -21,7 +21,8 @@
     "start:oceanchat-api-gateway": "NODE_ENV=development nest start oceanchat-api-gateway --watch",
     "start:oceanchat-router": "NODE_ENV=development nest start oceanchat-router --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "concurrently \"yarn test:app/oceanchat-api-gateway\" \"yarn test:app/oceanchat.auth\" \"yarn test:app/oceanchat.user\" \"yarn test:lib/authorization\" \"yarn test:lib/common-exceptions\"",
+    "test:lib/nats-opentelemetry-tracing": "jest --config ./libs/nats-opentelemetry-tracing/jest.config.json",
+    "test": "concurrently \"yarn test:app/oceanchat-api-gateway\" \"yarn test:app/oceanchat.auth\" \"yarn test:app/oceanchat.user\" \"yarn test:lib/authorization\" \"yarn test:lib/common-exceptions\" \"yarn test:lib/nats-opentelemetry-tracing\"",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
@@ -34,6 +35,7 @@
     "test:lib/common-exceptions": "jest --config ./libs/common-exceptions/test/jest.config.json",
     "test:lib/models": "jest --config ./libs/models/jest.config.json",
     "test:lib/monkey": "jest --config ./libs/monkey/jest.config.json",
+    "test:lib/nats-opentelemetry-tracing": "jest --config ./libs/nats-opentelemetry-tracing/jest.config.json",
     "test:lib/redis": "NODE_ENV=test jest --config ./libs/redis/test/jest.config.json",
     "generatedoc": "typedoc",
     "proto:generate": "protoc --plugin=protoc-gen-ts_proto=$(yarn bin protoc-gen-ts_proto) --ts_proto_out=libs/monkey/src/proto --ts_proto_opt=esModuleInterop=true,forceLong=string,nestJs=true,addGrpcMetadata=true,outputEncodeMethods=true,outputJsonMethods=true -I=libs/monkey/assets libs/monkey/assets/*.proto"

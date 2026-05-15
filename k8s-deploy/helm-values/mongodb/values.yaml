@@ -1,0 +1,15 @@
+architecture: replicaset
+replicaSetName: rs01
+replicaCount: 3
+
+auth:
+  enabled: false
+
+common:
+  extraEnvVars:
+    - name: ALLOW_EMPTY_PASSWORD
+      value: "yes"
+
+persistence:
+  enabled: true
+  size: 10Gi

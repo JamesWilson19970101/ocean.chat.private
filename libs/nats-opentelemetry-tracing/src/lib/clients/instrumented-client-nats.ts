@@ -1,4 +1,9 @@
-import { ClientNats, NatsOptions } from '@nestjs/microservices';
+import {
+  ClientNats,
+  NatsOptions,
+  NatsRecord,
+  NatsRecordBuilder,
+} from '@nestjs/microservices';
 import {
   context,
   propagation,
@@ -6,20 +11,15 @@ import {
   TextMapSetter,
   trace,
 } from '@opentelemetry/api';
+import { headers as natsHeaders, MsgHdrs } from 'nats';
 import { Observable } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 
-import {
-  attr,
-  NatsHeaderCarrier,
-} from '../interceptors/nats-trace.interceptor';
+import { attr } from '../interceptors/nats-trace.interceptor';
 
-class NatsHeaderSetter implements TextMapSetter<NatsHeaderCarrier> {
-  set(carrier: NatsHeaderCarrier, key: string, value: string): void {
-    // NATS headers expect values to be an array of strings.
-    // To ensure compatibility with the NatsHeaderGetter on the receiving side,
-    // which expects an array, we wrap the value in an array.
-    carrier[key] = [value];
+class NatsHeaderSetter implements TextMapSetter<MsgHdrs> {
+  set(carrier: MsgHdrs, key: string, value: string): void {
+    carrier.append(key, value);
   }
 }
 
@@ -72,30 +72,26 @@ export class InstrumentedClientNats extends ClientNats {
     });
 
     return context.with(trace.setSpan(parentContext, span), () => {
-      // Create a mutable copy of data if it's an object, otherwise use it as is.
-      // This prevents side effects on the original data object passed by the caller.
-      const newData =
-        typeof data === 'object' && data !== null ? { ...data } : data;
+      let record: NatsRecord;
 
-      // Ensure headers object exists for context injection.
-      // If newData is an object, we can potentially add/modify its headers.
-      const headers =
-        typeof newData === 'object' && newData !== null && 'headers' in newData
-          ? (newData as { headers?: NatsHeaderCarrier }).headers || {}
-          : {};
-
-      // Inject the active span's context into the headers.
-      // The first argument should be the active context.
-      propagation.inject(context.active(), headers, setter);
-
-      // Re-assign the (potentially modified) headers back to the data payload if it's an object.
-      if (typeof newData === 'object' && newData !== null) {
-        (newData as { headers?: NatsHeaderCarrier }).headers = headers;
+      if (data instanceof NatsRecord) {
+        // Data is already a NatsRecord. We should inject headers into its existing headers.
+        const currentHeaders = data.headers || natsHeaders();
+        propagation.inject(context.active(), currentHeaders, setter);
+        // Build a new record with the injected headers
+        record = new NatsRecordBuilder(data.data)
+          .setHeaders(currentHeaders)
+          .build();
+      } else {
+        // Data is not a NatsRecord. We create one.
+        const currentHeaders = natsHeaders();
+        propagation.inject(context.active(), currentHeaders, setter);
+        record = new NatsRecordBuilder(data).setHeaders(currentHeaders).build();
       }
 
       const resultObservable = superMethod(
         pattern,
-        newData,
+        record as unknown as TInput,
       ) as Observable<TResult>;
       // make sure span will be ended
       return resultObservable.pipe(
