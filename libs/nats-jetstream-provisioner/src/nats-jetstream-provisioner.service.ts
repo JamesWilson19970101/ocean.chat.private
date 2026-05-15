@@ -47,6 +47,7 @@ export class NatsJetStreamProvisionerService
     await this.nc?.close();
   }
 
+  // Whoever uses it is responsible for creating it.
   private async ensureStreams(): Promise<void> {
     const { natsUrl, streamConfigs } = this.options;
 
