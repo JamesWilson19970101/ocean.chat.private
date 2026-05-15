@@ -109,7 +109,7 @@ export class BoundedPublisherService {
       );
     }
 
-    return new Promise<void>((resolve) => {
+    return new Promise<void>((resolve, reject) => {
       // Logic to actually push the task into the execution pipeline
       this.queue.push(() => {
         this.activeCount++;
@@ -136,7 +136,20 @@ export class BoundedPublisherService {
                 { err: dlqErr, context, dlqSubject },
                 this.i18nService.translate('FATAL_FAILED_TO_PUBLISH_TO_DLQ'),
               );
+              throw dlqErr; // rethrow to trigger final rejection
             });
+          })
+          .then(() => {
+            if (isCritical) resolve();
+          })
+          .catch((finalErr) => {
+            if (isCritical) {
+              reject(
+                finalErr instanceof Error
+                  ? finalErr
+                  : new Error(String(finalErr)),
+              );
+            }
           })
           .finally(() => {
             this.activeCount--;
@@ -144,8 +157,10 @@ export class BoundedPublisherService {
           });
       });
 
-      // The call resolves once it is safely in the queue.
-      resolve();
+      // For non-critical messages, resolve immediately once safely in the queue.
+      if (!isCritical) {
+        resolve();
+      }
 
       // If we have capacity, start processing immediately
       if (this.activeCount < this.concurrencyLimit) {

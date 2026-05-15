@@ -18,7 +18,7 @@ import { AuthenticatedUser } from '@ocean.chat/types';
 import { Counter, metrics } from '@opentelemetry/api';
 import * as ms from 'ms';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv7 } from 'uuid';
 
 import { UsersService } from './users/users.service';
 
@@ -174,8 +174,9 @@ export class OceanchatAuthService implements OnModuleInit {
 
     // Attempt to acquire the lock independently.
     let isLockAcquired: string | null = null;
+    const lockValue = uuidv7();
     try {
-      isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
+      isLockAcquired = await this.redisService.setnx(lockKey, lockValue, 10);
     } catch (error) {
       throw new InfrastructureException(
         this.i18nService.translate('Redis_Client_Error'),
@@ -343,7 +344,7 @@ export class OceanchatAuthService implements OnModuleInit {
         },
       );
     } finally {
-      await this.redisService.del(lockKey).catch((err) => {
+      await this.redisService.delIfEqual(lockKey, lockValue).catch((err) => {
         this.logger.error(
           { err, lockKey },
           this.i18nService.translate('Lock_Release_Failed'),
@@ -362,8 +363,8 @@ export class OceanchatAuthService implements OnModuleInit {
     user: Pick<AuthenticatedUser, 'username' | '_id' | 'deviceId'>,
   ): Promise<[string, string]> {
     const userId = user._id as string;
-    const accessJti = uuidv4();
-    const refreshJti = uuidv4();
+    const accessJti = uuidv7();
+    const refreshJti = uuidv7();
 
     const accessTokenPayload: IJwtPayload = {
       username: user.username,

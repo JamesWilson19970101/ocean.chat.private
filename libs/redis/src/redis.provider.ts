@@ -17,7 +17,11 @@ export const createProviders = (options: RedisModuleOptions): Provider[] => {
         i18nService: I18nService,
       ): RedisClient => {
         logger.setContext('redis.provider');
-        const client = new Redis(options);
+        const client = new Redis({
+          ...options,
+          enableOfflineQueue: false,
+          commandTimeout: 2000,
+        });
 
         client.on('connect', () => {
           logger.info(i18nService.translate('Redis_Client_Connected'));
@@ -54,7 +58,11 @@ export const createAsyncProviders = (options: RedisModuleAsyncOptions) => {
           throw new Error('useFactory is required');
         }
         const redisOptions: RedisOptions = await options.useFactory(...args);
-        const client = new Redis(redisOptions);
+        const client = new Redis({
+          ...redisOptions,
+          enableOfflineQueue: false,
+          commandTimeout: 2000,
+        });
 
         client.on('connect', () => {
           logger.info(i18nService.translate('Redis_Client_Connected'));

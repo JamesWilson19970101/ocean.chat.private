@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisKey, RedisValue } from 'ioredis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { v7 as uuidv7 } from 'uuid';
 
 import { REDIS_CLIENT, RedisClient } from './redis.provider';
 
@@ -285,7 +286,9 @@ export class RedisService implements OnModuleDestroy {
 
     // 2. Cache miss, try to acquire a distributed lock
     const lockKey = `${key}:lock`;
-    const lockAcquired = (await this.setnx(lockKey, '1', lockTtl)) === 'OK';
+    const lockValue = uuidv7();
+    const lockAcquired =
+      (await this.setnx(lockKey, lockValue, lockTtl)) === 'OK';
 
     if (lockAcquired) {
       this.logger.debug(
@@ -309,7 +312,7 @@ export class RedisService implements OnModuleDestroy {
         return value;
       } finally {
         // Release the lock by deleting the lock key
-        await this.del(lockKey).catch((err) =>
+        await this.delIfEqual(lockKey, lockValue).catch((err) =>
           this.logger.error(
             { err, key },
             this.i18nService.translate('Lock_Release_Failed', { key }),
