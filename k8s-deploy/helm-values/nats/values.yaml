@@ -1,0 +1,39 @@
+# Number of replicas
+replicaCount: 3
+
+config:
+  # Enable cluster functionality (internal node interconnection)
+  cluster:
+    enabled: true
+    replicas: 3
+
+  # Enable JetStream (Core: supports persistent messages and data replication)
+  jetstream:
+    enabled: true
+
+    # Storage configuration
+    fileStore:
+      enabled: true
+      pvc:
+        enabled: true
+        size: 10Gi
+        # storageClassName: "standard" # Specify according to your cluster environment, uses default if omitted
+
+    # Memory storage (for high-speed non-persistent messages)
+    memoryStore:
+      enabled: true
+      maxSize: 1Gi
+
+# Enable nats-box, convenient for testing directly inside the container after installation (nats sub/pub/stream)
+natsBox:
+  enabled: true
+
+# Resource limits (adjust according to your host performance)
+container:
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
