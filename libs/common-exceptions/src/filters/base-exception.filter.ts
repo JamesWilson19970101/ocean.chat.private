@@ -66,7 +66,11 @@ export abstract class BaseAppExceptionFilter {
     let details: Record<string, unknown> | undefined;
 
     if (isAppException(exception)) {
-      statusCode = exception.getStatusCode();
+      statusCode =
+        exception.getStatusCode() ??
+        (exception.exceptionType === 'DOMAIN'
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR);
       errorCode = exception.getErrorCode();
       details = exception.getDetails();
 

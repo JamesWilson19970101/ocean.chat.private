@@ -27,7 +27,7 @@ export class InfrastructureException extends Error implements IAppException {
   constructor(
     public readonly message: string,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly statusCode: number = 500,
+    public readonly statusCode?: number,
     public readonly isRetriable: boolean = false,
     public readonly details?: Record<string, unknown> & { cause?: unknown },
   ) {
@@ -40,7 +40,7 @@ export class InfrastructureException extends Error implements IAppException {
     return this.errorCode;
   }
 
-  getStatusCode(): number {
+  getStatusCode(): number | undefined {
     return this.statusCode;
   }
 

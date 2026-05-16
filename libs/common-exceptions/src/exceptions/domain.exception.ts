@@ -20,7 +20,7 @@ export class DomainException extends Error implements IAppException {
   constructor(
     public readonly message: string,
     public readonly errorCode: number = ErrorCodes.UNEXPECTED_ERROR,
-    public readonly statusCode: number = 400,
+    public readonly statusCode?: number,
     public readonly details?: Record<string, unknown>,
   ) {
     super(message);
@@ -32,7 +32,7 @@ export class DomainException extends Error implements IAppException {
     return this.errorCode;
   }
 
-  getStatusCode(): number {
+  getStatusCode(): number | undefined {
     return this.statusCode;
   }
 

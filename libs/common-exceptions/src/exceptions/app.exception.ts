@@ -11,12 +11,12 @@ export type ExceptionType = 'DOMAIN' | 'INFRASTRUCTURE';
 export interface IAppException extends Error {
   readonly message: string;
   readonly errorCode: number;
-  readonly statusCode: number;
+  readonly statusCode?: number;
   readonly exceptionType: ExceptionType;
   readonly isRetriable?: boolean;
   readonly details?: Record<string, unknown> | undefined;
 
   getErrorCode(): number;
-  getStatusCode(): number;
+  getStatusCode(): number | undefined;
   getDetails(): Record<string, unknown> | undefined;
 }
