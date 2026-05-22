@@ -1,0 +1,2 @@
+export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
+export const SERVICE_NAME = 'SERVICE_NAME';
