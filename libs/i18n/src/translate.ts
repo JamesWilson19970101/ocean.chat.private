@@ -218,6 +218,49 @@ export default {
         'Failed to acquire lock for sequence allocation',
       ID_GENERATOR_DELAYED_ALLOCATION_DISCARDED:
         'Delayed allocation detected. Segment discarded to prevent sequence rollback.',
+      TOKEN_REVOKED_RECONNECT: 'Token has been revoked. Please log in again.',
+      SERVICE_SHUTDOWN_RECONNECT: 'Service is shutting down, please reconnect.',
+      HANDSHAKE_TIMEOUT_LOG: 'Connection closed due to handshake timeout.',
+      KICKING_USER_REVOKED_TOKEN_LOG:
+        'Kicking user whose id is {{userId}}, due to revoked token.',
+      WS_GATEWAY_INITIALIZED_LOG:
+        'WS Gateway initialized with ID: {{gatewayId}}',
+      WS_GATEWAY_SHUTTING_DOWN_LOG: 'WS Gateway shutting down.',
+      NEW_CONNECTION_WAITING_AUTH_REQ_LOG:
+        'New connection established. Waiting for AUTH_REQ...',
+      USER_DISCONNECTED_LOG: 'User {{userId}} disconnected.',
+      TERMINATING_ZOMBIE_CONNECTION_LOG:
+        'Terminating zombie connection for user: {{userId}}',
+      UNHANDLED_COMMAND_LOG: 'Unhandled command: 0x{{cmd}}',
+      USER_AUTHENTICATED_ON_DEVICE_LOG:
+        'User {{userId}} authenticated on device {{deviceId}}',
+      AUTH_FAILED_LOG: 'Auth failed: {{errorMessage}}',
+      FAILED_TO_INGEST_MSG_UP_LOG: 'Failed to ingest MSG_UP: {{errorMessage}}',
+      REPORTING_USER_OFFLINE_LOG: 'Reporting user offline: {{userId}}',
+      FAILED_TO_PUBLISH_OFFLINE_EVENT_LOG:
+        'Failed to publish offline event to {{subject}}',
+      FAILED_TO_PROCESS_TOKEN_REVOCATION:
+        'Failed to process token revocation event',
+      RECEIVED_DOWNBOUND_EVENT_WITHOUT_USERID:
+        'Received downbound event without userId',
+      FAILED_TO_DISPATCH_SYNC_EVENT: 'Failed to dispatch sync event to gateway',
+      DECREMENT_FAILED: 'Failed to decrement IP connection counter in Redis',
+      FLOOD_REJECTED:
+        'Connection flood rejected. IP {{ip}} exceeded limit of {{limit}} connections.',
+      REDIS_ERROR_FAIL_OPEN:
+        'Redis error during IP rate limiting. Allowing connection (fail-open).',
+      OVERSIZED_PAYLOAD_TERMINATED_LOG:
+        'Received oversized payload, terminating connection to prevent OOM.',
+      ZOMBIE_ROUTE_DETECTED_LOG:
+        'user:{{userId}}-device:{{deviceId}} Zombie route detected. Emitting offline event to heal presence state.',
+      ZOMBIE_DEVICE_ROUTE_DETECTED_LOG:
+        'user:{{userId}}-device:{{deviceId}} Zombie device route detected. Emitting offline event to heal presence state.',
+      SENT_HEARTBEATS_LOG:
+        'Sent global presence heartbeats for {{count}} active authenticated connections.',
+      RATE_LIMIT_EXCEEDED: 'Rate limit exceeded.',
+      PING_PAYLOAD_NOT_EMPTY: 'PING payload must be empty',
+      INVALID_OR_EXPIRED_TOKEN: 'Invalid or expired token',
+      PROTOCOL_VERSION_MISMATCH: 'Protocol version mismatch',
     },
   },
   zh: {
@@ -392,6 +435,43 @@ export default {
       ID_GENERATOR_LOCK_TIMEOUT: '获取序列分配锁失败，重试次数耗尽',
       ID_GENERATOR_DELAYED_ALLOCATION_DISCARDED:
         '检测到延迟分配。已丢弃该号段以防止序列回退。',
+      TOKEN_REVOKED_RECONNECT: '令牌已撤销。请重新登录。',
+      SERVICE_SHUTDOWN_RECONNECT: '服务正在关闭，请重新连接。',
+      HANDSHAKE_TIMEOUT_LOG: '连接因握手超时而关闭。',
+      KICKING_USER_REVOKED_TOKEN_LOG:
+        '因令牌撤销而踢出用户，该用户id是{{userId}}。',
+      WS_GATEWAY_INITIALIZED_LOG: 'WS 网关已初始化，ID: {{gatewayId}}',
+      WS_GATEWAY_SHUTTING_DOWN_LOG: 'WS 网关正在关闭。',
+      NEW_CONNECTION_WAITING_AUTH_REQ_LOG: '已建立新连接。正在等待 AUTH_REQ...',
+      USER_DISCONNECTED_LOG: '用户 {{userId}} 已断开连接。',
+      TERMINATING_ZOMBIE_CONNECTION_LOG: '正在终止僵尸连接，用户: {{userId}}',
+      UNHANDLED_COMMAND_LOG: '未处理的命令：0x{{cmd}}',
+      USER_AUTHENTICATED_ON_DEVICE_LOG:
+        '用户 {{userId}} 在设备 {{deviceId}} 上认证成功',
+      AUTH_FAILED_LOG: '认证失败：{{errorMessage}}',
+      FAILED_TO_INGEST_MSG_UP_LOG: '处理 MSG_UP 失败：{{errorMessage}}',
+      REPORTING_USER_OFFLINE_LOG: '正在报告用户离线: {{userId}}',
+      FAILED_TO_PUBLISH_OFFLINE_EVENT_LOG: '发布离线事件到 {{subject}} 失败',
+      FAILED_TO_PROCESS_TOKEN_REVOCATION: '令牌撤销事件处理失败',
+      RECEIVED_DOWNBOUND_EVENT_WITHOUT_USERID: '收到没有用户 ID 的下行事件',
+      FAILED_TO_DISPATCH_SYNC_EVENT: '向网关分发同步事件失败',
+      DECREMENT_FAILED: 'Redis 中 IP 连接计数器递减失败',
+      FLOOD_REJECTED:
+        '连接洪水攻击被拒绝。IP {{ip}} 的连接数超过了 {{limit}} 的限制。',
+      REDIS_ERROR_FAIL_OPEN:
+        'IP 速率限制期间 Redis 出错。允许连接（失败打开）。',
+      OVERSIZED_PAYLOAD_TERMINATED_LOG:
+        '接收到过大的有效载荷，为防止内存溢出，已终止连接。',
+      ZOMBIE_ROUTE_DETECTED_LOG:
+        'user:{{userId}}-device:{{deviceId}} 检测到僵尸路线。发出离线事件以恢复在线状态。',
+      ZOMBIE_DEVICE_ROUTE_DETECTED_LOG:
+        'user:{{userId}}-device:{{deviceId}} 检测到僵尸设备路由。正在发出离线事件以恢复在线状态。',
+      SENT_HEARTBEATS_LOG:
+        '已向 {{count}} 个已验证的活动连接发送全球在线状态心跳。',
+      RATE_LIMIT_EXCEEDED: '超出速率限制。',
+      PING_PAYLOAD_NOT_EMPTY: 'PING 有效载荷必须为空。',
+      INVALID_OR_EXPIRED_TOKEN: '无效或过期的令牌',
+      PROTOCOL_VERSION_MISMATCH: '协议版本不匹配',
     },
   },
 };

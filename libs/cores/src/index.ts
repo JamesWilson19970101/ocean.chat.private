@@ -1,3 +1,4 @@
+export * from './common-services/token-blacklist.service';
 export * from './config/configuration';
 export * from './config/env';
 export * from './config/validation';

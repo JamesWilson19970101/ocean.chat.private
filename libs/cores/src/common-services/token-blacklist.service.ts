@@ -5,6 +5,7 @@ import { Cache } from 'cache-manager';
 /**
  * Event-Driven In-Memory Blacklist for Zero-I/O Authentication.
  * Maintains a local LRU cache of revoked JWT IDs (jti).
+ * Synchronized with AUTH_STATE stream via NATS.
  */
 @Injectable()
 export class TokenBlacklistService {
@@ -17,10 +18,8 @@ export class TokenBlacklistService {
    */
   async add(jti: string, expSeconds: number): Promise<void> {
     const now = Math.floor(Date.now() / 1000);
-    // Calculate the remaining time to live in milliseconds
     const ttlSeconds = expSeconds - now;
 
-    // Only add to cache if the token hasn't already mathematically expired
     if (ttlSeconds > 0) {
       // cache-manager v5+ uses milliseconds for ttl
       await this.cacheManager.set(jti, true, ttlSeconds * 1000);
