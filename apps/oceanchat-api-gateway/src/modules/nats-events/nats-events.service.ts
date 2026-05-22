@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { TokenBlacklistService } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { BaseNatsSubscriber } from '@ocean.chat/nats-jetstream-provisioner';
 import { RedisService } from '@ocean.chat/redis';
 import { TokenRevokedEvent } from '@ocean.chat/types';
 import { DeliverPolicy, JsMsg } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-
-import { TokenBlacklistService } from '../../common/services/token-blacklist.service';
 
 @Injectable()
 export class NatsEventsService extends BaseNatsSubscriber<TokenRevokedEvent> {

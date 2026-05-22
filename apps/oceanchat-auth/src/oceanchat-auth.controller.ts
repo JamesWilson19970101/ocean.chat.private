@@ -61,10 +61,7 @@ export class OceanchatAuthController {
    */
   @MessagePattern('auth.logout')
   async logout(@Payload() logoutDto: LogoutDto) {
-    const payload = logoutDto as unknown as {
-      userId: string;
-      deviceId: string;
-    };
+    const payload = logoutDto;
     return this.oceanchatAuthService.logout(payload.userId, payload.deviceId);
   }
 }

@@ -1,9 +1,9 @@
 import { CacheModule } from '@nestjs/cache-manager';
 import { Global, Module } from '@nestjs/common';
+import { TokenBlacklistService } from '@ocean.chat/cores';
 import { IRoleDataSource } from '@ocean.chat/types';
 
 import { RpcRoleDataSource } from './rpc-role.data-source';
-import { TokenBlacklistService } from './token-blacklist.service';
 
 @Global()
 @Module({

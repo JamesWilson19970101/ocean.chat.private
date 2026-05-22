@@ -130,6 +130,7 @@ export class OceanchatAuthModule {
               uri: configService.get<string>('database.uri'),
               dbName: configService.get<string>('database.name'),
               serverSelectionTimeoutMS: 5000,
+              directConnection: process.env.NODE_ENV !== 'production',
               onConnectionCreate: (connection: Connection) => {
                 connection.on('connected', () => {
                   logger.setContext('database.module');
@@ -162,7 +163,7 @@ export class OceanchatAuthModule {
                   description: i18nService.translate(
                     'AUTH_STATE_STREAM_DESCRIPTION',
                   ),
-                },
+                }, // TODO: malicious attacks casuing storage fill up need to be addressed
                 {
                   name: 'AUTH_EVENTS',
                   subjects: ['auth.event.>'],
@@ -173,16 +174,21 @@ export class OceanchatAuthModule {
                   description: i18nService.translate(
                     'AUTH_EVENTS_STREAM_DESCRIPTION',
                   ),
-                },
+                }, // TODO: malicious attacks casuing storage fill up need to be addressed
                 {
                   name: 'DLQ',
-                  subjects: ['dlq.auth.event.>', 'dlq.auth.jwt.revoke'], // TODO: do not forget add corresponding dlq
+                  subjects: [
+                    'dlq.auth.event.>',
+                    'dlq.auth.jwt.revoke',
+                    'dlq.presence.conn.*',
+                    'dlq.im.up.>',
+                  ], // TODO: do not forget add corresponding dlq
                   retention: RetentionPolicy.Limits,
                   storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,
                   max_age: 7 * 24 * 60 * 60 * 1_000_000_000, // 7 days
                   description: i18nService.translate('DLQ_STREAM_DESCRIPTION'),
-                },
+                }, // TODO: malicious attacks casuing storage fill up need to be addressed
               ],
             };
           },

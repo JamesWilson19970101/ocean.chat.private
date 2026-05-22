@@ -86,7 +86,7 @@ export class AuthController {
                       ErrorCodes.UNEXPECTED_ERROR,
                       HttpStatus.INTERNAL_SERVER_ERROR,
                       false,
-                      { cause: err as any },
+                      { cause: err },
                     ),
                 );
               }),
@@ -104,7 +104,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/auth', // Restrict cookie to auth routes (/auth/refresh, /auth/logout)
+      path: '/', // Allow cookie across the domain so Next.js proxy.ts and API proxy can see it
       maxAge: ms(refreshExpiresIn),
     });
 
@@ -146,7 +146,7 @@ export class AuthController {
                     ErrorCodes.CREATION_ERROR,
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     false,
-                    { cause: err as any },
+                    { cause: err },
                   ),
               );
             }),
@@ -170,14 +170,11 @@ export class AuthController {
   ): Promise<{ accessToken: string }> {
     // Parse cookies manually to remain independent of cookie-parser middleware
     const cookies =
-      req.headers.cookie?.split(';').reduce(
-        (acc, cookie) => {
-          const [key, value] = cookie.split('=').map((c) => c.trim());
-          acc[key] = value;
-          return acc;
-        },
-        {} as Record<string, string>,
-      ) || {};
+      req.headers.cookie?.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.split('=').map((c) => c.trim());
+        acc[key] = value;
+        return acc;
+      }, {}) || {};
 
     const refreshToken =
       cookies['refresh_token'] || refreshTokenDto?.refreshToken;
@@ -219,7 +216,7 @@ export class AuthController {
                       ErrorCodes.TOKEN_REFRESH_ERROR,
                       HttpStatus.INTERNAL_SERVER_ERROR,
                       false,
-                      { cause: err as any },
+                      { cause: err },
                     ),
                 );
               }),
@@ -237,7 +234,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/auth',
+      path: '/',
       maxAge: ms(refreshExpiresIn),
     });
 
@@ -280,7 +277,7 @@ export class AuthController {
                   ErrorCodes.UNEXPECTED_ERROR,
                   HttpStatus.INTERNAL_SERVER_ERROR,
                   false,
-                  { cause: err as any },
+                  { cause: err },
                 ),
             );
           }),
@@ -293,7 +290,7 @@ export class AuthController {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/auth',
+      path: '/',
     });
   }
 }

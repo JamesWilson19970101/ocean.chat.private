@@ -29,6 +29,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { CommonServicesModule } from './common/services/common-services.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { NatsEventsModule } from './modules/nats-events/nats-events.module';
+import { QueryModule } from './modules/query/query.module';
 import { UsersModule } from './modules/users/users.module';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
@@ -40,7 +41,6 @@ export class OceanchatApiGatewayModule {
     return {
       module: OceanchatApiGatewayModule,
       imports: [
-        I18nModule.forRoot(),
         ConfigModule.forRoot({
           load: [
             redisConfiguration,
@@ -52,6 +52,7 @@ export class OceanchatApiGatewayModule {
           envFilePath: `.env.${process.env.NODE_ENV || Env.Development}`,
           isGlobal: true,
         }),
+        I18nModule.forRoot(),
         LoggerModule.forRootAsync({
           providers: [
             {
@@ -135,6 +136,14 @@ export class OceanchatApiGatewayModule {
             }),
             inject: [ConfigService],
           },
+          {
+            name: 'QUERY_SERVICE',
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+              servers: [configService.get<string>('nats.url') as string],
+            }),
+            inject: [ConfigService],
+          },
         ]),
         ThrottlerModule.forRootAsync({
           imports: [ConfigModule],
@@ -160,6 +169,7 @@ export class OceanchatApiGatewayModule {
         AuthorizationModule,
         AuthModule,
         UsersModule,
+        QueryModule,
       ],
       providers: [
         // Register ThrottlerGuard globally. It should run before authentication

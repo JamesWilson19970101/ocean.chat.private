@@ -9,11 +9,10 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import { DomainException, ErrorCodes } from '@ocean.chat/common-exceptions';
 import { IS_PUBLIC_KEY } from '@ocean.chat/cores';
+import { TokenBlacklistService } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { IJwtPayload } from '@ocean.chat/types';
 import { Request } from 'express';
-
-import { TokenBlacklistService } from '../services/token-blacklist.service';
 
 /**
  * JWT authentication guard for HTTP contexts in the API Gateway.

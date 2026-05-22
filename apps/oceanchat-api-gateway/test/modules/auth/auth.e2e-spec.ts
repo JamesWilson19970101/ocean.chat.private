@@ -139,7 +139,7 @@ describe('Auth Module Pragmatic E2E Tests (Gateway -> Auth -> NATS)', () => {
 
       // Verify NATS Event Published
       const publishedMsg = await natsPromise;
-      expect(publishedMsg.raw.pattern).toBe('auth.event.user.loggedIn');
+      expect(publishedMsg.subject).toBe('auth.event.user.loggedIn');
       expect(publishedMsg.data.userId).toBe(res.body.user._id);
     });
 

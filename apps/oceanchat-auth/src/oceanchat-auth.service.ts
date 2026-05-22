@@ -12,10 +12,17 @@ import { I18nService } from '@ocean.chat/i18n';
 import { BoundedPublisherService } from '@ocean.chat/nats-jetstream-provisioner';
 import { NatsJetStreamProvisionerService } from '@ocean.chat/nats-jetstream-provisioner';
 import { RedisService } from '@ocean.chat/redis';
-import { IJwtPayload, ITokenStorage } from '@ocean.chat/types';
-import { LoginResult, RefreshTokenResult } from '@ocean.chat/types';
-import { AuthenticatedUser } from '@ocean.chat/types';
+import {
+  AuthenticatedUser,
+  IJwtPayload,
+  ITokenStorage,
+  LoginResult,
+  RefreshTokenResult,
+  TokenRevokedEvent,
+  UserLoggedInEvent,
+} from '@ocean.chat/types';
 import { Counter, metrics } from '@opentelemetry/api';
+import { plainToInstance } from 'class-transformer';
 import * as ms from 'ms';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { v4 as uuidv4 } from 'uuid';
@@ -62,23 +69,18 @@ export class OceanchatAuthService implements OnModuleInit {
     this.loginCounter.add(1, { 'login.method': 'password' });
     // generate accessToken & refreshToken if `@UseGuards(JwtAuthGuard)` runs successfully.
     const [accessToken, refreshToken] = await this.generateTokens(user);
+    const loggedPayload = plainToInstance(UserLoggedInEvent, {
+      userId: user._id,
+      deviceId: user.deviceId,
+      loginTime: new Date().toISOString(),
+    });
     // Fire-and-forget: publish the event but don't await it.
     // The BoundedPublisherService will handle backpressure and DLQ internally.
     // The .catch() here only handles the case where the internal queue is full.
     void this.boundedPublisher
-      .publishSafe(
-        'auth.event.user.loggedIn',
-        {
-          pattern: 'auth.event.user.loggedIn',
-          data: {
-            userId: user._id,
-            deviceId: user.deviceId,
-            loginTime: new Date().toISOString(),
-          },
-        },
-        'login_event',
-        { isCritical: false },
-      )
+      .publishSafe('auth.event.user.loggedIn', loggedPayload, 'login_event', {
+        isCritical: false,
+      })
       .catch((err) => {
         this.logger.error(
           { userId: user._id, err },
@@ -106,19 +108,14 @@ export class OceanchatAuthService implements OnModuleInit {
         );
 
         if (session.accessJti && decodedAT?.exp) {
+          const revokePayload = plainToInstance(TokenRevokedEvent, {
+            jti: session.accessJti,
+            exp: decodedAT.exp,
+          });
           void this.boundedPublisher
-            .publishSafe(
-              'auth.jwt.revoke',
-              {
-                pattern: 'auth.jwt.revoke',
-                data: {
-                  jti: session.accessJti,
-                  exp: decodedAT.exp,
-                },
-              },
-              'logout_event',
-              { isCritical: true },
-            )
+            .publishSafe('auth.jwt.revoke', revokePayload, 'logout_event', {
+              isCritical: true,
+            })
             .catch((err) => {
               this.logger.error(
                 { userId, deviceId, err },
@@ -210,7 +207,10 @@ export class OceanchatAuthService implements OnModuleInit {
         );
       }
 
-      let storage: ITokenStorage;
+      let storage: ITokenStorage & {
+        previousRefreshJti?: string; // old jti
+        gracePeriodUntil?: number; // grace period: Date.now() + 60s
+      };
       try {
         storage = JSON.parse(storageStr);
       } catch (parseError) {
@@ -227,6 +227,26 @@ export class OceanchatAuthService implements OnModuleInit {
       }
 
       if (storage.refreshJti !== jti) {
+        // Weak network defense: Check if the normal network timed out and retried within the grace period.
+        if (
+          storage.previousRefreshJti === jti &&
+          storage.gracePeriodUntil &&
+          Date.now() < storage.gracePeriodUntil
+        ) {
+          this.logger.warn(
+            { userId, jti, deviceId },
+            this.i18nService.translate('REFRESH_RETRY_WITHIN_GRACE_PERIOD', {
+              defaultValue:
+                'Network retry detected within grace period. Returning existing tokens idempotently.',
+            }),
+          );
+          // Idempotent response: Returns the latest lost token directly to the frontend as is.
+          return {
+            accessToken: storage.accessToken,
+            refreshToken: storage.refreshToken,
+          };
+        }
+
         // Replay Attack Detected!
         this.logger.warn(
           { userId, jti, deviceId },
@@ -243,13 +263,14 @@ export class OceanchatAuthService implements OnModuleInit {
                 sess.accessToken,
               );
               if (sess.accessJti && decodedAT?.exp) {
+                const revokePayload = plainToInstance(TokenRevokedEvent, {
+                  jti: sess.accessJti,
+                  exp: decodedAT.exp,
+                });
                 void this.boundedPublisher
                   .publishSafe(
                     'auth.jwt.revoke',
-                    {
-                      jti: sess.accessJti,
-                      exp: decodedAT.exp,
-                    },
+                    revokePayload,
                     'replay_attack_revoke_event',
                     { isCritical: true },
                   )
@@ -297,24 +318,28 @@ export class OceanchatAuthService implements OnModuleInit {
       }
 
       // Issue a new pair of tokens
-      const [newAccessToken, newRefreshToken] = await this.generateTokens({
-        username: user.username as string,
-        _id: user._id,
-        deviceId,
-      });
+      const [newAccessToken, newRefreshToken] = await this.generateTokens(
+        {
+          username: user.username as string,
+          _id: user._id,
+          deviceId,
+        },
+        jti, // Transfer the old JTI to enable the network grace period
+      );
 
       // Revoke the old access token since we've rotated it
       const decodedOldAT: IJwtPayload = this.jwtService.decode(
         storage.accessToken,
       );
+      const revokePayload = plainToInstance(TokenRevokedEvent, {
+        jti: storage.accessJti,
+        exp: decodedOldAT.exp,
+      });
       if (storage.accessJti && decodedOldAT?.exp) {
         void this.boundedPublisher
           .publishSafe(
             'auth.jwt.revoke',
-            {
-              jti: storage.accessJti,
-              exp: decodedOldAT.exp,
-            },
+            revokePayload,
             'refresh_token_revoke_event',
             { isCritical: true },
           )
@@ -355,11 +380,13 @@ export class OceanchatAuthService implements OnModuleInit {
   /**
    * Generates and stores a new pair of access and refresh tokens for a user.
    * @param user The user to generate tokens for.
+   * @param previousRefreshJti (Optional) The JTI of the old refresh token to add a grace period.
    * @param deviceId The device identifier.
    * @returns A tuple containing the new [accessToken, refreshToken].
    */
   private async generateTokens(
     user: Pick<AuthenticatedUser, 'username' | '_id' | 'deviceId'>,
+    previousRefreshJti?: string,
   ): Promise<[string, string]> {
     const userId = user._id as string;
     const accessJti = uuidv4();
@@ -399,13 +426,21 @@ export class OceanchatAuthService implements OnModuleInit {
       }),
     ]);
 
-    const tokenStorage: ITokenStorage = {
+    const tokenStorage: ITokenStorage & {
+      previousRefreshJti?: string;
+      gracePeriodUntil?: number;
+    } = {
       accessToken,
       refreshToken,
       accessJti,
       refreshJti,
       lastActive: Date.now(),
     };
+
+    if (previousRefreshJti) {
+      tokenStorage.previousRefreshJti = previousRefreshJti;
+      tokenStorage.gracePeriodUntil = Date.now() + 60 * 1000;
+    }
 
     try {
       // Atomically store both tokens' JTIs in Redis using a transaction (MULTI/EXEC).

@@ -110,7 +110,7 @@ export class OceanchatUserService {
         HttpStatus.INTERNAL_SERVER_ERROR,
         false,
         {
-          cause: error as any,
+          cause: error,
         },
       );
     }
@@ -258,43 +258,36 @@ export class OceanchatUserService {
 
   async addDevice(userId: string, deviceId: string, loginTime?: Date) {
     const now = loginTime || new Date();
-    await this.userRepository.updateOne(
-      { _id: userId } as unknown as import('mongoose').FilterQuery<
-        import('@ocean.chat/models').User
-      >,
-      [
-        {
-          $set: {
-            lastLogin: now,
-            devices: {
-              $cond: [
-                { $in: [deviceId, { $ifNull: ['$devices.deviceId', []] }] },
-                {
-                  $map: {
-                    input: '$devices',
-                    as: 'd',
-                    in: {
-                      $cond: [
-                        { $eq: ['$$d.deviceId', deviceId] },
-                        { $mergeObjects: ['$$d', { lastLogin: now }] },
-                        '$$d',
-                      ],
-                    },
+    await this.userRepository.updateOne({ _id: userId }, [
+      {
+        $set: {
+          lastLogin: now,
+          devices: {
+            $cond: [
+              { $in: [deviceId, { $ifNull: ['$devices.deviceId', []] }] },
+              {
+                $map: {
+                  input: '$devices',
+                  as: 'd',
+                  in: {
+                    $cond: [
+                      { $eq: ['$$d.deviceId', deviceId] },
+                      { $mergeObjects: ['$$d', { lastLogin: now }] },
+                      '$$d',
+                    ],
                   },
                 },
-                {
-                  $concatArrays: [
-                    { $ifNull: ['$devices', []] },
-                    [{ deviceId, lastLogin: now }],
-                  ],
-                },
-              ],
-            },
+              },
+              {
+                $concatArrays: [
+                  { $ifNull: ['$devices', []] },
+                  [{ deviceId, lastLogin: now }],
+                ],
+              },
+            ],
           },
         },
-      ] as unknown as import('mongoose').UpdateQuery<
-        import('@ocean.chat/models').User
-      >,
-    );
+      },
+    ]);
   }
 }

@@ -3,7 +3,6 @@ import { ClientProxy } from '@nestjs/microservices';
 import {
   DomainException,
   ErrorCodes,
-  ErrorResponseDto,
   InfrastructureException,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
@@ -51,7 +50,7 @@ export class RpcRoleDataSource implements IRoleDataSource {
       return throwError(
         () =>
           new DomainException(err.message, err.errorCode, err.statusCode, {
-            cause: err as ErrorResponseDto,
+            cause: err,
           }),
       );
     }
@@ -65,7 +64,7 @@ export class RpcRoleDataSource implements IRoleDataSource {
           HttpStatus.INTERNAL_SERVER_ERROR,
           false,
           {
-            cause: err as any,
+            cause: err,
           },
         ),
     );
