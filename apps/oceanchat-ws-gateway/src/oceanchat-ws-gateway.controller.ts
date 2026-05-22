@@ -1,15 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 
-import { OceanchatWsGatewayService } from './oceanchat-ws-gateway.service';
-
 @Controller()
 export class OceanchatWsGatewayController {
-  constructor(
-    private readonly oceanchatWsGatewayService: OceanchatWsGatewayService,
-  ) {}
-
-  @Get()
-  getHello(): string {
-    return this.oceanchatWsGatewayService.getHello();
+  // Although this is a pure WS microservice, retaining a stateless HTTP health check endpoint is very useful for orchestration
+  @Get('health')
+  healthCheck(): { status: string; timestamp: string } {
+    return { status: 'UP', timestamp: new Date().toISOString() };
   }
 }
