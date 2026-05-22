@@ -130,6 +130,60 @@
         "tsConfigPath": "apps/oceanchat-message/tsconfig.app.json"
       }
     },
+    "oceanchat-message-persistence-worker": {
+      "type": "application",
+      "root": "apps/oceanchat-message-persistence-worker",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-message-persistence-worker/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-message-persistence-worker/tsconfig.app.json"
+      }
+    },
+    "oceanchat-orchestrator": {
+      "type": "application",
+      "root": "apps/oceanchat-orchestrator",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-orchestrator/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-orchestrator/tsconfig.app.json"
+      }
+    },
+    "oceanchat-presence": {
+      "type": "application",
+      "root": "apps/oceanchat-presence",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-presence/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-presence/tsconfig.app.json"
+      }
+    },
+    "oceanchat-pusher-offline": {
+      "type": "application",
+      "root": "apps/oceanchat-pusher-offline",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-pusher-offline/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-pusher-offline/tsconfig.app.json"
+      }
+    },
+    "oceanchat-pusher-realtime": {
+      "type": "application",
+      "root": "apps/oceanchat-pusher-realtime",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-pusher-realtime/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-pusher-realtime/tsconfig.app.json"
+      }
+    },
+    "oceanchat-query": {
+      "type": "application",
+      "root": "apps/oceanchat-query",
+      "entryFile": "main",
+      "sourceRoot": "apps/oceanchat-query/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/oceanchat-query/tsconfig.app.json"
+      }
+    },
     "oceanchat-router": {
       "type": "application",
       "root": "apps/oceanchat-router",

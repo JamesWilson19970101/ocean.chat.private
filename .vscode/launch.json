@@ -125,6 +125,22 @@
     {
       "type": "node",
       "request": "launch",
+      "name": "Debug oceanchat-ws-gateway",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": [
+        "run",
+        "start:oceanchat-ws-gateway-for-testing"
+      ],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
       "name": "Debug test:oceanchat-api-gateway",
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",

@@ -72,4 +72,6 @@ GEMINI.md
 API_GATEWAY_DESIGN.md
 AUTH_DESIGN.md
 USER_DESIGN.md
+
 docs/*
+codocs/*

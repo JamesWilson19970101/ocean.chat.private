@@ -40,7 +40,7 @@ services:
       - monitoring-net
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib
+    image: otel/opentelemetry-collector-contrib:0.137.0
     volumes:
       - ./envConfig/otelcol/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml
     ports:
@@ -51,6 +51,43 @@ services:
       - 4317:4317 # OTLP gRPC receiver
       - 4318:4318 # OTLP http receiver
       - 55679:55679 # zpages extension
+    networks:
+      - monitoring-net
+
+# --------------------
+# Infrastructure Stack
+# --------------------
+
+  nats:
+    image: nats:2.10.26
+    container_name: nats
+    ports:
+      - "4222:4222" # Client connection port
+      - "8222:8222" # Management HTTP port (optional, useful for monitoring)
+    volumes:
+      - /var/lib/nats:/data/nats # Mount host directory for persistent JetStream data
+    command: ["-js", "-sd", "/data/nats"] # Enable JetStream and specify store directory
+    networks:
+      - monitoring-net
+
+  redis:
+    image: redis:8.6.3
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - monitoring-net
+
+  mongodb:
+    image: mongo:7.0.14
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./envConfig/mongodb/mongod.conf:/etc/mongod.conf:ro # Mount your configuration file
+      - /var/lib/mongo:/data/db # Mount host directory for persistent data
+      - /var/log/mongodb:/var/log/mongodb # Mount host directory for persistent logs
+    command: ["-f", "/etc/mongod.conf"] # Start with specified configuration file
     networks:
       - monitoring-net
 
