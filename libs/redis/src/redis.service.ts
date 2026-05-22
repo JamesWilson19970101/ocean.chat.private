@@ -2,6 +2,7 @@ import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisKey, RedisValue } from 'ioredis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { v7 as uuidv7 } from 'uuid';
 
 import { REDIS_CLIENT, RedisClient } from './redis.provider';
 
@@ -138,6 +139,34 @@ export class RedisService implements OnModuleDestroy {
       LUA_SCRIPT_DEL_IF_EQUAL,
       [key],
       [expectedValue as string],
+    );
+    return result as number;
+  }
+
+  /**
+   * Atomically deletes a hash field only if its current value matches the expected value.
+   * This is useful for safely removing a specific routing or session state without race conditions.
+   * @param key The key of the hash.
+   * @param field The field to delete within the hash.
+   * @param expectedValue The expected value of the field.
+   * @returns 1 if the field was deleted, 0 otherwise.
+   */
+  async hdelIfEqual(
+    key: RedisKey,
+    field: string,
+    expectedValue: RedisValue,
+  ): Promise<number> {
+    const LUA_SCRIPT_HDEL_IF_EQUAL = `
+      if redis.call("hget", KEYS[1], ARGV[1]) == ARGV[2] then
+        return redis.call("hdel", KEYS[1], ARGV[1])
+      else
+        return 0
+      end
+    `;
+    const result = await this.eval(
+      LUA_SCRIPT_HDEL_IF_EQUAL,
+      [key],
+      [field, expectedValue as string],
     );
     return result as number;
   }
@@ -285,7 +314,9 @@ export class RedisService implements OnModuleDestroy {
 
     // 2. Cache miss, try to acquire a distributed lock
     const lockKey = `${key}:lock`;
-    const lockAcquired = (await this.setnx(lockKey, '1', lockTtl)) === 'OK';
+    const lockValue = uuidv7();
+    const lockAcquired =
+      (await this.setnx(lockKey, lockValue, lockTtl)) === 'OK';
 
     if (lockAcquired) {
       this.logger.debug(
@@ -308,8 +339,8 @@ export class RedisService implements OnModuleDestroy {
         }
         return value;
       } finally {
-        // Release the lock by deleting the lock key
-        await this.del(lockKey).catch((err) =>
+        // Safely release the lock only if it still belongs to this process
+        await this.delIfEqual(lockKey, lockValue).catch((err) =>
           this.logger.error(
             { err, key },
             this.i18nService.translate('Lock_Release_Failed', { key }),

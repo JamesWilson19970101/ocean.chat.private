@@ -4,6 +4,8 @@ import {
   InfrastructureException,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
+import { instanceToPlain } from 'class-transformer';
+import { validateOrReject } from 'class-validator';
 import { headers, MsgHdrs, StringCodec } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
@@ -62,7 +64,7 @@ export class BoundedPublisherService {
    */
   async publishSafe(
     subject: string,
-    data: Record<string, unknown>,
+    data: object,
     context: string,
     options: PublishOptions = {},
   ): Promise<void> {
@@ -78,6 +80,32 @@ export class BoundedPublisherService {
         503,
       );
     }
+
+    if (
+      data &&
+      data.constructor &&
+      data.constructor.name !== 'Object' &&
+      data.constructor.name !== 'Array'
+    ) {
+      try {
+        await validateOrReject(data, {
+          whitelist: true,
+          forbidNonWhitelisted: true,
+        });
+      } catch (errors) {
+        this.logger.error(
+          { context, subject, errors },
+          'Dirty data intercepted before publishing',
+        );
+        throw new InfrastructureException(
+          'Payload validation failed before publishing',
+          ErrorCodes.SERVICE_ERROR,
+          400,
+        );
+      }
+    }
+
+    const safePlainData = instanceToPlain(data) as Record<string, unknown>;
 
     const isCritical = options.isCritical ?? false;
     const currentQueueLength = this.queue.length;
@@ -114,7 +142,7 @@ export class BoundedPublisherService {
       this.queue.push(() => {
         this.activeCount++;
 
-        const payload = this.sc.encode(JSON.stringify(data));
+        const payload = this.sc.encode(JSON.stringify(safePlainData));
         const dlqSubject = `dlq.${subject}`;
 
         const pubOptions: { headers?: MsgHdrs } = {};

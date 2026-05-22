@@ -104,6 +104,18 @@ export class Message extends Document {
   @Prop({ type: UserIdentifierSchema, required: true })
   u: UserIdentifier;
 
+  /** The monotonically increasing sequence ID for sync (SyncSeqId) */
+  @Prop({ index: true })
+  syncSeqId?: string;
+
+  /** The client-generated message ID to ensure idempotency */
+  @Prop({ index: true })
+  clientMsgId?: string;
+
+  /** The application layer message type (0: text, 1: image, etc.) */
+  @Prop()
+  msgType?: number;
+
   /** The type of the message (e.g., system message, command). */
   @Prop({ type: String, enum: MessageType })
   t?: MessageType;

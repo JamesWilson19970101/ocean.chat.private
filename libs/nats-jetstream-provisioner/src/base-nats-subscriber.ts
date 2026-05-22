@@ -189,10 +189,6 @@ export abstract class BaseNatsSubscriber<T extends object>
         const errorMsg = this.i18nService.translate('FAILED_TO_ADD_CONSUMER', {
           streamName: this.streamName,
         });
-        this.logger.error(
-          { err, streamName: this.streamName, config: finalConfig },
-          errorMsg,
-        );
         // Fail-Fast: Let the application crash and be restarted by orchestrator
         throw new InfrastructureException(
           errorMsg,
@@ -304,7 +300,9 @@ export abstract class BaseNatsSubscriber<T extends object>
             { err: dlqErr, subject: m.subject },
             this.i18nService.translate('FATAL_FAILED_TO_MOVE_TO_DLQ'),
           );
-          m.nak();
+          // If writing to the dead-letter queue also fails, it indicates a serious infrastructure problem. TODO: send message to coder.
+          // Now use a delayed NAK (e.g., 60 seconds) to prevent the program from entering a high-frequency retrieval loop, protecting the CPU and logging system.
+          m.nak(60000);
         });
     } else {
       // Temporary failure: NAK to trigger NATS redelivery.
