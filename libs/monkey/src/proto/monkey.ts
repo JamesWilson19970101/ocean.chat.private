@@ -79,6 +79,7 @@ export interface MsgUpAck {
   syncSeqId: string;
   success: boolean;
   errorMessage: string;
+  serverTimestamp: string;
 }
 
 /** MSG_NOTIFY: Global new message notification */
@@ -92,12 +93,12 @@ export interface AuthReq {
   deviceType: string;
   deviceId: string;
   jwt: string;
+  supportedVersions: number[];
 }
 
 /** AUTH_ACK: Handshake auth response */
 export interface AuthAck {
-  success: boolean;
-  errorMessage: string;
+  userId: string;
 }
 
 /** READ_RECEIPT: Cross-device read receipt sync */
@@ -111,6 +112,7 @@ export interface ExceptionAck {
   errorCode: number;
   message: string;
   timestamp: string;
+  serverSupportedVersions: number[];
 }
 
 export const OCEANCHAT_MONKEY_PACKAGE_NAME = "oceanchat.monkey";
@@ -361,7 +363,7 @@ export const MsgUp: MessageFns<MsgUp> = {
 };
 
 function createBaseMsgUpAck(): MsgUpAck {
-  return { clientMsgId: "", syncSeqId: "0", success: false, errorMessage: "" };
+  return { clientMsgId: "", syncSeqId: "0", success: false, errorMessage: "", serverTimestamp: "0" };
 }
 
 export const MsgUpAck: MessageFns<MsgUpAck> = {
@@ -377,6 +379,9 @@ export const MsgUpAck: MessageFns<MsgUpAck> = {
     }
     if (message.errorMessage !== "") {
       writer.uint32(34).string(message.errorMessage);
+    }
+    if (message.serverTimestamp !== "0") {
+      writer.uint32(40).int64(message.serverTimestamp);
     }
     return writer;
   },
@@ -420,6 +425,14 @@ export const MsgUpAck: MessageFns<MsgUpAck> = {
           message.errorMessage = reader.string();
           continue;
         }
+        case 5: {
+          if (tag !== 40) {
+            break;
+          }
+
+          message.serverTimestamp = reader.int64().toString();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -435,6 +448,7 @@ export const MsgUpAck: MessageFns<MsgUpAck> = {
       syncSeqId: isSet(object.syncSeqId) ? globalThis.String(object.syncSeqId) : "0",
       success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
       errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : "",
+      serverTimestamp: isSet(object.serverTimestamp) ? globalThis.String(object.serverTimestamp) : "0",
     };
   },
 
@@ -451,6 +465,9 @@ export const MsgUpAck: MessageFns<MsgUpAck> = {
     }
     if (message.errorMessage !== "") {
       obj.errorMessage = message.errorMessage;
+    }
+    if (message.serverTimestamp !== "0") {
+      obj.serverTimestamp = message.serverTimestamp;
     }
     return obj;
   },
@@ -523,7 +540,7 @@ export const MsgNotify: MessageFns<MsgNotify> = {
 };
 
 function createBaseAuthReq(): AuthReq {
-  return { deviceType: "", deviceId: "", jwt: "" };
+  return { deviceType: "", deviceId: "", jwt: "", supportedVersions: [] };
 }
 
 export const AuthReq: MessageFns<AuthReq> = {
@@ -537,6 +554,11 @@ export const AuthReq: MessageFns<AuthReq> = {
     if (message.jwt !== "") {
       writer.uint32(26).string(message.jwt);
     }
+    writer.uint32(34).fork();
+    for (const v of message.supportedVersions) {
+      writer.int32(v);
+    }
+    writer.join();
     return writer;
   },
 
@@ -571,6 +593,24 @@ export const AuthReq: MessageFns<AuthReq> = {
           message.jwt = reader.string();
           continue;
         }
+        case 4: {
+          if (tag === 32) {
+            message.supportedVersions.push(reader.int32());
+
+            continue;
+          }
+
+          if (tag === 34) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.supportedVersions.push(reader.int32());
+            }
+
+            continue;
+          }
+
+          break;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -585,6 +625,9 @@ export const AuthReq: MessageFns<AuthReq> = {
       deviceType: isSet(object.deviceType) ? globalThis.String(object.deviceType) : "",
       deviceId: isSet(object.deviceId) ? globalThis.String(object.deviceId) : "",
       jwt: isSet(object.jwt) ? globalThis.String(object.jwt) : "",
+      supportedVersions: globalThis.Array.isArray(object?.supportedVersions)
+        ? object.supportedVersions.map((e: any) => globalThis.Number(e))
+        : [],
     };
   },
 
@@ -599,21 +642,21 @@ export const AuthReq: MessageFns<AuthReq> = {
     if (message.jwt !== "") {
       obj.jwt = message.jwt;
     }
+    if (message.supportedVersions?.length) {
+      obj.supportedVersions = message.supportedVersions.map((e) => Math.round(e));
+    }
     return obj;
   },
 };
 
 function createBaseAuthAck(): AuthAck {
-  return { success: false, errorMessage: "" };
+  return { userId: "" };
 }
 
 export const AuthAck: MessageFns<AuthAck> = {
   encode(message: AuthAck, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
-    if (message.success !== false) {
-      writer.uint32(8).bool(message.success);
-    }
-    if (message.errorMessage !== "") {
-      writer.uint32(18).string(message.errorMessage);
+    if (message.userId !== "") {
+      writer.uint32(10).string(message.userId);
     }
     return writer;
   },
@@ -626,19 +669,11 @@ export const AuthAck: MessageFns<AuthAck> = {
       const tag = reader.uint32();
       switch (tag >>> 3) {
         case 1: {
-          if (tag !== 8) {
+          if (tag !== 10) {
             break;
           }
 
-          message.success = reader.bool();
-          continue;
-        }
-        case 2: {
-          if (tag !== 18) {
-            break;
-          }
-
-          message.errorMessage = reader.string();
+          message.userId = reader.string();
           continue;
         }
       }
@@ -651,19 +686,13 @@ export const AuthAck: MessageFns<AuthAck> = {
   },
 
   fromJSON(object: any): AuthAck {
-    return {
-      success: isSet(object.success) ? globalThis.Boolean(object.success) : false,
-      errorMessage: isSet(object.errorMessage) ? globalThis.String(object.errorMessage) : "",
-    };
+    return { userId: isSet(object.userId) ? globalThis.String(object.userId) : "" };
   },
 
   toJSON(message: AuthAck): unknown {
     const obj: any = {};
-    if (message.success !== false) {
-      obj.success = message.success;
-    }
-    if (message.errorMessage !== "") {
-      obj.errorMessage = message.errorMessage;
+    if (message.userId !== "") {
+      obj.userId = message.userId;
     }
     return obj;
   },
@@ -736,7 +765,7 @@ export const ReadReceipt: MessageFns<ReadReceipt> = {
 };
 
 function createBaseExceptionAck(): ExceptionAck {
-  return { errorCode: 0, message: "", timestamp: "" };
+  return { errorCode: 0, message: "", timestamp: "", serverSupportedVersions: [] };
 }
 
 export const ExceptionAck: MessageFns<ExceptionAck> = {
@@ -750,6 +779,11 @@ export const ExceptionAck: MessageFns<ExceptionAck> = {
     if (message.timestamp !== "") {
       writer.uint32(26).string(message.timestamp);
     }
+    writer.uint32(34).fork();
+    for (const v of message.serverSupportedVersions) {
+      writer.int32(v);
+    }
+    writer.join();
     return writer;
   },
 
@@ -784,6 +818,24 @@ export const ExceptionAck: MessageFns<ExceptionAck> = {
           message.timestamp = reader.string();
           continue;
         }
+        case 4: {
+          if (tag === 32) {
+            message.serverSupportedVersions.push(reader.int32());
+
+            continue;
+          }
+
+          if (tag === 34) {
+            const end2 = reader.uint32() + reader.pos;
+            while (reader.pos < end2) {
+              message.serverSupportedVersions.push(reader.int32());
+            }
+
+            continue;
+          }
+
+          break;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -798,6 +850,9 @@ export const ExceptionAck: MessageFns<ExceptionAck> = {
       errorCode: isSet(object.errorCode) ? globalThis.Number(object.errorCode) : 0,
       message: isSet(object.message) ? globalThis.String(object.message) : "",
       timestamp: isSet(object.timestamp) ? globalThis.String(object.timestamp) : "",
+      serverSupportedVersions: globalThis.Array.isArray(object?.serverSupportedVersions)
+        ? object.serverSupportedVersions.map((e: any) => globalThis.Number(e))
+        : [],
     };
   },
 
@@ -811,6 +866,9 @@ export const ExceptionAck: MessageFns<ExceptionAck> = {
     }
     if (message.timestamp !== "") {
       obj.timestamp = message.timestamp;
+    }
+    if (message.serverSupportedVersions?.length) {
+      obj.serverSupportedVersions = message.serverSupportedVersions.map((e) => Math.round(e));
     }
     return obj;
   },

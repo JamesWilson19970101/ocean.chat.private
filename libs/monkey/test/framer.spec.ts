@@ -83,4 +83,29 @@ describe('MonkeyFramer', () => {
       /Payload length mismatch/,
     );
   });
+
+  it('should throw when payload length exceeds 16KB during framing', () => {
+    const payload = Buffer.alloc(16385);
+    const headerData = { cmd: 1, flags: 0, reqId: 1 };
+    expect(() => MonkeyFramer.frameWSMessage(headerData, payload)).toThrow(
+      /protocol hard limit of 16KB/,
+    );
+  });
+
+  it('should throw when payload length exceeds 16KB during unframing', () => {
+    const payload = Buffer.alloc(16385);
+    const headerBuffer = Buffer.alloc(MonkeyHeader.SIZE);
+    headerBuffer.writeUInt16BE(MonkeyHeader.MAGIC, 0);
+    headerBuffer.writeUInt8(MonkeyHeader.VERSION, 2);
+    headerBuffer.writeUInt8(1, 3);
+    headerBuffer.writeUInt8(0, 4);
+    headerBuffer.writeUIntBE(1, 5, 3);
+    headerBuffer.writeUInt32BE(16385, 8);
+
+    const framedBuffer = Buffer.concat([headerBuffer, payload]);
+
+    expect(() => MonkeyFramer.unframeWSMessage(framedBuffer)).toThrow(
+      /protocol hard limit of 16KB/,
+    );
+  });
 });

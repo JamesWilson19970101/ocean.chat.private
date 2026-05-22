@@ -6,7 +6,7 @@ package oceanchat.monkey;
 message MsgUp {
   string clientMsgId = 1;
   string groupId = 2;
-  
+
   enum MsgType {
     TEXT = 0;
     IMAGE = 1;
@@ -14,10 +14,10 @@ message MsgUp {
     FILE = 3;
   }
   MsgType msgType = 3;
-  
+
   // TEXT
   string content = 4;
-  
+
   // MEDIA
   string url = 5;
   int32 width = 6;
@@ -36,6 +36,7 @@ message MsgUpAck {
   uint64 syncSeqId = 2;
   bool success = 3;
   string errorMessage = 4;
+  int64 serverTimestamp = 5;
 }
 
 // MSG_NOTIFY: Global new message notification
@@ -49,12 +50,12 @@ message AuthReq {
   string deviceType = 1;
   string deviceId = 2;
   string jwt = 3;
+  repeated int32 supportedVersions = 4;
 }
 
 // AUTH_ACK: Handshake auth response
 message AuthAck {
-  bool success = 1;
-  string errorMessage = 2;
+  string userId = 1;
 }
 
 // READ_RECEIPT: Cross-device read receipt sync
@@ -68,5 +69,6 @@ message ExceptionAck {
   int32 errorCode = 1;
   string message = 2;
   string timestamp = 3;
+  repeated int32 serverSupportedVersions = 4;
 }
 

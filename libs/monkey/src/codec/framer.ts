@@ -37,6 +37,13 @@ export class MonkeyFramer {
     }
 
     const payload = buffer.subarray(MonkeyHeader.SIZE);
+
+    if (payload.length > 16384) {
+      throw new Error(
+        `Payload size ${payload.length} exceeds the protocol hard limit of 16KB.`,
+      );
+    }
+
     return { header, payload };
   }
 
@@ -52,6 +59,12 @@ export class MonkeyFramer {
     payload: Buffer,
   ): Buffer {
     const length = payload.length;
+
+    if (length > 16384) {
+      throw new Error(
+        `Payload size ${length} exceeds the protocol hard limit of 16KB.`,
+      );
+    }
 
     const headerBuffer = MonkeyHeader.encode({
       ...headerData,

@@ -11,6 +11,8 @@ export const MonkeyFlags = {
   COMPRESSED: 0x02,
   /** Bit 2: Payload is encrypted (e.g., AES-GCM). */
   ENCRYPTED: 0x04,
+  /** Bit 3: No retry for extremely time-sensitive signals (e.g., "typing..."). */
+  NO_RETRY: 0x08,
 } as const;
 
 /**
