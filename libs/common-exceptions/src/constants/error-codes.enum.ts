@@ -2,6 +2,8 @@
  * Defines business-specific error codes for the application.
  */
 export enum ErrorCodes {
+  // ---------------------------------------Http Error Codes--------------------------------------------- //
+
   USERNAME_ALREADY_EXISTS = 10001, // e.g., when trying to register with an existing username
   // username validation errors
   USERNAME_TOO_SHORT = 10002, // e.g., less than 3 characters
@@ -19,7 +21,6 @@ export enum ErrorCodes {
   CREATION_ERROR = 10022, // e.g., for general creation failures
   // authentication errors
 
-  UNAUTHORIZED = 10030, // e.g., when accessing a protected resource without valid authentication
   REFRESH_TOKEN_REUSED_OR_REVOKED = 10031, // e.g., when a refresh token is used more than once or its session is not found in Redis
   TOKEN_REFRESH_ERROR = 10032, // e.g., when encountering database or redis level issues.
 
@@ -41,4 +42,30 @@ export enum ErrorCodes {
   SERVICE_UNAVAILABLE = 50301, // e.g., circuit breaker is open
 
   UNEXPECTED_ERROR = 99999, // e.g., for unexpected errors not covered by other codes
+
+  // ---------------------------------------Common Error Codes--------------------------------------------- //
+
+  RATE_LIMIT_EXCEEDED = 42900, // e.g., when a client or connection exceeds the allowed request rate
+  UNAUTHORIZED = 10030, // e.g., when accessing a protected resource without valid authentication
+
+  // ------------------------------------- WebSocket Error Codes----------------------------------------------- //
+
+  // WebSocket & Gateway Specific Errors
+  WS_CLOSE_SERVICE_RESTART = 1012, // Standard WebSocket close code for service restart
+  WS_CLOSE_HANDSHAKE_TIMEOUT = 4008, // Custom WebSocket close code for handshake timeout
+}
+
+/**
+ * Framework-agnostic HTTP/Transport status codes.
+ * Use this instead of NestJS's HttpStatus to keep the ws layer pure.
+ */
+export enum AppStatus {
+  OK = 200,
+  BAD_REQUEST = 400,
+  UNAUTHORIZED = 401,
+  FORBIDDEN = 403,
+  NOT_FOUND = 404,
+  TOO_MANY_REQUESTS = 429,
+  INTERNAL_SERVER_ERROR = 500,
+  SERVICE_UNAVAILABLE = 503,
 }

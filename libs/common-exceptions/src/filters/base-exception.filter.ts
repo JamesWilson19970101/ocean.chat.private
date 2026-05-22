@@ -78,10 +78,11 @@ export abstract class BaseAppExceptionFilter {
       if (exception.exceptionType === 'DOMAIN') {
         message = exception.message || message;
       } else {
-        // For Infrastructure exceptions, we sanitize the client-facing message to prevent data leaks.
-        message = this.i18nService.translate('SYSTEM_UNAVAILABLE', {
-          defaultValue: 'Service Unavailable',
-        });
+        message =
+          exception.message ||
+          this.i18nService.translate('SYSTEM_UNAVAILABLE', {
+            defaultValue: 'Service Unavailable',
+          });
         // I override to 5xx to ensure it's treated as a server fault.
         statusCode =
           statusCode < 500 ? HttpStatus.INTERNAL_SERVER_ERROR : statusCode;

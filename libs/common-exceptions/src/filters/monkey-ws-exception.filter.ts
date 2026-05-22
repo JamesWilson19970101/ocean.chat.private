@@ -44,6 +44,7 @@ export class MonkeyWsExceptionFilter
         errorCode: errorResponseDto.errorCode,
         message: errorResponseDto.message,
         timestamp: errorResponseDto.timestamp,
+        serverSupportedVersions: [],
       };
 
       const payload = Buffer.from(ExceptionAck.encode(exceptionAck).finish());
