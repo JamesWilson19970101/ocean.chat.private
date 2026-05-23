@@ -144,29 +144,34 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
-   * Atomically deletes a hash field only if its current value matches the expected value.
-   * This is useful for safely removing a specific routing or session state without race conditions.
+   * Atomically deletes a hash field only if a specific property in its JSON value matches the expected value.
+   * This is crucial for safely removing session states stored as JSON without race conditions.
    * @param key The key of the hash.
    * @param field The field to delete within the hash.
-   * @param expectedValue The expected value of the field.
+   * @param jsonProperty The property inside the JSON object to check.
+   * @param expectedValue The expected value of the property (compared as a string).
    * @returns 1 if the field was deleted, 0 otherwise.
    */
-  async hdelIfEqual(
+  async hdelIfJsonPropertyEquals(
     key: RedisKey,
     field: string,
+    jsonProperty: string,
     expectedValue: RedisValue,
   ): Promise<number> {
-    const LUA_SCRIPT_HDEL_IF_EQUAL = `
-      if redis.call("hget", KEYS[1], ARGV[1]) == ARGV[2] then
-        return redis.call("hdel", KEYS[1], ARGV[1])
-      else
-        return 0
+    const LUA_SCRIPT = `
+      local val = redis.call("hget", KEYS[1], ARGV[1])
+      if val then
+        local status, decoded = pcall(cjson.decode, val)
+        if status and tostring(decoded[ARGV[2]]) == ARGV[3] then
+          return redis.call("hdel", KEYS[1], ARGV[1])
+        end
       end
+      return 0
     `;
     const result = await this.eval(
-      LUA_SCRIPT_HDEL_IF_EQUAL,
+      LUA_SCRIPT,
       [key],
-      [field, expectedValue as string],
+      [field, jsonProperty, expectedValue as string],
     );
     return result as number;
   }
