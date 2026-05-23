@@ -111,6 +111,7 @@ export class OceanchatAuthService implements OnModuleInit {
           const revokePayload = plainToInstance(TokenRevokedEvent, {
             jti: session.accessJti,
             exp: decodedAT.exp,
+            reason: 'LOGOUT',
           });
           void this.boundedPublisher
             .publishSafe('auth.jwt.revoke', revokePayload, 'logout_event', {
@@ -275,6 +276,7 @@ export class OceanchatAuthService implements OnModuleInit {
                 const revokePayload = plainToInstance(TokenRevokedEvent, {
                   jti: sess.accessJti,
                   exp: decodedAT.exp,
+                  reason: 'REPLAY_ATTACK',
                 });
                 void this.boundedPublisher
                   .publishSafe(
@@ -345,6 +347,7 @@ export class OceanchatAuthService implements OnModuleInit {
         const revokePayload = plainToInstance(TokenRevokedEvent, {
           jti: storage.accessJti,
           exp: decodedOldAT.exp,
+          reason: 'REFRESH_ROTATION',
         });
         void this.boundedPublisher
           .publishSafe(

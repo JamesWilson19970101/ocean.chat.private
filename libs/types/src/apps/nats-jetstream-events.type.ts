@@ -158,6 +158,10 @@ export class TokenRevokedEvent {
 
   @IsNumber()
   exp: number;
+
+  @IsString()
+  @IsOptional()
+  reason?: 'LOGOUT' | 'REPLAY_ATTACK' | 'REFRESH_ROTATION';
 }
 
 /** payload for auth.event.user.loggedIn */

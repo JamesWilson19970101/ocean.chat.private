@@ -249,34 +249,45 @@ export class OceanchatWsGateway
    * It sends an `EXCEPTION_ACK` message to the client indicating the token revocation before forcefully terminating the connection.
    *
    * @param jti - The unique JWT ID (JSON Web Token ID) associated with the user's connection.
+   * @param reason - The reason for token revocation (e.g. 'LOGOUT', 'REPLAY_ATTACK').
    */
-  public kickUserByJti(jti: string): void {
-    const exceptionPayload = Buffer.from(
-      ExceptionAck.encode({
-        errorCode: ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
-        message: this.i18nService.translate('TOKEN_REVOKED_RECONNECT'),
-        timestamp: new Date().toISOString(),
-        serverSupportedVersions: [],
-      }).finish(),
-    );
+  public kickUserByJti(jti: string, reason?: string): void {
+    let exceptionBuffer: Buffer | undefined;
+    const isNormalLogout = reason === 'LOGOUT';
 
-    const exceptionBuffer = this.monkeyService.frame(
-      { cmd: MonkeyCmd.EXCEPTION_ACK, reqId: 0, flags: 0 },
-      exceptionPayload,
-    );
+    if (!isNormalLogout) {
+      const exceptionPayload = Buffer.from(
+        ExceptionAck.encode({
+          errorCode: ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+          message: this.i18nService.translate('TOKEN_REVOKED_RECONNECT'),
+          timestamp: new Date().toISOString(),
+          serverSupportedVersions: [],
+        }).finish(),
+      );
+
+      exceptionBuffer = this.monkeyService.frame(
+        { cmd: MonkeyCmd.EXCEPTION_ACK, reqId: 0, flags: 0 },
+        exceptionPayload,
+      );
+    }
 
     for (const client of this.activeSockets) {
       const connection = this.socketMap.get(client);
       if (connection && connection.jti === jti) {
         this.logger.warn(
-          { userId: connection.userId },
+          { userId: connection.userId, reason },
           this.i18nService.translate('KICKING_USER_REVOKED_TOKEN_LOG', {
             userId: connection.userId,
           }),
         );
         if (client.readyState === client.OPEN) {
-          client.send(exceptionBuffer, { binary: true });
-          client.terminate();
+          if (exceptionBuffer) {
+            client.send(exceptionBuffer, { binary: true });
+            client.terminate();
+          } else {
+            // Graceful close for normal logout
+            client.close(1000, 'Normal Logout');
+          }
         }
       }
     }

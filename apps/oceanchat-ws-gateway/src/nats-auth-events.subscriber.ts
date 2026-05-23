@@ -51,7 +51,7 @@ export class NatsAuthEventsSubscriber extends BaseNatsSubscriber<TokenRevokedEve
       );
 
       // Fan-out kick: immediately terminate any active connections using this revoked token
-      this.gateway.kickUserByJti(event.jti);
+      this.gateway.kickUserByJti(event.jti, event?.reason);
     } catch (error) {
       const errorMessage = this.i18nService.translate(
         'FAILED_TO_PROCESS_TOKEN_REVOCATION',
