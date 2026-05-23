@@ -31,7 +31,9 @@ export abstract class BaseNatsSubscriber<T extends object>
   protected js: JetStreamClient | undefined;
 
   protected abstract readonly streamName: string;
-  protected abstract readonly eventClass: new (...args: any[]) => T;
+  protected abstract readonly eventClass:
+    | (new (...args: any[]) => T)
+    | Record<string, new (...args: any[]) => any>;
   protected abstract readonly logger: PinoLogger;
   protected abstract readonly configService: ConfigService;
   protected abstract readonly i18nService: I18nService;
@@ -219,9 +221,13 @@ export abstract class BaseNatsSubscriber<T extends object>
               parsed && typeof parsed === 'object' && 'data' in parsed
                 ? (parsed as { data: unknown }).data
                 : parsed;
+            const TargetClass =
+              typeof this.eventClass === 'function'
+                ? this.eventClass
+                : this.eventClass[m.subject] || Object;
 
             // Zero-Trust: Enforce strict class-based validation
-            const event = plainToInstance(this.eventClass, rawPayload);
+            const event = plainToInstance(TargetClass, rawPayload) as T;
             await validateOrReject(event, {
               whitelist: true,
               forbidNonWhitelisted: true,
