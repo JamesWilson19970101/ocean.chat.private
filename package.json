@@ -17,6 +17,7 @@
     "start:oceanchat-user-for-testing": "NODE_ENV=test nest start oceanchat-user --watch",
     "start:oceanchat-api-gateway-for-testing": "NODE_ENV=test nest start oceanchat-api-gateway --watch",
     "start:oceanchat-ws-gateway-for-testing": "NODE_ENV=test nest start oceanchat-ws-gateway --watch",
+    "start:oceanchat-presence-for-testing": "NODE_ENV=test nest start oceanchat-presence --watch",
     "start:oceanchat-auth": "NODE_ENV=development nest start oceanchat-auth --watch",
     "start:oceanchat-user": "NODE_ENV=development nest start oceanchat-user --watch",
     "start:oceanchat-api-gateway": "NODE_ENV=development nest start oceanchat-api-gateway --watch",
