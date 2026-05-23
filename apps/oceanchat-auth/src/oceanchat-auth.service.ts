@@ -171,23 +171,32 @@ export class OceanchatAuthService implements OnModuleInit {
 
     // Attempt to acquire the lock independently.
     let isLockAcquired: string | null = null;
-    try {
-      isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
-    } catch (error) {
-      throw new InfrastructureException(
-        this.i18nService.translate('Redis_Client_Error'),
-        ErrorCodes.TOKEN_REFRESH_ERROR,
-        HttpStatus.INTERNAL_SERVER_ERROR,
-        false,
-        { cause: error },
-      );
+
+    let retries = 3;
+    while (retries > 0) {
+      try {
+        isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
+        if (isLockAcquired === 'OK') break;
+      } catch (error) {
+        throw new InfrastructureException(
+          this.i18nService.translate('Redis_Client_Error'),
+          ErrorCodes.TOKEN_REFRESH_ERROR,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+          false,
+          { cause: error },
+        );
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      retries--;
     }
 
     if (isLockAcquired !== 'OK') {
       throw new DomainException(
-        this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-        ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
-        HttpStatus.UNAUTHORIZED,
+        this.i18nService.translate('REFRESH_REQUEST_IN_PROGRESS', {
+          defaultValue: 'Refresh request in progress, please retry.',
+        }),
+        ErrorCodes.RATE_LIMIT_EXCEEDED,
+        HttpStatus.TOO_MANY_REQUESTS,
         { userId, jti },
       );
     }
@@ -331,11 +340,12 @@ export class OceanchatAuthService implements OnModuleInit {
       const decodedOldAT: IJwtPayload = this.jwtService.decode(
         storage.accessToken,
       );
-      const revokePayload = plainToInstance(TokenRevokedEvent, {
-        jti: storage.accessJti,
-        exp: decodedOldAT.exp,
-      });
+
       if (storage.accessJti && decodedOldAT?.exp) {
+        const revokePayload = plainToInstance(TokenRevokedEvent, {
+          jti: storage.accessJti,
+          exp: decodedOldAT.exp,
+        });
         void this.boundedPublisher
           .publishSafe(
             'auth.jwt.revoke',

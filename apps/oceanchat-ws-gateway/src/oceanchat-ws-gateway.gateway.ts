@@ -253,7 +253,7 @@ export class OceanchatWsGateway
   public kickUserByJti(jti: string): void {
     const exceptionPayload = Buffer.from(
       ExceptionAck.encode({
-        errorCode: AppStatus.UNAUTHORIZED,
+        errorCode: ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
         message: this.i18nService.translate('TOKEN_REVOKED_RECONNECT'),
         timestamp: new Date().toISOString(),
         serverSupportedVersions: [],
