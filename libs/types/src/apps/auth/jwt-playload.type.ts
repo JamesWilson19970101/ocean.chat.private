@@ -2,6 +2,9 @@
  * Interface representing the payload of a JSON Web Token (JWT).
  * This structure is embedded within the signed token.
  */
+//TODO: The interface need to be splited into two parts: one is the data required for the payload when generating the JWT,
+// and the other is the data specified when decoding the JWT.
+// In `apps/oceanchat-auth/src/oceanchat-auth.service.ts`, decodedOldAT and storage should be different type.
 export interface IJwtPayload {
   /**
    * The subject of the token, typically the User ID.

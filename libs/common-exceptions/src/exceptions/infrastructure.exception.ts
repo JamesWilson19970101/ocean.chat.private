@@ -13,6 +13,8 @@ import { ExceptionType, IAppException } from './app.exception';
  * - They typically result in HTTP 5xx status codes.
  * - The actual error message should be sanitized before reaching the client to prevent data leaks.
  * - Some infrastructure exceptions might be marked as retriable (e.g. transient network glitches).
+ *
+ * TODO: isRetriable
  */
 export class InfrastructureException extends Error implements IAppException {
   public readonly exceptionType: ExceptionType = 'INFRASTRUCTURE';

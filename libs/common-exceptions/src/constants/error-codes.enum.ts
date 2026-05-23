@@ -22,6 +22,7 @@ export enum ErrorCodes {
   // authentication errors
 
   REFRESH_TOKEN_REUSED_OR_REVOKED = 10031, // e.g., when a refresh token is used more than once or its session is not found in Redis
+
   TOKEN_REFRESH_ERROR = 10032, // e.g., when encountering database or redis level issues.
 
   // idempotency key conflict error

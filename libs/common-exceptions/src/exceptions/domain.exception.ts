@@ -12,6 +12,8 @@ import { ExceptionType, IAppException } from './app.exception';
  * - They do NOT log full stack traces by default (to save CPU/I/O under high load).
  * - They typically result in HTTP 4xx status codes.
  * - They are almost never retriable.
+ *
+ * TODO: isRetriable
  */
 export class DomainException extends Error implements IAppException {
   public readonly exceptionType: ExceptionType = 'DOMAIN';

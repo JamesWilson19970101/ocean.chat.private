@@ -42,6 +42,7 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
 
   protected async onEvent(
     event: ImOrchestrateEvent,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     msg: JsMsg,
   ): Promise<void> {
     try {
