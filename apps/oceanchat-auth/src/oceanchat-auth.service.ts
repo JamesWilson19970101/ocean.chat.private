@@ -106,13 +106,29 @@ export class OceanchatAuthService implements OnModuleInit {
         const decodedAT: IJwtPayload = this.jwtService.decode(
           session.accessToken,
         );
+        const decodedRT: IJwtPayload = this.jwtService.decode(
+          session.refreshToken,
+        );
 
+        // Fix: Revoke BOTH Access and Refresh tokens on explicit logout
+        const tokensToRevoke: TokenRevokedEvent[] = [];
         if (session.accessJti && decodedAT?.exp) {
-          const revokePayload = plainToInstance(TokenRevokedEvent, {
+          tokensToRevoke.push({
             jti: session.accessJti,
             exp: decodedAT.exp,
             reason: 'LOGOUT',
           });
+        }
+        if (session.refreshJti && decodedRT?.exp) {
+          tokensToRevoke.push({
+            jti: session.refreshJti,
+            exp: decodedRT.exp,
+            reason: 'LOGOUT',
+          });
+        }
+
+        tokensToRevoke.forEach((token) => {
+          const revokePayload = plainToInstance(TokenRevokedEvent, token);
           void this.boundedPublisher
             .publishSafe('auth.jwt.revoke', revokePayload, 'logout_event', {
               isCritical: true,
@@ -125,7 +141,7 @@ export class OceanchatAuthService implements OnModuleInit {
                 ),
               );
             });
-        }
+        });
       }
     } catch (e) {
       this.logger.error(
@@ -169,6 +185,7 @@ export class OceanchatAuthService implements OnModuleInit {
 
     const { sub: userId, jti, deviceId } = payload;
     const lockKey = `auth:refresh:lock:${userId}:${deviceId}`;
+    const lockToken = uuidv4();
 
     // Attempt to acquire the lock independently.
     let isLockAcquired: string | null = null;
@@ -176,7 +193,7 @@ export class OceanchatAuthService implements OnModuleInit {
     let retries = 3;
     while (retries > 0) {
       try {
-        isLockAcquired = await this.redisService.setnx(lockKey, '1', 10);
+        isLockAcquired = await this.redisService.setnx(lockKey, lockToken, 10);
         if (isLockAcquired === 'OK') break;
       } catch (error) {
         throw new InfrastructureException(
@@ -208,35 +225,31 @@ export class OceanchatAuthService implements OnModuleInit {
       // Check if the device session exists in Redis Hash
       const storageStr = await this.redisService.hget(userKey, deviceId);
 
-      if (!storageStr) {
-        throw new DomainException(
-          this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-          ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
-          HttpStatus.UNAUTHORIZED,
-          { userId, jti },
-        );
+      let storage:
+        | (ITokenStorage & {
+            previousRefreshJti?: string; // old jti
+            gracePeriodUntil?: number; // grace period: Date.now() + 60s
+          })
+        | null = null;
+
+      if (storageStr) {
+        try {
+          storage = JSON.parse(storageStr);
+        } catch (parseError) {
+          this.logger.error(
+            { userId, deviceId, parseError },
+            this.i18nService.translate('CORRUPTED_SESSION_DATA_IN_REDIS'),
+          );
+          throw new DomainException(
+            this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
+            ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
+            HttpStatus.UNAUTHORIZED,
+            { userId, jti },
+          );
+        }
       }
 
-      let storage: ITokenStorage & {
-        previousRefreshJti?: string; // old jti
-        gracePeriodUntil?: number; // grace period: Date.now() + 60s
-      };
-      try {
-        storage = JSON.parse(storageStr);
-      } catch (parseError) {
-        this.logger.error(
-          { userId, deviceId, parseError },
-          this.i18nService.translate('CORRUPTED_SESSION_DATA_IN_REDIS'),
-        );
-        throw new DomainException(
-          this.i18nService.translate('REFRESH_TOKEN_REUSED_OR_REVOKED'),
-          ErrorCodes.REFRESH_TOKEN_REUSED_OR_REVOKED,
-          HttpStatus.UNAUTHORIZED,
-          { userId, jti },
-        );
-      }
-
-      if (storage.refreshJti !== jti) {
+      if (storage && storage.refreshJti !== jti) {
         // Weak network defense: Check if the normal network timed out and retried within the grace period.
         if (
           storage.previousRefreshJti === jti &&
@@ -309,6 +322,18 @@ export class OceanchatAuthService implements OnModuleInit {
           HttpStatus.UNAUTHORIZED,
           { userId, jti },
         );
+      } else if (!storage) {
+        // GRACEFUL DEGRADATION:
+        // Redis may have restarted and lost the session data.
+        // Since the JWT signature is valid and hasn't expired, we allow the refresh
+        // to prevent forcing all users to re-login.
+        this.logger.warn(
+          { userId, jti, deviceId },
+          this.i18nService.translate('SESSION_RESTORED_FROM_JWT', {
+            defaultValue:
+              'Session not found in Redis (possible restart). Restoring session from valid JWT.',
+          }),
+        );
       }
 
       // Fetch user to generate new tokens
@@ -338,32 +363,34 @@ export class OceanchatAuthService implements OnModuleInit {
         jti, // Transfer the old JTI to enable the network grace period
       );
 
-      // Revoke the old access token since we've rotated it
-      const decodedOldAT: IJwtPayload = this.jwtService.decode(
-        storage.accessToken,
-      );
+      if (storage && storage.accessToken) {
+        // Revoke the old access token since we've rotated it
+        const decodedOldAT: IJwtPayload = this.jwtService.decode(
+          storage.accessToken,
+        );
 
-      if (storage.accessJti && decodedOldAT?.exp) {
-        const revokePayload = plainToInstance(TokenRevokedEvent, {
-          jti: storage.accessJti,
-          exp: decodedOldAT.exp,
-          reason: 'REFRESH_ROTATION',
-        });
-        void this.boundedPublisher
-          .publishSafe(
-            'auth.jwt.revoke',
-            revokePayload,
-            'refresh_token_revoke_event',
-            { isCritical: true },
-          )
-          .catch((err) => {
-            this.logger.error(
-              { err, userId },
-              this.i18nService.translate(
-                'FAILED_TO_PUBLISH_OLD_TOKEN_REVOCATION',
-              ),
-            );
+        if (storage.accessJti && decodedOldAT?.exp) {
+          const revokePayload = plainToInstance(TokenRevokedEvent, {
+            jti: storage.accessJti,
+            exp: decodedOldAT.exp,
+            reason: 'REFRESH_ROTATION',
           });
+          void this.boundedPublisher
+            .publishSafe(
+              'auth.jwt.revoke',
+              revokePayload,
+              'refresh_token_revoke_event',
+              { isCritical: true },
+            )
+            .catch((err) => {
+              this.logger.error(
+                { err, userId },
+                this.i18nService.translate(
+                  'FAILED_TO_PUBLISH_OLD_TOKEN_REVOCATION',
+                ),
+              );
+            });
+        }
       }
 
       return { accessToken: newAccessToken, refreshToken: newRefreshToken };
@@ -381,12 +408,15 @@ export class OceanchatAuthService implements OnModuleInit {
         },
       );
     } finally {
-      await this.redisService.del(lockKey).catch((err) => {
-        this.logger.error(
-          { err, lockKey },
-          this.i18nService.translate('Lock_Release_Failed'),
-        );
-      });
+      // Only release the lock if this instance actually acquired it
+      if (isLockAcquired === 'OK') {
+        await this.redisService.delIfEqual(lockKey, lockToken).catch((err) => {
+          this.logger.error(
+            { err, lockKey },
+            this.i18nService.translate('Lock_Release_Failed'),
+          );
+        });
+      }
     }
   }
 
