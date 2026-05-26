@@ -16,7 +16,11 @@ import {
   InfrastructureException,
   isErrorResponseDto,
 } from '@ocean.chat/common-exceptions';
-import { CircuitBreakerService, SkipAuth } from '@ocean.chat/cores';
+import {
+  CircuitBreakerService,
+  Idempotency,
+  SkipAuth,
+} from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import {
@@ -118,6 +122,7 @@ export class AuthController {
    * Handles user registration requests.
    */
   @SkipAuth()
+  @Idempotency({ cacheTtl: 60 })
   @Post('register')
   @HttpCode(HttpStatus.OK)
   async register(@Body() registerDto: CreateUserDto): Promise<Partial<User>> {

@@ -87,4 +87,52 @@ export class UsersController {
       { timeout: 10000 },
     );
   }
+
+  /**
+   * Fetches an optimized list of all users containing only their _id and username.
+   * Highly performant endpoint intended for dropdowns, auto-completes, etc.
+   */
+  @Get('all')
+  async getAllUsernames() {
+    return this.circuitBreakerService.fire(
+      'users.allUsernames',
+      () =>
+        firstValueFrom(
+          this.userClient
+            .send<
+              { _id: string; username: string }[]
+            >('user.query.allUsernames', {})
+            .pipe(
+              timeout(5000),
+              catchError((err: unknown) => {
+                if (isAppException(err)) {
+                  return throwError(() => err);
+                }
+                if (isErrorResponseDto(err)) {
+                  return throwError(
+                    () =>
+                      new DomainException(
+                        err.message,
+                        err.errorCode,
+                        err.statusCode,
+                        { cause: err },
+                      ),
+                  );
+                }
+                return throwError(
+                  () =>
+                    new InfrastructureException(
+                      this.i18nService.translate('INTERNAL_SERVER_ERROR'),
+                      ErrorCodes.UNEXPECTED_ERROR,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      false,
+                      { cause: err as any },
+                    ),
+                );
+              }),
+            ),
+        ),
+      { timeout: 10000 },
+    );
+  }
 }

@@ -28,6 +28,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { CommonServicesModule } from './common/services/common-services.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { GroupModule } from './modules/group/group.module';
 import { NatsEventsModule } from './modules/nats-events/nats-events.module';
 import { QueryModule } from './modules/query/query.module';
 import { UsersModule } from './modules/users/users.module';
@@ -137,6 +138,14 @@ export class OceanchatApiGatewayModule {
             inject: [ConfigService],
           },
           {
+            name: 'GROUP_SERVICE',
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+              servers: [configService.get<string>('nats.url') as string],
+            }),
+            inject: [ConfigService],
+          },
+          {
             name: 'QUERY_SERVICE',
             imports: [ConfigModule],
             useFactory: (configService: ConfigService) => ({
@@ -169,6 +178,7 @@ export class OceanchatApiGatewayModule {
         AuthorizationModule,
         AuthModule,
         UsersModule,
+        GroupModule,
         QueryModule,
       ],
       providers: [

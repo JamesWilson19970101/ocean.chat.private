@@ -167,7 +167,7 @@ describe('Comprehensive Auth Flow E2E (Live System)', () => {
 
           if (header.cmd === MonkeyCmd.AUTH_ACK) {
             const authAck = AuthAck.decode(payload);
-            expect(authAck.success).toBe(true);
+            expect(authAck.userId).toMatch(/.+/);
             done();
           } else if (header.cmd === MonkeyCmd.EXCEPTION_ACK) {
             const exceptionAck = ExceptionAck.decode(payload);
