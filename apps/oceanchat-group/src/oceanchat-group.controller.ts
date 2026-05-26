@@ -1,13 +1,17 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { MessagePattern, Payload } from '@nestjs/microservices';
+import { CreateRoomRpcRequest, CreateRoomRpcResponse } from '@ocean.chat/types';
 
 import { OceanchatGroupService } from './oceanchat-group.service';
 
 @Controller()
 export class OceanchatGroupController {
-  constructor(private readonly oceanchatGroupService: OceanchatGroupService) {}
+  constructor(private readonly groupService: OceanchatGroupService) {}
 
-  @Get()
-  getHello(): string {
-    return this.oceanchatGroupService.getHello();
+  @MessagePattern('group.cmd.create')
+  async createGroup(
+    @Payload() payload: CreateRoomRpcRequest,
+  ): Promise<CreateRoomRpcResponse> {
+    return this.groupService.createGroup(payload);
   }
 }
