@@ -92,7 +92,7 @@ export class RoleCacheService {
         const result = await this.redis.getOrSet<string[]>(
           key,
           async () => {
-            return this.dataSource!.getUserGlobalRoles(userId); // TODO: The caller needs to inject an implementation class for retrieving documents in MongoDB.
+            return this.dataSource!.getUserGlobalRoles(userId);
           },
           {
             ttl: L2_CACHE_TTL_SEC,
@@ -100,11 +100,7 @@ export class RoleCacheService {
             lockTtl: 5,
           },
         );
-        if (typeof result === 'string') {
-          roles = JSON.parse(result);
-        } else {
-          roles = result;
-        }
+        roles = result;
       } else {
         const result = await this.redis.get(key);
         if (typeof result === 'string') {
@@ -159,11 +155,7 @@ export class RoleCacheService {
             lockTtl: 5,
           },
         );
-        if (typeof result === 'string') {
-          roles = JSON.parse(result);
-        } else {
-          roles = result;
-        }
+        roles = result;
       } else {
         const result = await this.redis.get(key);
         if (typeof result === 'string') {
