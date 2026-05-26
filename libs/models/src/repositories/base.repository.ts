@@ -3,6 +3,7 @@ import {
   Document,
   FilterQuery,
   Model,
+  SaveOptions,
   UpdateQuery,
   UpdateWriteOpResult,
 } from 'mongoose';
@@ -19,13 +20,24 @@ export abstract class BaseRepository<T extends Document>
     this.model = model;
   }
 
-  async find(filter: FilterQuery<T>): Promise<T[]> {
-    return (await this.model.find(filter).lean().exec()) as unknown as T[];
+  async find(
+    filter: FilterQuery<T>,
+    projection?: any,
+    options?: Record<string, unknown>,
+  ): Promise<T[]> {
+    return (await this.model
+      .find(filter, projection, options)
+      .lean()
+      .exec()) as unknown as T[];
   }
 
-  async findOne(filter: FilterQuery<T>): Promise<T | null> {
+  async findOne(
+    filter: FilterQuery<T>,
+    projection?: any,
+    options?: Record<string, unknown>,
+  ): Promise<T | null> {
     return (await this.model
-      .findOne(filter)
+      .findOne(filter, projection, options)
       .lean()
       .exec()) as unknown as T | null;
   }
@@ -42,9 +54,9 @@ export abstract class BaseRepository<T extends Document>
     return (await this.model.findById(id).lean().exec()) as unknown as T | null;
   }
 
-  async create(entity: Partial<T>): Promise<T> {
+  async create(entity: Partial<T>, options?: SaveOptions): Promise<T> {
     const model = new this.model(entity);
-    const saved = await model.save();
+    const saved = await model.save(options);
     return saved.toObject() as unknown as T;
   }
 

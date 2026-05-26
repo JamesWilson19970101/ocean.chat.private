@@ -66,13 +66,6 @@ export class Group extends Document {
   u: UserIdentifier;
 
   /**
-   * Total message count.
-   * Useful for statistics and generating incremental message IDs if needed.
-   */
-  @Prop({ type: Number, default: 0 })
-  msgs: number;
-
-  /**
    * Total member count (Denormalized).
    * While this can be counted from 'group_members', storing it here allows
    * for O(1) read performance when displaying member counts in lists.
@@ -96,11 +89,11 @@ export class Group extends Document {
   lastMessage?: GroupMessageSnapshot;
 
   /**
-   * Group Announcement.
-   * Pinned text for rules or important info.
+   * Group Announcements.
+   * Array of pinned texts for rules or important info.
    */
-  @Prop({ type: String })
-  announcement?: string;
+  @Prop({ type: [String] })
+  announcements?: string[];
 
   /**
    * Group Topic/Description.
@@ -142,6 +135,49 @@ export class Group extends Document {
    */
   @Prop({ type: MongooseSchema.Types.Mixed })
   customFields?: Record<string, any>;
+
+  /**
+   * System message toggle.
+   * If false, prevents generating "user joined" or "user left" messages.
+   *
+   * Design Intent: In high-concurrency scenarios, a single user joining/leaving a 10,000-member group
+   * can trigger 10,000 WebSocket broadcasts (Broadcast Storm) if an event like 'uj' (User Joined) is generated.
+   * With this field, background services can automatically set it to false once `membersCount` exceeds a specific threshold.
+   */
+  @Prop({ type: Boolean, default: true })
+  sysMsgEnabled: boolean;
+
+  /**
+   * Fast-path for Direct Messages (DMs).
+   * Only populated when type === 'd'. Stores the exact two user IDs.
+   *
+   * Design Intent: Direct Messages (DMs) account for the absolute majority of traffic.
+   * Querying "does a DM already exist between user A and user B" without this field requires an expensive
+   * aggregation intersection query on the 'group_members' collection. With this array, it enables a
+   * hyper-efficient O(1) lookup: `Group.findOne({ type: 'd', participantIds: { $all: [A_ID, B_ID] } })`.
+   */
+  @Prop({ type: [String] })
+  participantIds?: string[];
+
+  /**
+   * Deterministic identifier for Direct Messages.
+   * Format: 'sorted_id_1:sorted_id_2'
+   * Used to enforce database-level uniqueness for DMs.
+   */
+  @Prop({ type: String })
+  dmIdentifier?: string;
+
+  /**
+   * Roles allowed to use @all or @here mentions.
+   *
+   * Design Intent: Protects the APNs/FCM offline push notification microservices from being blocked.
+   * If anyone can freely use `@all` in a 10,000-member group, it instantly floods NATS with 10,000 cross-network
+   * API push requests, causing a system avalanche (Thundering Herd).
+   * By restricting this to specific roles (e.g., ['owner', 'admin']), this snapshot-level array acts as a
+   * circuit breaker. If the sender's role is not in this list, the microservice will downgrade the `@all` to normal text.
+   */
+  @Prop({ type: [String], default: ['owner', 'admin'] })
+  allowedAtAllRoles: string[];
 }
 
 export const GroupSchema = SchemaFactory.createForClass(Group);
@@ -149,3 +185,9 @@ export const GroupSchema = SchemaFactory.createForClass(Group);
 // Compound Indexes for optimization
 // 1. Find public channels by name: { name: 1, type: 1 }
 GroupSchema.index({ name: 1, type: 1 });
+
+// 2. Fast lookup for DMs by participants
+GroupSchema.index({ type: 1, participantIds: 1 });
+
+// 3. Unique constraint to prevent duplicate DMs (sparse prevents errors on non-DM groups)
+GroupSchema.index({ dmIdentifier: 1 }, { unique: true, sparse: true });

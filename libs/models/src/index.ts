@@ -1,3 +1,4 @@
+export * from '../../types/src/apps/api-gateway/dto/create-room.dto';
 export * from './constants/model.constants';
 export * from './entities';
 export * from './interfaces';

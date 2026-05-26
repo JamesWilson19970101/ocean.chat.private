@@ -19,6 +19,10 @@ export class UserRepository extends BaseRepository<User> {
     return await this.findOne({ username });
   }
 
+  async findByIds(ids: string[]): Promise<User[]> {
+    return await this.find({ _id: { $in: ids } });
+  }
+
   async findOneByUsernameAndProvider(
     username: string,
     provider: AuthProvider,
@@ -38,5 +42,14 @@ export class UserRepository extends BaseRepository<User> {
     if (!localProvider?.passwordHash) return null;
 
     return { ...user };
+  }
+
+  async findRolesByUserId(userId: string): Promise<string[] | undefined> {
+    const user = await this.model
+      .findById(userId, { roles: 1, _id: 0 })
+      .lean()
+      .exec();
+
+    return user?.roles;
   }
 }

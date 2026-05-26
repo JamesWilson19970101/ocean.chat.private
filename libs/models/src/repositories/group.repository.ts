@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { InsertManyOptions, Model } from 'mongoose';
 
-import { Group, GroupMessageSnapshot } from '../entities';
+import { Group, GroupMember, GroupMessageSnapshot } from '../entities';
 import { BaseRepository } from './base.repository';
 
 @Injectable()
 export class GroupRepository extends BaseRepository<Group> {
-  constructor(@InjectModel(Group.name) private groupModel: Model<Group>) {
+  constructor(
+    @InjectModel(Group.name) private groupModel: Model<Group>,
+    @InjectModel(GroupMember.name) private groupMemberModel: Model<GroupMember>,
+  ) {
     super(groupModel);
   }
 
@@ -46,5 +49,19 @@ export class GroupRepository extends BaseRepository<Group> {
     await this.model
       .updateOne({ _id: groupId }, { $inc: { membersCount: count } })
       .exec();
+  }
+
+  /**
+   * Inserts multiple group members efficiently.
+   * @param members Array of group members to insert
+   */
+  async insertManyMembers(
+    members: Partial<GroupMember>[],
+    options?: InsertManyOptions,
+  ): Promise<GroupMember[]> {
+    return (await this.groupMemberModel.insertMany(
+      members,
+      options || {},
+    )) as unknown as GroupMember[];
   }
 }

@@ -9,7 +9,7 @@ import { Document } from 'mongoose';
  */
 export enum RoleScope {
   USERS = 'Users',
-  SUBSCRIPTIONS = 'Subscriptions',
+  GROUPS = 'Groups',
 }
 
 /**

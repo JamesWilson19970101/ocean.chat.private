@@ -11,4 +11,6 @@ export enum OceanModel {
   Group = 'Group',
   GroupMember = 'GroupMember',
   Sequence = 'Sequence',
+  Team = 'Team',
+  TeamMember = 'TeamMember',
 }

@@ -17,14 +17,21 @@ import {
   SequenceSchema,
   Setting,
   SettingSchema,
+  Team,
+  TeamMember,
+  TeamMemberSchema,
+  TeamSchema,
   User,
   UserSchema,
 } from '../entities';
 import {
+  PermissionRepository,
+  RoleRepository,
   SequenceRepository,
   SettingsRepository,
   UserRepository,
 } from '../repositories';
+import { GroupRepository } from '../repositories/group.repository';
 
 /**
  * Mapping for Mongoose Schema Definitions.
@@ -40,6 +47,11 @@ export const MODEL_DEFINITIONS: Record<OceanModel, ModelDefinition> = {
     name: GroupMember.name,
     schema: GroupMemberSchema,
   },
+  [OceanModel.Team]: { name: Team.name, schema: TeamSchema },
+  [OceanModel.TeamMember]: {
+    name: TeamMember.name,
+    schema: TeamMemberSchema,
+  },
   [OceanModel.Sequence]: { name: Sequence.name, schema: SequenceSchema },
 };
 
@@ -50,10 +62,12 @@ export const MODEL_DEFINITIONS: Record<OceanModel, ModelDefinition> = {
 export const REPOSITORY_MAP: Record<OceanModel, Type<any> | undefined> = {
   [OceanModel.User]: UserRepository,
   [OceanModel.Setting]: SettingsRepository,
-  [OceanModel.Permission]: undefined,
-  [OceanModel.Role]: undefined,
+  [OceanModel.Permission]: PermissionRepository,
+  [OceanModel.Role]: RoleRepository,
   [OceanModel.Message]: undefined,
-  [OceanModel.Group]: undefined,
+  [OceanModel.Group]: GroupRepository,
   [OceanModel.GroupMember]: undefined,
   [OceanModel.Sequence]: SequenceRepository,
+  [OceanModel.Team]: undefined,
+  [OceanModel.TeamMember]: undefined,
 };

@@ -5,4 +5,6 @@ export * from './permission.entity';
 export * from './role.entity';
 export * from './sequence.entity';
 export * from './setting.entity';
+export * from './team.entity';
+export * from './team-member.entity';
 export * from './user.entity';
