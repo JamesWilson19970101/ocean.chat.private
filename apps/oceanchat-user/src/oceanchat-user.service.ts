@@ -1,5 +1,4 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import {
   DomainException,
   ErrorCodes,
@@ -9,13 +8,11 @@ import {
 import { I18nService } from '@ocean.chat/i18n';
 import {
   AuthProvider,
-  Permission,
-  User,
+  PermissionRepository,
   UserRepository,
 } from '@ocean.chat/models';
 import { SettingsService } from '@ocean.chat/settings';
 import { CreateUserDto } from '@ocean.chat/types';
-import { Model } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { PasswordService } from './password.service';
@@ -29,19 +26,13 @@ export class OceanchatUserService {
     private readonly userRepository: UserRepository,
     private readonly passwordService: PasswordService,
     private readonly settingsService: SettingsService,
-    @InjectModel(User.name) private readonly userModel: Model<User>,
-    @InjectModel(Permission.name)
-    private readonly permissionModel: Model<Permission>,
+    private readonly permissionRepository: PermissionRepository,
   ) {}
 
   async getUserGlobalRoles(userId: string): Promise<string[]> {
     try {
-      const user = await this.userModel
-        .findById(userId, { roles: 1 })
-        .lean()
-        .exec();
-
-      return user?.roles || [];
+      const roles = await this.userRepository.findRolesByUserId(userId);
+      return roles || [];
     } catch (error) {
       throw new InfrastructureException(
         this.i18nService.translate('FAILED_TO_FETCH_GLOBAL_ROLES'),
@@ -55,12 +46,7 @@ export class OceanchatUserService {
 
   async getRolesForPermission(permissionId: string): Promise<string[]> {
     try {
-      const permission = await this.permissionModel
-        .findById(permissionId, { roles: 1 })
-        .lean()
-        .exec();
-
-      return permission?.roles || [];
+      return await this.permissionRepository.findRolesById(permissionId);
     } catch (error) {
       throw new InfrastructureException(
         this.i18nService.translate('FAILED_TO_FETCH_PERMISSION_ROLES'),
@@ -80,6 +66,7 @@ export class OceanchatUserService {
       const newUser = await this.userRepository.create({
         username,
         name: username,
+        roles: ['user'],
         providers: [
           { provider: AuthProvider.LOCAL, providerId: username, passwordHash },
         ],
@@ -234,6 +221,32 @@ export class OceanchatUserService {
 
   findOneById(id: string) {
     return this.userRepository.findById(id);
+  }
+
+  findManyByIds(ids: string[]) {
+    return this.userRepository.findByIds(ids);
+  }
+
+  async findAllUsernames(): Promise<{ _id: string; username: string }[]> {
+    try {
+      const users = await this.userRepository.find({}, { username: 1 });
+      return (users || [])
+        .filter((user) => Boolean(user.username))
+        .map((user) => ({
+          _id: String(user._id),
+          username: user.username,
+        }));
+    } catch (error) {
+      throw new InfrastructureException(
+        this.i18nService.translate('UNEXPECTED_ERROR', {
+          defaultValue: 'Failed to fetch usernames',
+        }),
+        ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        { cause: error },
+      );
+    }
   }
 
   async validatePassword(username: string, password: string) {

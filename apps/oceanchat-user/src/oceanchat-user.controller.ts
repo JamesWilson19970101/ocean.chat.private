@@ -31,6 +31,30 @@ export class OceanchatUserController {
   }
 
   /**
+   * Handles RPC requests to fetch multiple users' public profiles by their IDs.
+   * Solves the N+1 problem by doing a bulk fetch.
+   * @param ids - An array of the users' unique identifiers (_id).
+   * @returns An array of user objects.
+   */
+  @MessagePattern('user.query.profiles.bulk')
+  async findManyByIds(@Payload('userIds') ids: string[]) {
+    return this.oceanchatUserService.findManyByIds(ids);
+  }
+
+  /**
+   * Handles RPC requests to fetch all users' usernames.
+   * Optimized for maximum performance by only querying and returning the username field.
+   *
+   * TODO: Adding pagination functionality requires the front-end developer to complete the UI design.
+   *
+   * @returns An array of user objects containing _id and username.
+   */
+  @MessagePattern('user.query.allUsernames')
+  async findAllUsernames() {
+    return this.oceanchatUserService.findAllUsernames();
+  }
+
+  /**
    * Handles RPC requests to find a user by username and provider.
    * This is primarily used internally by the auth-service during the login process
    * to retrieve user details, including the password hash for verification.

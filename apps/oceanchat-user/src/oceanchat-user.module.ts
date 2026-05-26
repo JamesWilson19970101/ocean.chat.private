@@ -2,6 +2,7 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
+import { AuthorizationModule } from '@ocean.chat/authorization';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import {
   databaseConfiguration,
@@ -30,6 +31,7 @@ import { NatsEventsService } from './modules/nats-events/nats-events.service';
 import { OceanchatUserController } from './oceanchat-user.controller';
 import { OceanchatUserService } from './oceanchat-user.service';
 import { PasswordService } from './password.service';
+import { PermissionSeederService } from './permission/permission-seeder.service';
 
 export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
 export const SERVICE_NAME = 'SERVICE_NAME';
@@ -184,13 +186,15 @@ export class OceanchatUserModule {
           OceanModel.Role,
           OceanModel.Permission,
         ]), // Provides *Repository
-        SettingsModule.register({ runSeeds: false }),
+        SettingsModule.register(),
+        AuthorizationModule,
       ],
       controllers: [OceanchatUserController],
       providers: [
         OceanchatUserService,
         PasswordService,
         NatsEventsService,
+        PermissionSeederService,
         {
           provide: APP_INTERCEPTOR,
           useClass: NatsTraceInterceptor,
