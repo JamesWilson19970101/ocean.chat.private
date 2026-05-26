@@ -49,6 +49,9 @@ export class NatsPresenceEventsSubscriber extends BaseNatsSubscriber<
       | PresenceHeartbeatEventDto,
     msg: JsMsg,
   ): Promise<void> {
+    // TODO: Add idempotency deduplication logic here to prevent processing duplicate NATS messages.
+    // Consider using a mix of event payload (timestamp) for online/offline and msg.seq for heartbeats with Redis setnx.
+
     try {
       const subject = msg.subject;
       // Redis 7.4+ TTL Set to 5 minutes
@@ -76,24 +79,12 @@ export class NatsPresenceEventsSubscriber extends BaseNatsSubscriber<
           status: 'online',
           connectTime: onlineEvent.timestamp,
         };
-        // status: 'online',
-        await this.redisService.hset(
+        await this.redisService.hsetWithFieldExpire(
           routingKey,
           onlineEvent.deviceId,
           JSON.stringify(presenceData),
+          TTL_SECONDS,
         );
-
-        // Apply Redis 7.4+ HEXPIRE to this specific field
-        await this.redisService
-          .getClient()
-          .call(
-            'HEXPIRE',
-            routingKey,
-            TTL_SECONDS,
-            'FIELDS',
-            1,
-            onlineEvent.deviceId,
-          );
 
         this.logger.info(
           {
@@ -158,16 +149,11 @@ export class NatsPresenceEventsSubscriber extends BaseNatsSubscriber<
 
         // Renew the TTL for the specific device field.
         // If the user actually went offline completely, this gracefully fails or renews nothing.
-        await this.redisService
-          .getClient()
-          .call(
-            'HEXPIRE',
-            routingKey,
-            TTL_SECONDS,
-            'FIELDS',
-            1,
-            heartbeatEvent.deviceId,
-          );
+        await this.redisService.hexpire(
+          routingKey,
+          heartbeatEvent.deviceId,
+          TTL_SECONDS,
+        );
       }
     } catch (error) {
       this.logger.error(
