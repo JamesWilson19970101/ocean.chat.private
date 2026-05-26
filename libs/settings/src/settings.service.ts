@@ -1,20 +1,16 @@
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { I18nService } from '@ocean.chat/i18n';
 import type { Setting } from '@ocean.chat/models';
 import { SettingsRepository } from '@ocean.chat/models';
 import { RedisService } from '@ocean.chat/redis';
-import { SettingsModuleOptions, SettingValue } from '@ocean.chat/types';
+import { SettingValue } from '@ocean.chat/types';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { SETTINGS_OPTIONS } from './constants';
-import { DefaultSetting, defaultSettings } from './default-settings';
+import { DefaultSetting } from './default-settings';
 
-// TODO: Currently, the implementation handles the initialization of settings collection -> Redis,
-// while other microservices are only responsible for reading from Redis.
-// This ensures that the microservices start in an orderly manner.
-// This issue will be addressed later.
 @Injectable()
-export class SettingsService implements OnModuleInit {
+export class SettingsService {
   private readonly CACHE_KEY_PREFIX = 'settings:';
   // Cache TTLs(time to live) in seconds
   private readonly CACHE_TTL_SECONDS = 3600; // 1 hour
@@ -26,54 +22,17 @@ export class SettingsService implements OnModuleInit {
     @InjectPinoLogger('lib.settings.settings.service')
     private readonly logger: PinoLogger,
     private readonly i18nService: I18nService,
-    @Inject(SETTINGS_OPTIONS) private readonly options: SettingsModuleOptions,
+    @Inject(SETTINGS_OPTIONS) private readonly options,
   ) {}
 
   /**
-   * Initializes default settings when the module is loaded by iterating
-   * through the `defaultSettings` array.
-   * This ensures that essential settings are present in the database on first startup.
-   * It also pre-warms the cache by loading all settings from the database into Redis.
+   * Initializes default settings by iterating through the provided array.
+   * Intended to be called by the application's specific Seeder service.
    */
-  async onModuleInit() {
-    // CRITICAL CHECK: Only run seeding if this service is the "Owner"
-    if (!this.options.runSeeds) {
-      this.logger.debug(this.i18nService.translate('SETTINGS_SEEDER_SKIPPED'));
-      return;
+  async seedDefaultSettings(defaultSettings: DefaultSetting[]) {
+    for (const setting of defaultSettings) {
+      await this.settingsRepository.createIfNotExists(setting);
     }
-    try {
-      this.logger.info(
-        this.i18nService.translate('Initializing_Default_Settings'),
-      );
-      for (const setting of defaultSettings) {
-        await this.createDefaultSetting(setting);
-      }
-      this.logger.info(
-        this.i18nService.translate('Default_Settings_Initialized'),
-      );
-
-      this.logger.info(
-        this.i18nService.translate('Initializing_Settings_Cache'),
-      );
-      await this._loadAllSettingsToCache();
-      this.logger.info(
-        this.i18nService.translate('Settings_Cache_Pre_Warming_Completed'),
-      );
-    } catch (error) {
-      this.logger.error(
-        { err: error },
-        this.i18nService.translate('Default_Settings_Initialization_Failed'),
-      );
-      throw error;
-    }
-  }
-
-  /**
-   * Creates a default setting if it does not already exist in the database.
-   * @param setting The default setting to create if it does not already exist.
-   */
-  private async createDefaultSetting(setting: DefaultSetting) {
-    await this.settingsRepository.createIfNotExists(setting);
   }
 
   /**
@@ -174,7 +133,10 @@ export class SettingsService implements OnModuleInit {
     return updatedSetting;
   }
 
-  private async _loadAllSettingsToCache(): Promise<void> {
+  /**
+   * Pre-warms the Redis cache with all settings from the database.
+   */
+  async warmUpCache(): Promise<void> {
     const allSettings = await this.settingsRepository.find({});
     if (!allSettings || allSettings.length === 0) {
       this.logger.info(
