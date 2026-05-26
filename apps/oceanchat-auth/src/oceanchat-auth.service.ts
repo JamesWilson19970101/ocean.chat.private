@@ -70,7 +70,7 @@ export class OceanchatAuthService implements OnModuleInit {
     // generate accessToken & refreshToken if `@UseGuards(JwtAuthGuard)` runs successfully.
     const [accessToken, refreshToken] = await this.generateTokens(user);
     const loggedPayload = plainToInstance(UserLoggedInEvent, {
-      userId: user._id,
+      userId: String(user._id),
       deviceId: user.deviceId,
       loginTime: new Date().toISOString(),
     });
@@ -103,10 +103,10 @@ export class OceanchatAuthService implements OnModuleInit {
       const sessionStr = await this.redisService.hget(userKey, deviceId);
       if (sessionStr) {
         const session: ITokenStorage = JSON.parse(sessionStr);
-        const decodedAT: IJwtPayload = this.jwtService.decode(
+        const decodedAT = this.jwtService.decode<IJwtPayload | null>(
           session.accessToken,
         );
-        const decodedRT: IJwtPayload = this.jwtService.decode(
+        const decodedRT = this.jwtService.decode<IJwtPayload | null>(
           session.refreshToken,
         );
 
@@ -184,6 +184,17 @@ export class OceanchatAuthService implements OnModuleInit {
     }
 
     const { sub: userId, jti, deviceId } = payload;
+
+    if (!userId || !deviceId) {
+      throw new DomainException(
+        this.i18nService.translate('INVALID_TOKEN_PAYLOAD', {
+          defaultValue: 'Invalid token payload',
+        }),
+        ErrorCodes.UNAUTHORIZED,
+        HttpStatus.UNAUTHORIZED,
+      );
+    }
+
     const lockKey = `auth:refresh:lock:${userId}:${deviceId}`;
     const lockToken = uuidv4();
 
@@ -282,7 +293,7 @@ export class OceanchatAuthService implements OnModuleInit {
           Object.values(allSessions).forEach((sessStr) => {
             try {
               const sess = JSON.parse(sessStr) as ITokenStorage;
-              const decodedAT: IJwtPayload = this.jwtService.decode(
+              const decodedAT = this.jwtService.decode<IJwtPayload | null>(
                 sess.accessToken,
               );
               if (sess.accessJti && decodedAT?.exp) {
@@ -365,7 +376,7 @@ export class OceanchatAuthService implements OnModuleInit {
 
       if (storage && storage.accessToken) {
         // Revoke the old access token since we've rotated it
-        const decodedOldAT: IJwtPayload = this.jwtService.decode(
+        const decodedOldAT = this.jwtService.decode<IJwtPayload | null>(
           storage.accessToken,
         );
 
@@ -431,7 +442,7 @@ export class OceanchatAuthService implements OnModuleInit {
     user: Pick<AuthenticatedUser, 'username' | '_id' | 'deviceId'>,
     previousRefreshJti?: string,
   ): Promise<[string, string]> {
-    const userId = user._id as string;
+    const userId = String(user._id);
     const accessJti = uuidv4();
     const refreshJti = uuidv4();
 
@@ -488,18 +499,49 @@ export class OceanchatAuthService implements OnModuleInit {
     try {
       // Atomically store both tokens' JTIs in Redis using a transaction (MULTI/EXEC).
       const userKey = AuthKeyUtil.getUserKey(userId);
-      const refreshTtl = ms(refreshExpiresIn) / 1000;
+      const refreshTtl = Math.floor(ms(refreshExpiresIn) / 1000); // must be integer
 
       // Add jitter to TTLs to prevent mass expiry (cache avalanche)
       const refreshExpiresInSeconds =
         refreshTtl + Math.floor(Math.random() * refreshTtl * 0.1);
 
-      await this.redisService
-        .getClient()
-        .multi()
-        .hset(userKey, user.deviceId, JSON.stringify(tokenStorage))
-        .expire(userKey, refreshExpiresInSeconds)
-        .exec();
+      // Enforce MAX_DEVICES limit to prevent Redis Hash bloat. TODO: Use dynamical configuration here.
+      const MAX_DEVICES = 10;
+      const deviceCount = await this.redisService.getClient().hlen(userKey);
+      if (deviceCount >= MAX_DEVICES) {
+        const allSessions = await this.redisService.hgetall(userKey);
+        if (allSessions) {
+          const activeSessions = Object.entries(allSessions)
+            .map(([devId, str]) => {
+              try {
+                return { devId, session: JSON.parse(str) as ITokenStorage };
+              } catch {
+                return null;
+              }
+            })
+            .filter((item) => item !== null && item.devId !== user.deviceId);
+
+          if (activeSessions.length >= MAX_DEVICES) {
+            activeSessions.sort(
+              (a, b) =>
+                (b!.session.lastActive ?? 0) - (a!.session.lastActive ?? 0),
+            );
+
+            const sessionsToEvict = activeSessions.slice(MAX_DEVICES - 1);
+            const fieldsToDel = sessionsToEvict.map((s) => s!.devId);
+            if (fieldsToDel.length > 0) {
+              await this.redisService.hdel(userKey, ...fieldsToDel);
+            }
+          }
+        }
+      }
+
+      await this.redisService.hsetWithFieldExpire(
+        userKey,
+        user.deviceId,
+        JSON.stringify(tokenStorage),
+        refreshExpiresInSeconds,
+      );
 
       return [accessToken, refreshToken];
     } catch (error) {

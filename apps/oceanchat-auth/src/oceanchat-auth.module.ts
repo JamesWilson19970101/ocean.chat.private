@@ -30,6 +30,7 @@ import { LoggerModule, PinoLogger } from 'nestjs-pino';
 import { LocalAuthGuard } from './common/guards/local-auth.guard';
 import { OceanchatAuthController } from './oceanchat-auth.controller';
 import { OceanchatAuthService } from './oceanchat-auth.service';
+import { SettingsSeederService } from './settings/settings-seeder.service';
 import { LocalStrategy } from './strategies/local.strategy';
 import { UsersModule } from './users/users.module';
 
@@ -196,7 +197,7 @@ export class OceanchatAuthModule {
         // Almost all microservices use the `settings` library,
         // but only this one microservice can write to it;
         // other microservices only read from it. Therefore, this library is maintained by `oceanchat-auth`.
-        SettingsModule.register({ runSeeds: true }),
+        SettingsModule.register(),
         PassportModule.register({ defaultStrategy: 'local' }),
         JwtModule.registerAsync({
           imports: [ConfigModule],
@@ -219,6 +220,7 @@ export class OceanchatAuthModule {
         OceanchatAuthService,
         LocalStrategy,
         LocalAuthGuard,
+        SettingsSeederService,
         // Register NatsTraceInterceptor as a global interceptor.
         {
           provide: APP_INTERCEPTOR,
