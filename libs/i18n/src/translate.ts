@@ -109,8 +109,7 @@ export default {
         'Stream for the {{serviceName}} microservice ({{environment}})',
       AUTH_STATE_STREAM_DESCRIPTION:
         'Global Security Stream for Zero-I/O local authentication',
-      DLQ_STREAM_DESCRIPTION:
-        'Dead-letter queue for auth events that failed initial publishing.',
+      DLQ_STREAM_DESCRIPTION: 'Dead-letter queue.',
       AUTH_EVENTS_STREAM_DESCRIPTION:
         'Stream for authentication events (e.g., user login)',
       USER_EVENTS_STREAM_DESCRIPTION:
@@ -261,6 +260,36 @@ export default {
       PING_PAYLOAD_NOT_EMPTY: 'PING payload must be empty',
       INVALID_OR_EXPIRED_TOKEN: 'Invalid or expired token',
       PROTOCOL_VERSION_MISMATCH: 'Protocol version mismatch',
+      CACHE_LOCK_TIMEOUT_PREVENT_STAMPEDE:
+        'Cache lock wait timeout. Throwing error to prevent database stampede.',
+      CACHE_LOCK_TIMEOUT_CAUSE:
+        'Timeout waiting for cache lock on key: {{key}}. Potential database bottleneck or lock starvation.',
+      Seeding_Permissions_Skipped:
+        'Another instance is currently seeding permissions. Skipping...',
+      Seeding_Permissions_Started:
+        'Lock acquired. Starting to seed roles and permissions to database...',
+      Watchdog_Renew_Permission_Lock_Failed:
+        'Watchdog failed to renew permission seeder lock TTL',
+      Watchdog_Renew_Permission_Lock_Success:
+        'Watchdog successfully renewed permission seeder lock',
+      Seeding_Permissions_Success: 'Successfully seeded roles and permissions.',
+      Seeding_Permissions_Failed: 'Failed to seed roles and permissions',
+      Release_Permission_Lock_Failed:
+        'Failed to release permission seeder lock safely',
+      DIRECT_MESSAGE_REQUIRES_TWO_USERS:
+        'Direct message requires exactly two users',
+      USER_NOT_FOUND: 'User not found',
+      DIRECT_MESSAGE_FALLBACK_NAME: 'Direct Message',
+      FAILED_TO_INSERT_GROUP_MEMBERS: 'Failed to insert group members',
+      CONCURRENT_DM_CREATION_DETECTED:
+        'Concurrent DM creation detected. Returning existing group gracefully.',
+      FAILED_TO_RELEASE_IDEMPOTENCY_LOCK_STATUS:
+        'Failed to release idempotency lock after unsuccessful status code',
+      FAILED_TO_RELEASE_IDEMPOTENCY_LOCK_EXCEPTION:
+        'Failed to release idempotency lock after exception',
+      JWT_MISSING_EXP_CLAIM: 'JWT must have an expiration time (exp) claim',
+      DETECTED_DUPLICATED_NATS_DELIVERY:
+        'Detected duplicated NATS delivery. Message already processed.',
     },
   },
   zh: {
@@ -351,7 +380,7 @@ export default {
       NATS_STREAM_DESCRIPTION:
         '用于 {{serviceName}} 微服务的流 ({{environment}})',
       AUTH_STATE_STREAM_DESCRIPTION: '用于零 I/O 本地身份验证的全局安全流',
-      DLQ_STREAM_DESCRIPTION: '用于初始发布失败的身份验证事件的死信队列。',
+      DLQ_STREAM_DESCRIPTION: '死信队列。',
       AUTH_EVENTS_STREAM_DESCRIPTION:
         '用于身份验证相关事件的流（例如，用户登录）',
       USER_EVENTS_STREAM_DESCRIPTION:
@@ -472,6 +501,30 @@ export default {
       PING_PAYLOAD_NOT_EMPTY: 'PING 有效载荷必须为空。',
       INVALID_OR_EXPIRED_TOKEN: '无效或过期的令牌',
       PROTOCOL_VERSION_MISMATCH: '协议版本不匹配',
+      CACHE_LOCK_TIMEOUT_PREVENT_STAMPEDE:
+        '缓存锁等待超时。抛出错误以防止数据库雪崩。',
+      CACHE_LOCK_TIMEOUT_CAUSE:
+        '等待键为 {{key}} 的缓存锁超时。可能存在数据库性能瓶颈或锁饥饿。',
+      Seeding_Permissions_Skipped: '另一个实例正在初始化权限。跳过...',
+      Seeding_Permissions_Started: '获取到锁。开始向数据库初始化角色和权限...',
+      Watchdog_Renew_Permission_Lock_Failed: '看门狗续期权限初始化锁 TTL 失败',
+      Watchdog_Renew_Permission_Lock_Success: '看门狗成功续期权限初始化锁',
+      Seeding_Permissions_Success: '成功初始化角色和权限。',
+      Seeding_Permissions_Failed: '初始化角色和权限失败',
+      Release_Permission_Lock_Failed: '安全释放权限初始化锁失败',
+      DIRECT_MESSAGE_REQUIRES_TWO_USERS: '私聊需要正好两个用户',
+      USER_NOT_FOUND: '未找到用户',
+      DIRECT_MESSAGE_FALLBACK_NAME: '私聊',
+      FAILED_TO_INSERT_GROUP_MEMBERS: '插入群组成员失败',
+      CONCURRENT_DM_CREATION_DETECTED:
+        '检测到私聊并发创建冲突。正在优雅地返回已存在的群组。',
+      FAILED_TO_RELEASE_IDEMPOTENCY_LOCK_STATUS:
+        '在返回非成功状态码后释放幂等性锁失败',
+      FAILED_TO_RELEASE_IDEMPOTENCY_LOCK_EXCEPTION:
+        '在捕获异常后释放幂等性锁失败',
+      JWT_MISSING_EXP_CLAIM: 'JWT 必须包含过期时间 (exp) 声明',
+      DETECTED_DUPLICATED_NATS_DELIVERY:
+        '检测到重复的 NATS 消息分发，该消息已处理。',
     },
   },
 };
