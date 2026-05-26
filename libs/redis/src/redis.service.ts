@@ -1,4 +1,8 @@
 import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+  ErrorCodes,
+  InfrastructureException,
+} from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
 import { RedisKey, RedisValue } from 'ioredis';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
@@ -235,6 +239,39 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Atomically sets a field in a hash and independently sets its expiration time (Requires Redis 7.4+).
+   * @param key The key of the hash.
+   * @param field The field to set.
+   * @param value The value to set.
+   * @param seconds The time to live in seconds for this specific field.
+   */
+  async hsetWithFieldExpire(
+    key: RedisKey,
+    field: string,
+    value: RedisValue,
+    seconds: number,
+  ): Promise<void> {
+    const client = this.redisClient;
+    const multi = client.multi();
+    multi.hset(key, field, value);
+    multi.call('HEXPIRE', key, seconds, 'FIELDS', 1, field);
+
+    await multi.exec();
+  }
+
+  /**
+   * Independently sets the expiration time for a specific field in a hash (Requires Redis 7.4+).
+   * @param key The key of the hash.
+   * @param field The field to set expiration on.
+   * @param seconds The time to live in seconds for this specific field.
+   */
+  async hexpire(key: RedisKey, field: string, seconds: number): Promise<void> {
+    // Directly use the raw call for the Redis 7.4+ HEXPIRE command
+    // ioredis client supports .call() for arbitrary/new commands
+    await this.redisClient.call('HEXPIRE', key, seconds, 'FIELDS', 1, field);
+  }
+
+  /**
    * Delete one or more hash fields.
    * @param key The key of the hash.
    * @param fields The fields to delete.
@@ -304,81 +341,95 @@ export class RedisService implements OnModuleDestroy {
     key: string,
     fetcher: () => Promise<T | null>,
     options: GetOrSetOptions,
-  ): Promise<T | null | string> {
-    const { lockTtl = 10, lockWaitTime = 100, ttlJitter = 0 } = options;
-    // 1. Try to get from cache.
-    // Use the raw client here to differentiate between a missing key (null)
-    // and a cached null value (the string "null").
-    const rawCachedValue = await this.redisClient.get(key);
+  ): Promise<T | null> {
+    const {
+      ttl,
+      nullTtl = 10,
+      lockTtl = 10,
+      lockWaitTime = 100,
+      ttlJitter = 30,
+    } = options;
 
-    if (rawCachedValue !== null) {
-      this.logger.debug(this.i18nService.translate('Cache_Hit', { key }));
-
-      return rawCachedValue;
-    }
-
-    // 2. Cache miss, try to acquire a distributed lock
     const lockKey = `${key}:lock`;
     const lockValue = uuidv7();
-    const lockAcquired =
-      (await this.setnx(lockKey, lockValue, lockTtl)) === 'OK';
 
-    if (lockAcquired) {
-      this.logger.debug(
-        this.i18nService.translate('Cache_Miss_Lock_Acquired', { key }),
-      );
-      try {
-        // 3. Got the lock, fetch from the data source
-        const value = await fetcher();
+    // The maximum total time to wait.
+    // Should be larger than lockTtl to allow the lock to expire and be re-acquired by waiting pods.
+    const MAX_WAIT_MS = lockTtl * 1000 * 1.5;
+    const startTime = Date.now();
 
-        // 4. Set cache
-        const { ttl, nullTtl = 300 } = options;
-        const valueToCache = value ?? null; // Keep null as null for serialization
-        const effectiveTtl =
-          value !== null && value !== undefined
-            ? ttl + Math.floor(Math.random() * ttlJitter)
-            : nullTtl;
-
-        if (effectiveTtl > 0) {
-          await this.set(key, valueToCache, effectiveTtl);
+    // Unified Spin-Lock Loop
+    while (Date.now() - startTime < MAX_WAIT_MS) {
+      // 1. Try to get from cache
+      const rawCachedValue = await this.redisClient.get(key);
+      if (rawCachedValue !== null) {
+        this.logger.debug(this.i18nService.translate('Cache_Hit', { key }));
+        if (rawCachedValue === 'null') return null;
+        try {
+          return JSON.parse(rawCachedValue) as T;
+        } catch {
+          return rawCachedValue as unknown as T;
         }
-        return value;
-      } finally {
-        // Safely release the lock only if it still belongs to this process
-        await this.delIfEqual(lockKey, lockValue).catch((err) =>
-          this.logger.error(
-            { err, key },
-            this.i18nService.translate('Lock_Release_Failed', { key }),
-          ),
+      }
+
+      // 2. Cache miss, try to acquire distributed lock
+      const lockAcquired =
+        (await this.setnx(lockKey, lockValue, lockTtl)) === 'OK';
+      if (lockAcquired) {
+        this.logger.debug(
+          this.i18nService.translate('Cache_Miss_Lock_Acquired', { key }),
         );
-      }
-    } else {
-      // 6. Lock not acquired, wait and retry getting from cache
-      this.logger.debug(
-        { key },
-        this.i18nService.translate('Cache_Miss_Lock_Not_Acquired', { key }),
-      );
+        try {
+          // 3. Got the lock, fetch from the data source
+          const value = await fetcher();
+          const stringifiedValue = JSON.stringify(value ?? null);
+          const effectiveTtl =
+            value !== null && value !== undefined
+              ? ttl + Math.floor(Math.random() * ttlJitter)
+              : nullTtl;
 
-      // Bounded retry loop to prevent stack overflow and indefinite waits.
-      const totalWaitTime = lockTtl * 1000 * 0.8; // Wait for max 80% of lock TTL
-      const startTime = Date.now();
-
-      while (Date.now() - startTime < totalWaitTime) {
-        await new Promise((resolve) => setTimeout(resolve, lockWaitTime));
-
-        const retryValue = await this.get(key).catch(() => null);
-        if (retryValue !== null && retryValue !== undefined) {
-          this.logger.debug({ key }, 'Retry successful, value found in cache.');
-          return retryValue;
+          if (effectiveTtl > 0) {
+            await this.set(key, stringifiedValue, effectiveTtl);
+          }
+          return value;
+        } finally {
+          // Safely release the lock only if it still belongs to this process
+          await this.delIfEqual(lockKey, lockValue).catch((err) =>
+            this.logger.error(
+              { err, key },
+              this.i18nService.translate('Lock_Release_Failed', { key }),
+            ),
+          );
         }
       }
 
-      // If all retries fail, fetch from the source directly as a last resort.
-      this.logger.warn(
-        { key },
-        this.i18nService.translate('Retry_Failed_Fallback_To_Null'),
-      );
-      return null;
+      // 4. Lock not acquired. Someone else is fetching. Wait and retry.
+      await new Promise((resolve) => setTimeout(resolve, lockWaitTime));
     }
+
+    // 5. Fail-Fast: If we waited MAX_WAIT_MS and still nothing, protect the database by shedding load.
+    this.logger.error(
+      { key, MAX_WAIT_MS },
+      this.i18nService.translate('CACHE_LOCK_TIMEOUT_PREVENT_STAMPEDE', {
+        defaultValue:
+          'Cache lock wait timeout. Throwing error to prevent database stampede.',
+      }),
+    );
+
+    throw new InfrastructureException(
+      this.i18nService.translate('Service_Unavailable', {
+        defaultValue: 'Service Unavailable',
+      }),
+      ErrorCodes.SERVICE_UNAVAILABLE,
+      503,
+      false,
+      {
+        cause: this.i18nService.translate('CACHE_LOCK_TIMEOUT_CAUSE', {
+          defaultValue:
+            'Timeout waiting for cache lock on key: {{key}}. Potential database bottleneck or lock starvation.',
+          key,
+        }),
+      },
+    );
   }
 }
