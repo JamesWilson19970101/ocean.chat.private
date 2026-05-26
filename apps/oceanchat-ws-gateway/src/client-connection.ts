@@ -12,6 +12,7 @@ export class ClientConnection {
   public deviceId?: string;
   public deviceType?: string;
   public jti?: string;
+  public exp?: number;
   public authStatus: ConnectionAuthStatus = ConnectionAuthStatus.PENDING;
   public readonly connectedAt: number = Date.now();
   public lastActiveTime: number = Date.now();
@@ -61,11 +62,13 @@ export class ClientConnection {
     userId: string,
     deviceId: string,
     jti: string,
+    exp: number,
     deviceType?: string,
   ): void {
     this.userId = userId;
     this.deviceId = deviceId;
     this.jti = jti;
+    this.exp = exp;
     this.deviceType = deviceType;
     this.authStatus = ConnectionAuthStatus.AUTHENTICATED;
   }

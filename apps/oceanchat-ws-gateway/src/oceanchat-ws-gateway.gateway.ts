@@ -189,8 +189,8 @@ export class OceanchatWsGateway
     await this.processor.handleIncomingBuffer(
       connection,
       data,
-      (conn, userId, deviceId, jti) =>
-        this.registerConnection(conn, userId, deviceId, jti),
+      (conn, userId, deviceId, jti, exp) =>
+        this.registerConnection(conn, userId, deviceId, jti, exp),
     );
   }
 
@@ -252,6 +252,13 @@ export class OceanchatWsGateway
    * @param reason - The reason for token revocation (e.g. 'LOGOUT', 'REPLAY_ATTACK').
    */
   public kickUserByJti(jti: string, reason?: string): void {
+    // Ultimate Race Condition Solution: Ignore REFRESH_ROTATION completely for active connections.
+    // The connection will naturally wither and die when its specific 'exp' timestamp is reached in sweepZombies(),
+    // or it will be saved if the client performs a hot-swap (AUTH_REQ) before that absolute expiration time.
+    // (Note: The revoked 'jti' is already in the TokenBlacklist, so it cannot establish NEW connections).
+    if (reason === 'REFRESH_ROTATION') {
+      return;
+    }
     let exceptionBuffer: Buffer | undefined;
     const isNormalLogout = reason === 'LOGOUT';
 
@@ -392,13 +399,27 @@ export class OceanchatWsGateway
   }
 
   /**
-   * Scans for idle connections and cleans up zombies based on the Asymmetric Heartbeat mechanism.
+   * Periodically scans all physical WebSocket connections and performs garbage collection and lifecycle enforcement.
    *
-   * This method periodically iterates over all currently active WebSocket physical connections and checks their last active time (`lastActiveTime`).
-   * - If a connection has been idle for 30 seconds (`idlePingThreshold`), the server proactively pushes a `PING` frame.
-   * - If a connection remains unauthenticated for 5 seconds (`handshakeTimeoutThreshold`), it is forcefully closed.
-   * - If a connection has been idle for 60 seconds (`deadTimeoutThreshold`), it is considered a zombie connection.
-   *   The system directly calls `terminate()` to forcefully sever the underlying TCP/WebSocket connection, preventing resource leaks.
+   * This method acts as the central "watchdog" for the gateway, executing every 5 seconds (SWEEP_INTERVAL).
+   * It handles four distinct connection lifecycle management tasks:
+   *
+   * 1. **Natural Expiration (Token Wither)**:
+   *    Checks the JWT expiration (`exp`) timestamp of authenticated connections. If the absolute time is reached,
+   *    it actively terminates the connection and dispatches an `UNAUTHORIZED` `EXCEPTION_ACK`.
+   *    This serves as the ultimate resolution for the `REFRESH_ROTATION` race condition, allowing old tokens
+   *    to live exactly up to their physical limits, giving clients a generous window to perform a silent "hot-swap" (`AUTH_REQ`).
+   * 2. **Handshake Window Enforcement**:
+   *    Checks unauthenticated (`PENDING`) connections. If a client establishes a TCP connection but fails to send
+   *    a valid `AUTH_REQ` within 5 seconds (`handshakeTimeoutThreshold`), it is forcefully closed (`4008`).
+   *    This defends against resource exhaustion and slowloris-style attacks.
+   * 3. **Zombie Connection Cleanup (Dead Timeout)**:
+   *    Checks the `lastActiveTime` of the connection. If the client has been completely silent (no PING, no PONG, no MSG_UP)
+   *    for 60 seconds (`deadTimeoutThreshold`), it is considered a "zombie" (e.g., dropped network, crashed client).
+   *    The gateway calls `terminate()` to immediately reclaim the file descriptor and memory.
+   * 4. **Asymmetric Heartbeat (Proactive PING)**:
+   *    If a connection has been idle for 30 seconds (`idlePingThreshold`), the server proactively pushes a `PING` [0x03] frame
+   *    to prompt a response (`PONG`) from the client, preventing intermediate NAT/firewall middleboxes from silently dropping the connection.
    *
    * @private
    */
@@ -411,6 +432,33 @@ export class OceanchatWsGateway
     for (const client of this.activeSockets) {
       const connection = this.socketMap.get(client);
       if (!connection) continue;
+
+      // Natural Expiration: Terminate connection if JWT has physically expired
+      if (
+        connection.authStatus === ConnectionAuthStatus.AUTHENTICATED &&
+        connection.exp &&
+        now >= connection.exp * 1000 // JWT exp is in seconds, Date.now() is in ms
+      ) {
+        this.logger.warn(
+          { userId: connection.userId },
+          'Token natively expired, terminating connection.',
+        );
+        const exceptionPayload = Buffer.from(
+          ExceptionAck.encode({
+            errorCode: ErrorCodes.UNAUTHORIZED,
+            message: this.i18nService.translate('INVALID_OR_EXPIRED_TOKEN'),
+            timestamp: new Date().toISOString(),
+            serverSupportedVersions: [],
+          }).finish(),
+        );
+        const exceptionBuffer = this.monkeyService.frame(
+          { cmd: MonkeyCmd.EXCEPTION_ACK, reqId: 0, flags: 0 },
+          exceptionPayload,
+        );
+        client.send(exceptionBuffer, { binary: true });
+        client.terminate();
+        continue;
+      }
 
       // Asymmetric Heartbeat: Enforce Handshake Window Timeout
       if (
@@ -503,8 +551,9 @@ export class OceanchatWsGateway
     userId: string,
     deviceId: string,
     jti: string,
+    exp: number,
   ) {
-    connection.authenticate(userId, deviceId, jti);
+    connection.authenticate(userId, deviceId, jti, exp);
 
     let deviceMap = this.userRoutingTree.get(userId);
     if (!deviceMap) {

@@ -77,6 +77,7 @@ export class OceanchatWsGatewayProcessor {
       userId: string,
       deviceId: string,
       jti: string,
+      exp: number,
     ) => void,
   ): Promise<void> {
     // rate limit
@@ -180,6 +181,7 @@ export class OceanchatWsGatewayProcessor {
       userId: string,
       deviceId: string,
       jti: string,
+      exp: number,
     ) => void,
   ): Promise<void> {
     const authReq = AuthReq.decode(payload);
@@ -203,7 +205,17 @@ export class OceanchatWsGatewayProcessor {
         );
       }
 
-      registerCb(connection, jwtPayload.sub, authReq.deviceId, jwtPayload.jti);
+      if (!jwtPayload.exp) {
+        throw new Error(this.i18nService.translate('JWT_MISSING_EXP_CLAIM'));
+      }
+
+      registerCb(
+        connection,
+        jwtPayload.sub,
+        authReq.deviceId,
+        jwtPayload.jti,
+        jwtPayload.exp,
+      );
 
       this.logger.info(
         this.i18nService.translate('USER_AUTHENTICATED_ON_DEVICE_LOG', {
