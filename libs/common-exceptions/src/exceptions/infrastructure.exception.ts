@@ -15,6 +15,7 @@ import { ExceptionType, IAppException } from './app.exception';
  * - Some infrastructure exceptions might be marked as retriable (e.g. transient network glitches).
  *
  * TODO: isRetriable
+ * TODO: Add warning mechanism
  */
 export class InfrastructureException extends Error implements IAppException {
   public readonly exceptionType: ExceptionType = 'INFRASTRUCTURE';

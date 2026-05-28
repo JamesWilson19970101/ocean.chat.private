@@ -70,8 +70,7 @@ describe('OceanchatUserService (Zero-DI Unit Test)', () => {
       mockRepo,
       mockPasswordService,
       mockSettings,
-      mockUserModel,
-      mockPermissionModel,
+      mockUserModel
     );
   });
 
