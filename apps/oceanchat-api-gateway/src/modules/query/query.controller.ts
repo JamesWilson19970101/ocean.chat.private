@@ -1,13 +1,21 @@
 import { Controller, Get, Inject, Query, Req, Res } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import {
+  ErrorCodes,
+  InfrastructureException,
+  isErrorResponseDto,
+} from '@ocean.chat/common-exceptions';
 import { CircuitBreakerService } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
-import { SyncMessagesDto, SyncMessagesResponse } from '@ocean.chat/types';
+import {
+  AuthenticatedUser,
+  SyncMessagesDto,
+  SyncMessagesResponse,
+} from '@ocean.chat/types';
 import { Request, Response } from 'express';
 import { firstValueFrom, timeout } from 'rxjs';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { ErrorCodes, InfrastructureException, isErrorResponseDto } from '@ocean.chat/common-exceptions';
 
 @Controller('messages')
 export class QueryController {
@@ -25,15 +33,17 @@ export class QueryController {
   async syncMessages(
     @Req() req: Request,
     @Res() res: Response,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthenticatedUser,
     @Query() syncDto: SyncMessagesDto,
   ) {
-    return this.circuitBreakerService.fire('queryClient', async () => {
+    return this.circuitBreakerService.fire('messages.sync', async () => {
       try {
-        const payload = { ...syncDto, userId };
+        const payload = { ...syncDto, userId: user._id };
 
         const response: SyncMessagesResponse = await firstValueFrom(
-          this.queryClient.send({ cmd: 'sync_messages' }, payload).pipe(timeout(3000)),
+          this.queryClient
+            .send('query.messages.sync', payload)
+            .pipe(timeout(3000)),
         );
 
         if (isErrorResponseDto(response)) {

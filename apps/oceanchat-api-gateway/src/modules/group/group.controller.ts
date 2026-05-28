@@ -1,4 +1,11 @@
-import { Body, Controller, HttpStatus, Inject, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpStatus,
+  Inject,
+  Post,
+} from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import {
   PermissionCheckerService,
@@ -15,10 +22,10 @@ import { CircuitBreakerService } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { CreateRoomDto } from '@ocean.chat/models';
 import {
+  AuthenticatedUser,
   CreateRoomRpcRequest,
   CreateRoomRpcResponse,
   GroupType,
-  IJwtPayload,
 } from '@ocean.chat/types';
 import { catchError, firstValueFrom, throwError, timeout } from 'rxjs';
 
@@ -35,10 +42,10 @@ export class GroupController {
 
   @Post('create')
   async createGroup(
-    @CurrentUser() user: IJwtPayload,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() createRoomDto: CreateRoomDto,
   ) {
-    const userId = user.sub;
+    const userId = user._id as string;
 
     // Check permission based on the requested group type
     const permissionRequired =
@@ -86,6 +93,55 @@ export class GroupController {
                         err.errorCode,
                         err.statusCode,
                         { cause: err },
+                      ),
+                  );
+                }
+
+                return throwError(
+                  () =>
+                    new InfrastructureException(
+                      this.i18nService.translate('INTERNAL_SERVER_ERROR'),
+                      ErrorCodes.UNEXPECTED_ERROR,
+                      HttpStatus.INTERNAL_SERVER_ERROR,
+                      false,
+                      { cause: err as any },
+                    ),
+                );
+              }),
+            ),
+        ),
+      { timeout: 6000 },
+    );
+  }
+
+  @Get('list')
+  async getUserGroups(@CurrentUser() user: AuthenticatedUser) {
+    const userId = user._id;
+
+    return this.circuitBreakerService.fire(
+      'groups.getUserGroups',
+      () =>
+        firstValueFrom(
+          this.groupClient
+            .send<
+              { type: GroupType; name: string; groupId: string }[]
+            >('group.query.userGroups', { userId })
+            .pipe(
+              timeout(5000),
+              catchError((err: unknown) => {
+                if (isAppException(err)) {
+                  return throwError(() => err);
+                }
+                if (isErrorResponseDto(err)) {
+                  return throwError(
+                    () =>
+                      new DomainException(
+                        err.message,
+                        err.errorCode,
+                        err.statusCode,
+                        {
+                          cause: err,
+                        },
                       ),
                   );
                 }

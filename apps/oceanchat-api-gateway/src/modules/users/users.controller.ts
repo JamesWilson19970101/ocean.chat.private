@@ -10,7 +10,7 @@ import {
 import { CircuitBreakerService } from '@ocean.chat/cores';
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
-import { IJwtPayload } from '@ocean.chat/types';
+import { AuthenticatedUser } from '@ocean.chat/types';
 import { catchError, firstValueFrom, map, throwError, timeout } from 'rxjs';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -29,9 +29,9 @@ export class UsersController {
    * For a more detailed profile, we query the user microservice.
    */
   @Get('me')
-  async getMyProfile(@CurrentUser() user: IJwtPayload) {
+  async getMyProfile(@CurrentUser() user: AuthenticatedUser) {
     // req.user is populated by JwtAuthGuard from the token payload
-    const { sub: userId } = user;
+    const { _id: userId } = user;
 
     // Call the user service to get the full, safe-to-expose profile
     return this.circuitBreakerService.fire(

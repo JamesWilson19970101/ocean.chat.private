@@ -24,6 +24,7 @@ import {
 import { I18nService } from '@ocean.chat/i18n';
 import { User } from '@ocean.chat/models';
 import {
+  AuthenticatedUser,
   CreateUserDto,
   LoginDto,
   RefreshTokenDto,
@@ -253,10 +254,10 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async logout(
-    @CurrentUser() user: { sub: string; deviceId: string },
+    @CurrentUser() user: AuthenticatedUser,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const { sub: userId, deviceId } = user;
+    const { _id: userId, deviceId } = user;
 
     await this.circuitBreakerService.fire('auth.logout', () =>
       firstValueFrom<number>(
