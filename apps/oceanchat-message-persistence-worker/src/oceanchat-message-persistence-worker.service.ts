@@ -1,107 +1,244 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { OceanModel, Message } from '@ocean.chat/models';
+import { GroupMember, Message, OceanModel } from '@ocean.chat/models';
+import { RedisService } from '@ocean.chat/redis';
+import { ImOrchestrateEvent, SyncCursorReadEventDto } from '@ocean.chat/types';
 import { Model, Types } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { ImOrchestrateEvent } from '@ocean.chat/types';
-import { JsMsg, StringCodec } from 'nats';
-import { plainToInstance } from 'class-transformer';
-import { validateOrReject } from 'class-validator';
+
+interface PersistenceTask<T> {
+  event: T;
+  resolve: () => void;
+  reject: (err: unknown) => void;
+}
 
 @Injectable()
-export class OceanchatMessagePersistenceWorkerService {
-  private readonly sc = StringCodec();
+export class OceanchatMessagePersistenceWorkerService
+  implements OnModuleDestroy
+{
+  // Batching configuration
+  private readonly MSG_BATCH_SIZE = 1; // TODO: The value was changed to 1 here to ensure immediate data entry. This is for calculating unread notifications (red dots) for online users.
+  private readonly CURSOR_BATCH_SIZE = 1000;
+  private readonly FLUSH_INTERVAL_MS = 10000;
 
+  // Task buffers
+  private msgBuffer: PersistenceTask<ImOrchestrateEvent>[] = [];
+  private cursorBuffer: PersistenceTask<SyncCursorReadEventDto>[] = [];
+
+  // Timers
+  private msgTimer?: NodeJS.Timeout;
+  private cursorTimer?: NodeJS.Timeout;
+
+  // TODO: Do not reject model here
   constructor(
     @InjectModel(OceanModel.Message)
     private readonly messageModel: Model<Message>,
+    @InjectModel(OceanModel.GroupMember)
+    private readonly groupMemberModel: Model<GroupMember>,
+    private readonly redisService: RedisService,
     @InjectPinoLogger('worker.persistence')
     private readonly logger: PinoLogger,
   ) {}
 
+  onModuleDestroy() {
+    this.logger.info('Persistence service shutting down, clearing timers...');
+    if (this.msgTimer) clearTimeout(this.msgTimer);
+    if (this.cursorTimer) clearTimeout(this.cursorTimer);
+  }
+
   /**
-   * Processes a batch of NATS messages, bulk inserts them into MongoDB,
-   * and explicitly ACKs them upon success.
+   * Buffers a message for persistence. Returns a promise that resolves only
+   * when the message is successfully written to MongoDB.
    */
-  async processBatch(messages: JsMsg[]): Promise<void> {
-    if (messages.length === 0) return;
+  async bufferMessageForPersistence(event: ImOrchestrateEvent): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.msgBuffer.push({ event, resolve, reject });
 
-    const bulkOps: any[] = [];
-    const validMsgs: { msg: JsMsg; event: ImOrchestrateEvent }[] = [];
+      if (this.msgBuffer.length >= this.MSG_BATCH_SIZE) {
+        void this.flushMessages();
+      } else if (!this.msgTimer) {
+        this.msgTimer = setTimeout(
+          () => void this.flushMessages(),
+          this.FLUSH_INTERVAL_MS,
+        );
+      }
+    });
+  }
 
-    for (const m of messages) {
-      try {
-        const raw = this.sc.decode(m.data);
-        const parsed = JSON.parse(raw) as unknown;
-        const rawPayload =
-          parsed && typeof parsed === 'object' && 'data' in parsed
-            ? (parsed as { data: unknown }).data
-            : parsed;
+  /**
+   * Buffers a cursor update for dual-write persistence. Returns a promise that
+   * resolves only when both Redis and MongoDB are updated.
+   */
+  async bufferCursorForPersistence(
+    event: SyncCursorReadEventDto,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.cursorBuffer.push({ event, resolve, reject });
 
-        const event = plainToInstance(ImOrchestrateEvent, rawPayload);
-        await validateOrReject(event, { whitelist: true, forbidNonWhitelisted: true });
+      if (this.cursorBuffer.length >= this.CURSOR_BATCH_SIZE) {
+        void this.flushCursors();
+      } else if (!this.cursorTimer) {
+        this.cursorTimer = setTimeout(
+          () => void this.flushCursors(),
+          this.FLUSH_INTERVAL_MS,
+        );
+      }
+    });
+  }
 
-        validMsgs.push({ msg: m, event });
+  private async flushMessages(): Promise<void> {
+    if (this.msgTimer) {
+      clearTimeout(this.msgTimer);
+      this.msgTimer = undefined;
+    }
 
-        const isGroup = event.msgUp.groupId.startsWith('G');
+    if (this.msgBuffer.length === 0) return;
 
-        // Create Mongoose BulkOperation (InsertOne)
-        bulkOps.push({
-          insertOne: {
-            document: {
-              _id: new Types.ObjectId(),
-              rid: event.msgUp.groupId, // In Ocean Chat, groupId is mapped to room id (rid)
-              msg: event.msgUp.content || '',
-              u: {
-                _id: event.userId,
-                username: event.userId,
-              },
-              t: undefined, // Normal message doesn't have a specific type string
-              syncSeqId: event.syncSeqId, // Crucial cursor
-              clientMsgId: event.msgUp.clientMsgId, // Used for idempotent writes
-              msgType: event.msgUp.msgType, // Application layer message type
-              unread: true,
-            },
+    const batch = this.msgBuffer;
+    this.msgBuffer = [];
+
+    const bulkOps = batch.map((task) => ({
+      insertOne: {
+        document: {
+          _id: new Types.ObjectId(),
+          groupId: task.event.msgUp.groupId,
+          content: task.event.msgUp?.content || '',
+          u: {
+            _id: task.event.userId,
+            username: task.event.userId,
           },
-        });
-      } catch (err) {
-        this.logger.error({ err, subject: m.subject }, 'Failed to parse/validate message. Discarding poison message.');
-        m.ack(); // Poison message, discard
+          syncSeqId: task.event.syncSeqId,
+          clientMsgId: task.event.msgUp?.clientMsgId,
+          msgType: task.event.msgUp?.msgType,
+          url: task.event.msgUp?.url,
+          width: task.event.msgUp?.width,
+          height: task.event.msgUp?.height,
+          size: task.event.msgUp?.size,
+          format: task.event.msgUp?.format,
+          duration: task.event.msgUp?.duration,
+          fileName: task.event.msgUp?.fileName,
+          extension: task.event.msgUp?.extension,
+          thumbnailUrl: task.event.msgUp?.thumbnailUrl,
+        },
+      },
+    }));
+
+    try {
+      await this.messageModel.bulkWrite(bulkOps, { ordered: false });
+      this.logger.debug(
+        `Successfully persisted batch of ${batch.length} messages.`,
+      );
+      batch.forEach((t) => t.resolve());
+    } catch (error: unknown) {
+      this.handleBulkWriteError(error, batch, 'message');
+    }
+  }
+
+  private async flushCursors(): Promise<void> {
+    if (this.cursorTimer) {
+      clearTimeout(this.cursorTimer);
+      this.cursorTimer = undefined;
+    }
+
+    if (this.cursorBuffer.length === 0) return;
+
+    const batch = this.cursorBuffer;
+    this.cursorBuffer = [];
+
+    // Local folding: Only the latest cursor for each (groupId, userId) is meaningful in a batch
+    const foldedMap = new Map<
+      string,
+      PersistenceTask<SyncCursorReadEventDto>
+    >();
+    for (const task of batch) {
+      const key = `${task.event.groupId}:${task.event.userId}`;
+      const existing = foldedMap.get(key);
+      if (
+        !existing ||
+        BigInt(task.event.syncSeqId) > BigInt(existing.event.syncSeqId)
+      ) {
+        if (existing) existing.resolve(); // Superseeded cursor is effectively processed
+        foldedMap.set(key, task);
+      } else {
+        task.resolve(); // Older cursor is irrelevant
       }
     }
 
-    if (bulkOps.length === 0) return;
+    const uniqueTasks = Array.from(foldedMap.values());
+    const redisPipeline = this.redisService.getClient().pipeline();
+    const mongoBulkOps: any[] = [];
+
+    for (const task of uniqueTasks) {
+      const { event } = task;
+      redisPipeline.set(
+        `cursor:read:${event.groupId}:${event.userId}`,
+        event.syncSeqId,
+      );
+      mongoBulkOps.push({
+        updateOne: {
+          filter: { 'user._id': event.userId, groupId: event.groupId },
+          update: { $max: { lastReadSeqId: event.syncSeqId } },
+        },
+      });
+    }
 
     try {
-      // Execute BulkWrite
-      await this.messageModel.bulkWrite(bulkOps, { ordered: false });
+      await Promise.all([
+        redisPipeline.exec(),
+        this.groupMemberModel.bulkWrite(mongoBulkOps, { ordered: false }),
+      ]);
+      this.logger.debug(
+        `Successfully dual-wrote batch of ${uniqueTasks.length} cursors.`,
+      );
+      uniqueTasks.forEach((t) => t.resolve());
+    } catch (error) {
+      this.logger.error({ err: error }, 'Failed to flush cursor batch.');
+      uniqueTasks.forEach((t) => t.reject(error));
+    }
+  }
 
-      // Explicitly ACK all messages in the batch after successful DB insertion
-      for (const item of validMsgs) {
-        item.msg.ack();
+  private handleBulkWriteError<T>(
+    error: unknown,
+    batch: PersistenceTask<T>[],
+    type: string,
+  ): void {
+    let isDuplicateError = false;
+    let errorMessage: unknown = 'Unknown error';
+
+    if (typeof error === 'object' && error !== null) {
+      const errObj = error as Record<string, unknown>;
+      errorMessage = errObj.message;
+
+      const isMongoBulkWriteError =
+        errObj.name === 'MongoBulkWriteError' ||
+        errObj.name === 'BulkWriteError';
+      const isOnlyDuplicateErrors =
+        isMongoBulkWriteError &&
+        Array.isArray(errObj.writeErrors) &&
+        errObj.writeErrors.every(
+          (e: unknown) =>
+            typeof e === 'object' &&
+            e !== null &&
+            (e as Record<string, unknown>).code === 11000,
+        );
+
+      if (isOnlyDuplicateErrors || errObj.code === 11000) {
+        isDuplicateError = true;
       }
+    }
 
-      this.logger.debug(`Successfully persisted ${bulkOps.length} messages.`);
-    } catch (error: any) {
-      // Handle MongoBulkWriteError properly.
-      // It contains a writeErrors array. If all errors are duplicate keys (11000), we can ACK.
-      const isMongoBulkWriteError = error.name === 'MongoBulkWriteError' || error.name === 'BulkWriteError';
-      const isOnlyDuplicateErrors = isMongoBulkWriteError && 
-        Array.isArray(error.writeErrors) && 
-        error.writeErrors.every((e: any) => e.code === 11000);
-
-      if (isOnlyDuplicateErrors || error.code === 11000) {
-        this.logger.warn({ err: error.message }, 'Duplicate key detected during bulk insert. Acking batch to prevent loop.');
-        for (const item of validMsgs) {
-          item.msg.ack();
-        }
-      } else {
-        this.logger.error({ err: error }, 'BulkWrite failed. NAKing batch to trigger redelivery.');
-        // NAK the batch so NATS will redeliver
-        for (const item of validMsgs) {
-          item.msg.nak();
-        }
-      }
+    if (isDuplicateError) {
+      this.logger.warn(
+        { err: errorMessage },
+        `Duplicate keys detected in ${type} batch. Safe to resolve.`,
+      );
+      batch.forEach((t) => t.resolve());
+    } else {
+      this.logger.error(
+        { err: error },
+        `${type} BulkWrite failed. Rejecting batch for redelivery.`,
+      );
+      batch.forEach((t) => t.reject(error));
     }
   }
 }

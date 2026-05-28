@@ -2,26 +2,26 @@ import { Injectable, Scope } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { I18nService } from '@ocean.chat/i18n';
 import { BaseNatsSubscriber } from '@ocean.chat/nats-jetstream-provisioner';
-import { ImOrchestrateEvent, NatsSubjects } from '@ocean.chat/types';
+import { SyncCursorReadEventDto } from '@ocean.chat/types';
 import { JsMsg } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import { OceanchatMessagePersistenceWorkerService } from './oceanchat-message-persistence-worker.service';
 
 /**
- * Message Persistence Subscriber using BaseNatsSubscriber.
- * Reliable Pull-based ingestion with deferred batching.
+ * Cursor Persistence Subscriber using BaseNatsSubscriber.
+ * Reliable Pull-based ingestion for read cursors with dual-write persistence.
  */
 @Injectable({ scope: Scope.DEFAULT })
-export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateEvent> {
-  protected readonly streamName = 'IM_HANDOFF';
-  protected readonly durableName = 'message-persistence-worker-group';
-  protected readonly eventClass = ImOrchestrateEvent;
+export class NatsCursorStateSubscriber extends BaseNatsSubscriber<SyncCursorReadEventDto> {
+  protected readonly streamName = 'CURSOR_STATE';
+  protected readonly durableName = 'cursor-persistence-worker-group';
+  protected readonly eventClass = SyncCursorReadEventDto;
 
   constructor(
     protected readonly configService: ConfigService,
     protected readonly i18nService: I18nService,
-    @InjectPinoLogger('worker.persistence.msg')
+    @InjectPinoLogger('worker.persistence.cursor')
     protected readonly logger: PinoLogger,
     private readonly persistenceService: OceanchatMessagePersistenceWorkerService,
   ) {
@@ -30,21 +30,20 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
 
   protected getConsumerConfig() {
     return {
-      filter_subject: NatsSubjects.IM_ORCHESTRATE_MSG,
-      // max_ack_pending = 1000 (base default) allows the Service to buffer 2 full batches of 500
-      max_deliver: 5,
+      // Wildcard to capture read cursor states for all groups and users
+      filter_subject: 'cursor.read.>',
     };
   }
 
   /**
-   * Forwards the event to the service's async buffer.
-   * Base class will only ACK this JsMsg once the returned Promise resolves (after BulkWrite).
+   * Forwards the cursor event to the service's async buffer.
+   * Base class will only ACK this JsMsg once the dual-write (Redis + Mongo) is confirmed.
    */
   protected async onEvent(
-    event: ImOrchestrateEvent,
+    event: SyncCursorReadEventDto,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     _msg: JsMsg,
   ): Promise<void> {
-    await this.persistenceService.bufferMessageForPersistence(event);
+    await this.persistenceService.bufferCursorForPersistence(event);
   }
 }
