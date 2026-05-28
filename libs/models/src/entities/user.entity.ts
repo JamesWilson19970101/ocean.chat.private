@@ -14,6 +14,16 @@ export enum UserStatus {
 
 /**
  * @enum {string}
+ * @description Defines the type of user.
+ */
+export enum UserType {
+  USER = 'user',
+  BOT = 'bot',
+  GUEST = 'guest',
+}
+
+/**
+ * @enum {string}
  * @description Defines the possible authentication providers for a user.
  */
 export enum AuthProvider {
@@ -88,10 +98,15 @@ export class User extends Document {
 
   /**
    * The type of user, e.g., 'user', 'bot', 'guest'.
-   * @default 'user'
+   * @default UserType.USER
    */
-  @Prop({ type: String, required: true, default: 'user' })
-  type: string;
+  @Prop({
+    type: String,
+    enum: UserType,
+    required: true,
+    default: UserType.USER,
+  })
+  type: UserType;
 
   /**
    * The active status of the user. A disabled user cannot log in.
@@ -109,6 +124,7 @@ export class User extends Document {
 
   /**
    * The roles assigned to the user.
+   * TODO: Design as an enumeration type
    * @default ['user']
    */
   @Prop({ type: [String], default: ['user'] })

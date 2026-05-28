@@ -52,6 +52,21 @@ export class GroupRepository extends BaseRepository<Group> {
   }
 
   /**
+   * Finds all group members for a specific group.
+   * @param groupId The group ID
+   * @returns Array of group members
+   */
+  async findMemberIdsByGroupId(groupId: string): Promise<string[]> {
+    const userIds = await this.groupMemberModel
+      .distinct('user._id', { groupId })
+      .exec();
+
+    // TODO: UUIDv7 will be used as the collection _id.
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
+    return userIds.map((id) => id.toString());
+  }
+
+  /**
    * Inserts multiple group members efficiently.
    * @param members Array of group members to insert
    */

@@ -1,6 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { GroupType } from '@ocean.chat/types';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { Document } from 'mongoose';
 
 import { UserIdentifier, UserIdentifierSchema } from './user.entity';
 
@@ -14,7 +14,7 @@ export class GroupMember extends Document {
    * The Group ID.
    */
   @Prop({
-    type: MongooseSchema.Types.ObjectId,
+    type: String,
     ref: 'Group',
     required: true,
     index: true,
@@ -86,6 +86,14 @@ export class GroupMember extends Document {
    */
   @Prop({ type: Date })
   lastSeenAt?: Date;
+
+  /**
+   * Last Read Sequence ID.
+   * The maximum sequence ID read by this user in this group.
+   * Persisted asynchronously from the CURSOR_STATE stream.
+   */
+  @Prop({ type: String })
+  lastReadSeqId?: string;
 
   /**
    * Hide Mention Status.

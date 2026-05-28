@@ -19,7 +19,7 @@ export class GroupMessageSnapshot {
 
   /** The text content of the message. */
   @Prop({ type: String })
-  msg: string;
+  content?: string;
 
   /** The sender of the message (snapshot). */
   @Prop({ type: UserIdentifierSchema })
@@ -42,6 +42,12 @@ const GroupMessageSnapshotSchema =
 @Schema({ timestamps: true })
 export class Group extends Document {
   /**
+   * The custom custom ID (prefixed with 'd' for DIRECT, 'p' for PRIVATE_GROUP).
+   */
+  @Prop({ type: String })
+  declare _id: string;
+
+  /**
    * The type of group
    * Determines permission logic (e.g., channels are public, DMs are restricted).
    */
@@ -56,7 +62,7 @@ export class Group extends Document {
    * Uniqueness is only enforced on the _id.
    */
   @Prop({ type: String, index: true })
-  name?: string;
+  name: string;
 
   /**
    * Snapshot of the creator/owner.

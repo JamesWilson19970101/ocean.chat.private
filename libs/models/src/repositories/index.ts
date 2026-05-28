@@ -1,4 +1,6 @@
 export * from './group.repository';
+export * from './group-member.repository';
+export * from './message.repository';
 export * from './permission.repository';
 export * from './role.repository';
 export * from './sequence.repository';

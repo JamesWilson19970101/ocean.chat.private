@@ -1,7 +1,7 @@
 import { Prop, raw, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, Schema as MongooseSchema } from 'mongoose';
+import { MsgType } from '@ocean.chat/types';
+import { Document } from 'mongoose';
 
-import { Group } from './group.entity';
 import { UserIdentifier, UserIdentifierSchema } from './user.entity';
 
 /**
@@ -22,7 +22,7 @@ import { UserIdentifier, UserIdentifierSchema } from './user.entity';
  * - `livechat_webrtc_video_call`: A livechat WebRTC video call event
  * - `livechat_navigation_history`: Livechat navigation history event
  */
-export enum MessageType {
+export enum SystemMessageType {
   USER_JOINED = 'uj',
   USER_LEFT = 'ul',
   USER_REMOVED = 'ru',
@@ -89,16 +89,16 @@ export const AttachmentSchema = SchemaFactory.createForClass(Attachment);
 export class Message extends Document {
   /** The ID of the room where the message was sent. */
   @Prop({
-    type: MongooseSchema.Types.ObjectId,
+    type: String,
     ref: 'Group',
     required: true,
     index: true,
   })
-  rid: Group | MongooseSchema.Types.ObjectId;
+  groupId: string;
 
   /** The actual message content. */
-  @Prop({ required: true })
-  msg: string;
+  @Prop()
+  content?: string;
 
   /** The user who sent the message. */
   @Prop({ type: UserIdentifierSchema, required: true })
@@ -106,19 +106,51 @@ export class Message extends Document {
 
   /** The monotonically increasing sequence ID for sync (SyncSeqId) */
   @Prop({ index: true })
-  syncSeqId?: string;
+  syncSeqId: string;
 
   /** The client-generated message ID to ensure idempotency */
   @Prop({ index: true })
   clientMsgId?: string;
 
   /** The application layer message type (0: text, 1: image, etc.) */
-  @Prop()
-  msgType?: number;
+  @Prop({ type: Number })
+  msgType?: MsgType;
+
+  // --- Media Fields (Aligned with MsgUp protobuf) ---
+
+  @Prop({ type: String })
+  url?: string;
+
+  @Prop({ type: Number, min: 0 })
+  width?: number;
+
+  @Prop({ type: Number, min: 0 })
+  height?: number;
+
+  // Aligned with Protobuf int64 -> ts-proto string to prevent precision loss
+  @Prop({ type: String })
+  size?: string;
+
+  @Prop({ type: String })
+  format?: string;
+
+  @Prop({ type: Number, min: 0 })
+  duration?: number;
+
+  @Prop({ type: String })
+  fileName?: string;
+
+  @Prop({ type: String })
+  extension?: string;
+
+  @Prop({ type: String })
+  thumbnailUrl?: string;
+
+  // --------------------------------------------------
 
   /** The type of the message (e.g., system message, command). */
-  @Prop({ type: String, enum: MessageType })
-  t?: MessageType;
+  @Prop({ type: String, enum: SystemMessageType })
+  t?: SystemMessageType;
 
   /** A list of users mentioned in the message. */
   @Prop({ type: [UserIdentifierSchema] })
@@ -159,10 +191,6 @@ export class Message extends Document {
   /** End-to-end encryption status. */
   @Prop({ type: String, enum: ['pending', 'done'] })
   e2e?: 'pending' | 'done';
-
-  /** Whether the message is unread. */
-  @Prop()
-  unread?: boolean;
 }
 
 export const MessageSchema = SchemaFactory.createForClass(Message);

@@ -25,13 +25,15 @@ import {
   UserSchema,
 } from '../entities';
 import {
+  GroupMemberRepository,
+  GroupRepository,
+  MessageRepository,
   PermissionRepository,
   RoleRepository,
   SequenceRepository,
   SettingsRepository,
   UserRepository,
 } from '../repositories';
-import { GroupRepository } from '../repositories/group.repository';
 
 /**
  * Mapping for Mongoose Schema Definitions.
@@ -64,9 +66,9 @@ export const REPOSITORY_MAP: Record<OceanModel, Type<any> | undefined> = {
   [OceanModel.Setting]: SettingsRepository,
   [OceanModel.Permission]: PermissionRepository,
   [OceanModel.Role]: RoleRepository,
-  [OceanModel.Message]: undefined,
+  [OceanModel.Message]: MessageRepository,
   [OceanModel.Group]: GroupRepository,
-  [OceanModel.GroupMember]: undefined,
+  [OceanModel.GroupMember]: GroupMemberRepository,
   [OceanModel.Sequence]: SequenceRepository,
   [OceanModel.Team]: undefined,
   [OceanModel.TeamMember]: undefined,

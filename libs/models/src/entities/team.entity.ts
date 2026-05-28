@@ -41,7 +41,7 @@ export class Team extends Document {
    * "General" or "Announcements" group exclusively for this team. This field binds the team
    * to its primary channel.
    */
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'Group' })
+  @Prop({ type: String, ref: 'Group' })
   mainGroupId?: string;
 
   /**
