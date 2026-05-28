@@ -368,6 +368,10 @@ export class OceanchatWsGateway
         this.gatewayService.reportOffline(userId, deviceId, this.gatewayId);
       }
     } else {
+      // TODO: Architectural optimization for MSG_UP_ACK and other targeted responses.
+      // If the upstream service forgets to include `deviceId` in the downbound event, it falls back to this broadcast branch.
+      // An ACK (like MSG_UP_ACK) should ideally ONLY be routed back to the exact device that initiated the request.
+      // Upstream routing logic (e.g., NatsImRouteSubscriber) must be audited to ensure `deviceId` is strictly populated for ACKs.
       for (const connection of deviceMap.values()) {
         const buffer = this.monkeyService.frame(
           { cmd, reqId, flags: 0 },
@@ -379,7 +383,10 @@ export class OceanchatWsGateway
   }
 
   /**
-   * TODO: Dispatches a cross-device sync event.
+   * Dispatches a cross-device read receipt sync event.
+   *
+   * This is triggered by a NATS DEVICE_SYNC broadcast and is intended to
+   * silently clear unread badges on all other active devices of the same user.
    */
   public dispatchSync(userId: string, groupId: string, syncSeqId: string) {
     const deviceMap = this.userRoutingTree.get(userId);

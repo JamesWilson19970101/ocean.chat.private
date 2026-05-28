@@ -11,13 +11,18 @@ import {
   MonkeyVersion,
   MsgNotify,
   MsgUp,
+  ReadReceipt,
 } from '@ocean.chat/monkey';
 import { MonkeyCmd, MonkeyService } from '@ocean.chat/monkey';
 import { BoundedPublisherService } from '@ocean.chat/nats-jetstream-provisioner';
 import {
+  getCursorReadSubject,
+  getSyncCursorReadSubject,
   IJwtPayload,
   ImUpEnvelopeDto,
+  NatsSubjects,
   PresenceOnlineEventDto,
+  SyncCursorReadEventDto,
 } from '@ocean.chat/types';
 import { SERVICE_INSTANCE_ID } from '@ocean.chat/types';
 import { plainToInstance } from 'class-transformer';
@@ -152,6 +157,10 @@ export class OceanchatWsGatewayProcessor {
         // Any message (including PONG) refreshes activity, which is already handled above. No-op.
         break;
 
+      case MonkeyCmd.READ_RECEIPT:
+        this.handleReadReceipt(connection, header.reqId, payload);
+        break;
+
       default:
         this.logger.warn(
           this.i18nService.translate('UNHANDLED_COMMAND_LOG', {
@@ -276,9 +285,12 @@ export class OceanchatWsGatewayProcessor {
     reqId: number,
     payload: Buffer,
   ): void {
+    // TODO: Idempotency issue
     const msgUp = MsgUp.decode(payload);
-    const isGroup = msgUp.groupId.startsWith('G');
-    const subject = isGroup ? 'im.up.group' : 'im.up.p2p';
+    const isGroup = !msgUp.groupId.startsWith('D');
+    const subject = isGroup
+      ? NatsSubjects.IM_ROUTE_GROUP
+      : NatsSubjects.IM_ROUTE_P2P;
 
     const envelope = plainToInstance(ImUpEnvelopeDto, {
       userId: connection.userId,
@@ -302,6 +314,70 @@ export class OceanchatWsGatewayProcessor {
           }),
         );
       });
+  }
+
+  /**
+   * Handles the [0x0B] READ_RECEIPT ingestion.
+   *
+   * // TODO: Migrate the message parsing logic and message publishing capabilities to the router.
+   */
+  private handleReadReceipt(
+    connection: ClientConnection,
+    reqId: number,
+    payload: Buffer,
+  ): void {
+    try {
+      // Gateway layer directly decodes Protobuf
+      const readReceipt = ReadReceipt.decode(payload);
+
+      if (
+        !readReceipt.groupId ||
+        !readReceipt.syncSeqId ||
+        readReceipt.syncSeqId.toString() === '0'
+      ) {
+        this.logger.warn(
+          { userId: connection.userId },
+          'Received invalid READ_RECEIPT payload, discarding.',
+        );
+        return;
+      }
+
+      const syncEvent = plainToInstance(SyncCursorReadEventDto, {
+        userId: connection.userId, // Authenticated before, this field must have a value
+        groupId: readReceipt.groupId,
+        syncSeqId: readReceipt.syncSeqId.toString(), // TODO: Do not forget seqid is big int, Subscribers all need to handle this issue.
+      });
+
+      // 1. Direct publish to CURSOR_STATE (For Persistence Worker batch folding and persistence)
+      const cursorSubject = getCursorReadSubject(
+        readReceipt.groupId,
+        connection.userId!,
+      );
+      void this.boundedPublisher
+        .publishSafe(
+          cursorSubject,
+          syncEvent,
+          'cursor_state_ingestion',
+          { isCritical: false }, // Receipts are weak states, allowing for safe degradation and dropping during high concurrency network congestion
+        )
+        .catch(() => {});
+
+      // 2. Direct publish to DEVICE_SYNC (For gateway broadcast to the user's other devices to clear red dots)
+      const syncSubject = getSyncCursorReadSubject(connection.userId!);
+      void this.boundedPublisher
+        .publishSafe(syncSubject, syncEvent, 'device_sync_broadcast', {
+          isCritical: false,
+        })
+        .catch(() => {});
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        this.i18nService.translate('FAILED_TO_INGEST_READ_RECEIPT_LOG', {
+          defaultValue: 'Failed to ingest READ_RECEIPT: {{errorMessage}}',
+          errorMessage,
+        }),
+      );
+    }
   }
 
   private sendResponse<T>(

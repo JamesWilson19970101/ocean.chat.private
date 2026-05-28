@@ -30,7 +30,7 @@ import { RetentionPolicy, StorageType } from 'nats';
 import { LoggerModule } from 'nestjs-pino';
 
 import { NatsAuthEventsSubscriber } from './nats-auth-events.subscriber';
-// import { NatsDownboundSubscriber } from './nats-downbound.subscriber';
+import { NatsDownboundSubscriber } from './nats-downbound.subscriber';
 // import { NatsSyncSubscriber } from './nats-sync.subscriber';
 import { OceanchatWsGatewayController } from './oceanchat-ws-gateway.controller';
 import { OceanchatWsGateway } from './oceanchat-ws-gateway.gateway';
@@ -120,7 +120,27 @@ export class OceanchatWsGatewayModule {
                   retention: RetentionPolicy.Workqueue,
                   storage: StorageType.File,
                   replicas: isProduction ? 3 : 1,
-                  max_age: 1 * 60 * 60 * 1_000_000_000, // 1 h
+                  max_age: 7 * 24 * 60 * 60 * 1_000_000_000, // 7 days Allow sufficient time for engineers to fix the problem.
+                },
+                {
+                  name: 'CURSOR_STATE',
+                  subjects: ['cursor.read.>'],
+                  retention: RetentionPolicy.Limits,
+                  storage: StorageType.Memory,
+                  max_msgs_per_subject: 1, // Core magic for folding storm
+                  replicas: isProduction ? 3 : 1,
+                  description:
+                    'Cursor state persistence stream for folding read receipts',
+                },
+                {
+                  name: 'DEVICE_SYNC',
+                  subjects: ['sync.cursor.read.>'],
+                  retention: RetentionPolicy.Interest,
+                  storage: StorageType.Memory,
+                  replicas: isProduction ? 3 : 1,
+                  max_age: 5 * 60 * 1_000_000_000, // 5 mins
+                  description:
+                    'Device synchronization stream for clearing cross-device badges',
                 },
               ],
             };
@@ -169,7 +189,7 @@ export class OceanchatWsGatewayModule {
         OceanchatWsGateway,
         TokenBlacklistService,
         NatsAuthEventsSubscriber,
-        // NatsDownboundSubscriber,
+        NatsDownboundSubscriber,
         // NatsSyncSubscriber,
       ],
     };

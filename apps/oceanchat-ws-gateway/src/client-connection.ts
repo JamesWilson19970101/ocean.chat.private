@@ -8,6 +8,12 @@ import { WebSocket } from 'ws';
  * Strictly stateless regarding business logic, only maintains connection-level metadata.
  */
 export class ClientConnection {
+  // TODO: Add `connectionId` (e.g., UUID) to represent the physical network connection.
+  // Why it is needed:
+  // 1. Prevent Socket Race Conditions: Differentiate new connections from "ghost" connections during rapid reconnects.
+  // 2. Pre-Auth Tracking: Identify and trace sockets before they successfully authenticate and acquire a userId/deviceId.
+  // 3. Strict Targeted Responses: Allow backend routing to target or abort specific physical channels rather than the whole device.
+  // 4. End-to-End Observability: Provide a unique trace ID for logs from TCP handshake to disconnection.
   public userId?: string;
   public deviceId?: string;
   public deviceType?: string;

@@ -31,25 +31,12 @@ export class NatsDownboundSubscriber extends BaseNatsSubscriber<ImDownboundEvent
   protected getConsumerConfig() {
     return {
       filter_subject: `im.down.node.${this.gatewayId}`,
-      // Ephemeral consumer: I only care about real-time delivery while online.
-      // If the pod is down, orchestrator will handle offline logic.
-      durable_name: undefined,
     };
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected onEvent(event: ImDownboundEventDto, _msg: JsMsg): Promise<void> {
     const { userId, deviceId, cmd, payload, reqId } = event;
-
-    if (!userId) {
-      this.logger.warn(
-        { event },
-        this.i18nService.translate('RECEIVED_DOWNBOUND_EVENT_WITHOUT_USERID', {
-          defaultValue: 'Received downbound event without userId',
-        }),
-      );
-      return Promise.resolve();
-    }
 
     // Direct delivery or micro-batching via Gateway
     this.gateway.dispatchDownbound(userId, deviceId, cmd, payload, reqId);
