@@ -7,47 +7,75 @@ import {
   BaseNatsSubscriber,
   BoundedPublisherService,
 } from '@ocean.chat/nats-jetstream-provisioner';
-import { ImRouteEvent, ImUpEvent } from '@ocean.chat/types';
+import { RedisService } from '@ocean.chat/redis';
+import { MsgUpType } from '@ocean.chat/types';
+import { ImRouteEvent, ImUpEnvelopeDto, NatsSubjects } from '@ocean.chat/types';
 import { instanceToPlain } from 'class-transformer';
 import { JsMsg } from 'nats';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable({ scope: Scope.DEFAULT })
-export class NatsImUpSubscriber extends BaseNatsSubscriber<ImUpEvent> {
+export class NatsImUpSubscriber extends BaseNatsSubscriber<ImUpEnvelopeDto> {
   protected readonly streamName = 'IM_CORE';
   protected readonly durableName = 'oceanchat-router-im-up';
-  protected readonly eventClass = ImUpEvent;
+  protected readonly eventClass = ImUpEnvelopeDto;
 
   constructor(
     protected readonly configService: ConfigService,
     protected readonly i18nService: I18nService,
-    @InjectPinoLogger('router.nats-im-up')
+    @InjectPinoLogger(NatsImUpSubscriber.name)
     protected readonly logger: PinoLogger,
     private readonly boundedPublisher: BoundedPublisherService,
+    private readonly redisService: RedisService,
   ) {
     super();
   }
 
   protected getConsumerConfig() {
     return {
-      filter_subject: 'im.up.>',
+      filter_subjects: ['im.up.group', 'im.up.p2p'],
     };
   }
 
-  protected async onEvent(event: ImUpEvent, msg: JsMsg): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  protected async onEvent(event: ImUpEnvelopeDto, msg: JsMsg): Promise<void> {
     try {
-      if (!event.userId) {
+      // Business Rate Limiting: Max 10 requests per second per user
+      const rateLimitKey = `rate:biz:user:${event.userId}`;
+      const LUA_INCR = `
+        local current = redis.call("INCR", KEYS[1])
+        if current == 1 then
+          redis.call("EXPIRE", KEYS[1], ARGV[1])
+        end
+        return current
+      `;
+      const currentCount = (await this.redisService.eval(
+        LUA_INCR,
+        [rateLimitKey],
+        [1],
+      )) as number;
+
+      if (currentCount > 10) {
         throw new DomainException(
-          this.i18nService.translate('UNAUTHORIZED'),
-          ErrorCodes.UNAUTHORIZED,
-          401,
-          { originalMessage: 'Unauthorized: Missing userId in envelope' },
+          this.i18nService.translate('RATE_LIMIT_EXCEEDED'),
+          ErrorCodes.RATE_LIMIT_EXCEEDED,
+          429,
+          {
+            originalMessage: this.i18nService.translate(
+              'RATE_LIMIT_EXCEEDED_BIZ',
+              {
+                userId: event.userId,
+              },
+            ),
+          },
         );
       }
 
       // Decode the base64 payload into MsgUp
       const payloadBuffer = Buffer.from(event.payload, 'base64');
-      const msgUp = MsgUp.decode(payloadBuffer);
+      const msgUp: MsgUpType = MsgUp.decode(
+        payloadBuffer,
+      ) as unknown as MsgUpType;
 
       // Basic validation
       if (!msgUp.groupId && !msgUp.clientMsgId) {
@@ -56,38 +84,27 @@ export class NatsImUpSubscriber extends BaseNatsSubscriber<ImUpEvent> {
           ErrorCodes.MALFORMED_EVENT,
           400,
           {
-            originalMessage: 'Invalid message: Missing groupId or clientMsgId',
+            originalMessage: this.i18nService.translate(
+              'INVALID_MESSAGE_MISSING_ID',
+            ),
           },
         );
       }
 
-      const isGroup = msgUp.groupId.startsWith('G');
-      const subject = isGroup ? 'im.route.group' : 'im.route.p2p';
+      const isGroup = !msgUp.groupId.startsWith('D');
+      const subject = isGroup
+        ? NatsSubjects.IM_ROUTE_GROUP
+        : NatsSubjects.IM_ROUTE_P2P;
 
       const routeEnvelope: ImRouteEvent = {
         userId: event.userId,
         deviceId: event.deviceId,
         gatewayId: event.gatewayId,
-        connectionId: event.connectionId,
         rawHeader: {
           cmd: event.rawHeader.cmd,
           reqId: event.rawHeader.reqId,
         },
-        msgUp: {
-          clientMsgId: msgUp.clientMsgId,
-          groupId: msgUp.groupId,
-          msgType: msgUp.msgType,
-          content: msgUp.content,
-          url: msgUp.url,
-          width: msgUp.width,
-          height: msgUp.height,
-          size: msgUp.size,
-          format: msgUp.format,
-          duration: msgUp.duration,
-          fileName: msgUp.fileName,
-          extension: msgUp.extension,
-          thumbnailUrl: msgUp.thumbnailUrl,
-        },
+        msgUp: { ...msgUp },
       };
 
       // Publish to IM_HANDOFF stream (im.route.*)
@@ -99,12 +116,12 @@ export class NatsImUpSubscriber extends BaseNatsSubscriber<ImUpEvent> {
       );
       this.logger.debug(
         { userId: event.userId, clientMsgId: msgUp.clientMsgId, subject },
-        'Successfully routed MSG_UP',
+        this.i18nService.translate('SUCCESSFULLY_ROUTED_MSG_UP'),
       );
     } catch (error) {
       this.logger.error(
         { err: error, payload: event.payload },
-        'Failed to process MSG_UP',
+        this.i18nService.translate('FAILED_TO_PROCESS_MSG_UP'),
       );
       throw error;
     }

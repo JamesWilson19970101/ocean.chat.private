@@ -35,6 +35,7 @@ export class NatsOfflinePushSubscriber extends BaseNatsSubscriber<OfflinePushEve
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   protected async onEvent(event: OfflinePushEvent, msg: JsMsg): Promise<void> {
     try {
       // 1. Call vendor API
@@ -44,7 +45,10 @@ export class NatsOfflinePushSubscriber extends BaseNatsSubscriber<OfflinePushEve
       // BaseNatsSubscriber will ACK automatically if we return without error.
       // But if we throw, it will NAK.
     } catch (error) {
-      this.logger.error({ err: error, event }, 'Failed to deliver offline push notification');
+      this.logger.error(
+        { err: error, event },
+        'Failed to deliver offline push notification',
+      );
       throw error; // Let BaseNatsSubscriber handle NAK and retries
     }
   }

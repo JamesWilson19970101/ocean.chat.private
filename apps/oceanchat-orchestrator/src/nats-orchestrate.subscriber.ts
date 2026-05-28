@@ -8,8 +8,8 @@ import {
 } from '@ocean.chat/nats-jetstream-provisioner';
 import {
   ImOrchestrateEvent,
+  NatsSubjects,
   OfflinePushEvent,
-  PresenceDeviceStatus,
 } from '@ocean.chat/types';
 import { instanceToPlain } from 'class-transformer';
 import { JsMsg } from 'nats';
@@ -36,7 +36,7 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
 
   protected getConsumerConfig() {
     return {
-      filter_subject: 'im.orchestrate.msg',
+      filter_subject: NatsSubjects.IM_ORCHESTRATE_MSG,
     };
   }
 
@@ -103,7 +103,6 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
         'Message dispatch evaluation completed.',
       );
 
-      // Slice 2: Dispatch online MSG_NOTIFY to gateways
       if (onlineNodes.size > 0) {
         const notifyPayloadBase64 = Buffer.from(
           MsgNotify.encode({
@@ -124,9 +123,10 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
               payload: notifyPayloadBase64,
             };
 
+            // TODO: later publish message by pusher-realtime service
             tasks.push(() =>
               this.boundedPublisher.publishSafe(
-                `im.down.node.${gatewayId}`,
+                `${NatsSubjects.IM_DOWN_NODE_PREFIX}${gatewayId}`,
                 downboundEvent,
                 'im_downbound_notify',
                 { isCritical: false }, // MSG_NOTIFY is a volatile signal, can be dropped under extreme load (Push-Pull Hybrid handles recovery)
@@ -146,10 +146,16 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
       // Slice 3: Dispatch offline push tasks
       if (offlineUsers.length > 0) {
         const offlineDevicesMap =
-          await this.orchestratorService.getOfflineDevices(offlineUsers);
+          this.orchestratorService.getOfflineDevices(offlineUsers);
         const tasks: (() => Promise<void>)[] = [];
 
         for (const [userId, devices] of offlineDevicesMap.entries()) {
+          // Calculate the accurate badge count using ZSET
+          const badgeCount = await this.orchestratorService.calculateBadge(
+            userId,
+            groupId,
+          );
+
           for (const device of devices) {
             const pushEvent: OfflinePushEvent = {
               userId,
@@ -158,10 +164,10 @@ export class NatsOrchestrateSubscriber extends BaseNatsSubscriber<ImOrchestrateE
               deviceToken: device.deviceToken,
               syncSeqId,
               collapseKey: groupId, // Collapse by groupId to prevent storm
-              badge: 1, // Will be accurate when calculated by presence/query services
+              badge: badgeCount, // Exact badge count retrieved in O(log(N))
             };
 
-            const pushSubject = `push.offline.${device.vendor}.${userId}`;
+            const pushSubject = `${NatsSubjects.PUSH_OFFLINE_PREFIX}${device.vendor}.${userId}`;
 
             tasks.push(() =>
               this.boundedPublisher.publishSafe(
