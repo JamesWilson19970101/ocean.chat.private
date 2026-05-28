@@ -19,6 +19,14 @@
     "start:oceanchat-ws-gateway-for-testing": "NODE_ENV=test nest start oceanchat-ws-gateway --watch",
     "start:oceanchat-presence-for-testing": "NODE_ENV=test nest start oceanchat-presence --watch",
     "start:oceanchat-group-for-testing": "NODE_ENV=test nest start oceanchat-group --watch",
+    "start:oceanchat-message-for-testing": "NODE_ENV=test nest start oceanchat-message --watch",
+    "start:oceanchat-message-persistence-worker-for-testing": "NODE_ENV=test nest start oceanchat-message-persistence-worker --watch",
+    "start:oceanchat-orchestrator-for-testing": "NODE_ENV=test nest start oceanchat-orchestrator --watch",
+    "start:oceanchat-query-for-testing": "NODE_ENV=test nest start oceanchat-query --watch",
+    "start:oceanchat-router-for-testing": "NODE_ENV=test nest start oceanchat-router --watch",
+
+    "start-testing-env":"concurrently \"yarn start:oceanchat-auth-for-testing\" \"yarn start:oceanchat-user-for-testing\" \"yarn start:oceanchat-api-gateway-for-testing\" \"yarn start:oceanchat-ws-gateway-for-testing\" \"yarn start:oceanchat-presence-for-testing\" \"yarn start:oceanchat-group-for-testing\" \"yarn start:oceanchat-message-for-testing\" \"yarn start:oceanchat-message-persistence-worker-for-testing\" \"yarn start:oceanchat-orchestrator-for-testing\" \"yarn start:oceanchat-query-for-testing\" \"yarn start:oceanchat-router-for-testing\"",
+
     "start:oceanchat-auth": "NODE_ENV=development nest start oceanchat-auth --watch",
     "start:oceanchat-user": "NODE_ENV=development nest start oceanchat-user --watch",
     "start:oceanchat-api-gateway": "NODE_ENV=development nest start oceanchat-api-gateway --watch",
@@ -40,7 +48,7 @@
     "test:lib/monkey": "jest --config ./libs/monkey/jest.config.json",
     "test:lib/redis": "NODE_ENV=test jest --config ./libs/redis/test/jest.config.json",
     "generatedoc": "typedoc",
-    "proto:generate": "protoc --plugin=protoc-gen-ts_proto=$(yarn bin protoc-gen-ts_proto) --ts_proto_out=libs/monkey/src/proto --ts_proto_opt=esModuleInterop=true,forceLong=string,nestJs=true,addGrpcMetadata=true,outputEncodeMethods=true,outputJsonMethods=true -I=libs/monkey/assets libs/monkey/assets/*.proto"
+    "proto:generate": "protoc --plugin=protoc-gen-ts_proto=$(yarn bin protoc-gen-ts_proto) --ts_proto_out=libs/monkey/src/proto --ts_proto_opt=esModuleInterop=true,forceLong=string,nestJs=true,addGrpcMetadata=true,outputEncodeMethods=true,outputJsonMethods=true,outputPartialMethods=true -I=libs/monkey/assets libs/monkey/assets/*.proto"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.12.0",
