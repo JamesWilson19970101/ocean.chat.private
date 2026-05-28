@@ -114,6 +114,10 @@ export default {
         'Stream for authentication events (e.g., user login)',
       USER_EVENTS_STREAM_DESCRIPTION:
         'Stream for user-related events (e.g., user creation, profile updates)',
+      IM_HANDOFF_STREAM_DESCRIPTION:
+        'Internal routing and Write-Ahead Log (WAL) core stream',
+      IM_DOWNBOUND_STREAM_DESCRIPTION:
+        'Real-time online downbound stream for gateway nodes',
       ENVIRONMENT_PRODUCTION: 'Production',
       ENVIRONMENT_DEVELOPMENT: 'Development',
       REFRESH_TOKEN_REUSED_OR_REVOKED:
@@ -290,6 +294,12 @@ export default {
       JWT_MISSING_EXP_CLAIM: 'JWT must have an expiration time (exp) claim',
       DETECTED_DUPLICATED_NATS_DELIVERY:
         'Detected duplicated NATS delivery. Message already processed.',
+      BAD_REQUEST: 'Bad Request',
+      RATE_LIMIT_EXCEEDED_BIZ: 'User {{userId}} exceeded business rate limit',
+      INVALID_MESSAGE_MISSING_ID:
+        'Invalid message: Missing groupId or clientMsgId',
+      SUCCESSFULLY_ROUTED_MSG_UP: 'Successfully routed MSG_UP',
+      FAILED_TO_PROCESS_MSG_UP: 'Failed to process MSG_UP',
     },
   },
   zh: {
@@ -385,6 +395,8 @@ export default {
         '用于身份验证相关事件的流（例如，用户登录）',
       USER_EVENTS_STREAM_DESCRIPTION:
         '用于用户相关事件的流（例如，用户创建、个人资料更新）',
+      IM_HANDOFF_STREAM_DESCRIPTION: '用于内部路由和预写日志 (WAL) 核心的流',
+      IM_DOWNBOUND_STREAM_DESCRIPTION: '用于网关节点的实时在线下发流',
       ENVIRONMENT_PRODUCTION: '生产环境',
       ENVIRONMENT_DEVELOPMENT: '开发环境',
       REFRESH_TOKEN_REUSED_OR_REVOKED: '刷新令牌已使用或已撤销。',
@@ -479,6 +491,8 @@ export default {
         '用户 {{userId}} 在设备 {{deviceId}} 上认证成功',
       AUTH_FAILED_LOG: '认证失败：{{errorMessage}}',
       FAILED_TO_INGEST_MSG_UP_LOG: '处理 MSG_UP 失败：{{errorMessage}}',
+      FAILED_TO_INGEST_READ_RECEIPT_LOG:
+        '处理 READ_RECEIPT 失败：{{errorMessage}}',
       REPORTING_USER_OFFLINE_LOG: '正在报告用户离线: {{userId}}',
       FAILED_TO_PUBLISH_OFFLINE_EVENT_LOG: '发布离线事件到 {{subject}} 失败',
       FAILED_TO_PROCESS_TOKEN_REVOCATION: '令牌撤销事件处理失败',
@@ -525,6 +539,11 @@ export default {
       JWT_MISSING_EXP_CLAIM: 'JWT 必须包含过期时间 (exp) 声明',
       DETECTED_DUPLICATED_NATS_DELIVERY:
         '检测到重复的 NATS 消息分发，该消息已处理。',
+      BAD_REQUEST: '错误的请求',
+      RATE_LIMIT_EXCEEDED_BIZ: '用户 {{userId}} 超出了业务速率限制',
+      INVALID_MESSAGE_MISSING_ID: '无效消息：缺少 groupId 或 clientMsgId',
+      SUCCESSFULLY_ROUTED_MSG_UP: '成功路由 MSG_UP',
+      FAILED_TO_PROCESS_MSG_UP: '处理 MSG_UP 失败',
     },
   },
 };
