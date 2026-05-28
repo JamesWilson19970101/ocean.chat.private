@@ -7,6 +7,5 @@
   "prettier.prettierPath": ".yarn/sdks/prettier/index.cjs",
   "typescript.tsdk": ".yarn/sdks/typescript/lib",
   "typescript.enablePromptUseWorkspaceTsdk": true,
-  "snyk.advanced.autoSelectOrganization": true,
   "js/ts.tsdk.path": ".yarn/sdks/typescript/lib"
 }

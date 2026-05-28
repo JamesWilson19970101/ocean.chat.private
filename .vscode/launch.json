@@ -130,10 +130,20 @@
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": [
-        "run",
-        "start:oceanchat-ws-gateway-for-testing"
-      ],
+      "runtimeArgs": ["run", "start:oceanchat-ws-gateway-for-testing"],
+      "autoAttachChildProcesses": true,
+      "sourceMaps": true,
+      "stopOnEntry": false
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug oceanchat-message",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["run", "start:oceanchat-message-for-testing"],
       "autoAttachChildProcesses": true,
       "sourceMaps": true,
       "stopOnEntry": false
