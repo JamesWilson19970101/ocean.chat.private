@@ -1,26 +1,26 @@
-import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { Inject, Injectable } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import {
   DomainException,
   ErrorCodes,
   InfrastructureException,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
-import { Message, OceanModel } from '@ocean.chat/models';
+import { MessageRepository } from '@ocean.chat/models';
 import { RedisService } from '@ocean.chat/redis';
 import { SyncMessageItem, SyncMessagesResponse } from '@ocean.chat/types';
-import { Model } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { firstValueFrom, timeout } from 'rxjs';
 
 @Injectable()
 export class OceanchatQueryService {
   constructor(
-    @InjectModel(OceanModel.Message)
-    private readonly messageModel: Model<Message>,
+    private readonly messageRepository: MessageRepository,
     private readonly redisService: RedisService,
     private readonly i18nService: I18nService,
     @InjectPinoLogger(OceanchatQueryService.name)
     private readonly logger: PinoLogger,
+    @Inject('GROUP_SERVICE') private readonly groupClient: ClientProxy,
   ) {}
 
   /**
@@ -34,14 +34,13 @@ export class OceanchatQueryService {
   ): Promise<SyncMessagesResponse> {
     try {
       // Security: Validate if the user is a member of the group before allowing them to fetch messages.
-      // This is a placeholder for a real RPC call to `oceanchat-group` service or checking the `GroupMember` DB.
       const isMember = await this.checkUserMembership(groupId, userId);
       if (!isMember) {
         throw new DomainException(
           this.i18nService.translate('FORBIDDEN'),
           ErrorCodes.UNAUTHORIZED, // or FORBIDDEN if it exists
           403,
-          { originalMessage: 'User is not a member of the group' },
+          { originalMessage: 'User is not a member of this group' },
         );
       }
 
@@ -57,29 +56,22 @@ export class OceanchatQueryService {
               `[Cache Miss] Fetching from MongoDB for ${cacheKey}`,
             );
 
+            const limit = 50;
             // Fetch from MongoDB
-            const messages = await this.messageModel
-              .find({
-                rid: groupId,
-                syncSeqId: { $gt: syncSeqId }, // Fetch only strictly newer messages
-              })
-              .sort({ syncSeqId: 1 })
-              .limit(50) // Max 50 messages per sync page
-              .lean()
-              .exec();
+            const messages = await this.messageRepository.findMessageBySeqId(
+              groupId,
+              syncSeqId,
+              limit,
+            );
 
-            const hasMore = messages.length === 50;
+            const hasMore = messages.length === limit;
 
             const mappedMessages: SyncMessageItem[] = messages.map((msg) => ({
               clientMsgId: msg.clientMsgId || '',
-              groupId: String(msg.rid),
+              groupId: String(msg.groupId),
               msgType: msg.msgType || 0, // Fallback to 0 (TEXT)
-              content: msg.msg,
+              content: msg.content,
               syncSeqId: msg.syncSeqId || '',
-              senderId: String(msg.u._id),
-              createdAt: (msg as any).createdAt
-                ? new Date((msg as any).createdAt).toISOString()
-                : new Date().toISOString(),
             }));
 
             return {
@@ -93,18 +85,11 @@ export class OceanchatQueryService {
           },
         );
 
-      let response: SyncMessagesResponse;
-      if (typeof cachedResult === 'string') {
-        const rawPayload = JSON.parse(cachedResult);
-        // Validating untrusted data from cache to prevent poison cache crashes
-        // For simplicity, we just type cast it here, but in production we should use validateOrReject
-        // We'll trust the Redis output structure since we set it, but still parse safely
-        response = rawPayload as SyncMessagesResponse;
-      } else if (cachedResult !== null) {
-        response = cachedResult;
-      } else {
-        response = { messages: [], hasMore: false };
-      }
+      // redisService.getOrSet already handles JSON parsing and returns the object or null.
+      const response: SyncMessagesResponse = cachedResult || {
+        messages: [],
+        hasMore: false,
+      };
 
       this.logger.info(
         { userId, groupId, syncSeqId, returnedCount: response.messages.length },
@@ -115,12 +100,8 @@ export class OceanchatQueryService {
     } catch (error) {
       if (error instanceof DomainException) throw error;
 
-      this.logger.error(
-        { err: error, groupId, syncSeqId, userId },
-        'Failed to sync messages',
-      );
       throw new InfrastructureException(
-        this.i18nService.translate('SERVICE_ERROR'),
+        this.i18nService.translate('SERVICE_ERROR', { method: 'syncMessages' }),
         ErrorCodes.SERVICE_ERROR,
         500,
         false,
@@ -136,9 +117,25 @@ export class OceanchatQueryService {
     groupId: string,
     userId: string,
   ): Promise<boolean> {
-    // Mocking an RPC call that validates membership.
-    // E.g., const isMember = await this.groupClient.send({ cmd: 'check_membership' }, { groupId, userId }).toPromise();
-    this.logger.debug({ groupId, userId }, 'Mock membership check executed');
-    return true; // Always true for now
+    try {
+      console.log('groupId is: ', groupId);
+      console.log('userId is: ', userId);
+      this.logger.debug(
+        { groupId, userId },
+        'Checking group membership via RPC',
+      );
+      const members = await firstValueFrom(
+        this.groupClient
+          .send<string[]>('group.query.members', { groupId })
+          .pipe(timeout(5000)),
+      );
+      return members.includes(userId);
+    } catch (error) {
+      this.logger.error(
+        { err: error, groupId, userId },
+        'Failed to check membership via RPC',
+      );
+      return false; // Fail secure: if RPC fails, deny access
+    }
   }
 }

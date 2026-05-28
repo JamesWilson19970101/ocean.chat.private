@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CommonExceptionsModule } from '@ocean.chat/common-exceptions';
 import {
@@ -13,16 +14,18 @@ import {
 } from '@ocean.chat/cores';
 import { I18nModule } from '@ocean.chat/i18n';
 import { ModelsModule, OceanModel } from '@ocean.chat/models';
+import {
+  NatsOpentelemetryTracingModule,
+  NatsTraceInterceptor,
+} from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
 import { TracingOptions } from '@ocean.chat/types';
+import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '@ocean.chat/types';
 import { context, trace } from '@opentelemetry/api';
 import { LoggerModule } from 'nestjs-pino';
 
 import { OceanchatQueryController } from './oceanchat-query.controller';
 import { OceanchatQueryService } from './oceanchat-query.service';
-
-export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
-export const SERVICE_NAME = 'SERVICE_NAME';
 
 @Module({})
 export class OceanchatQueryModule {
@@ -107,9 +110,22 @@ export class OceanchatQueryModule {
           inject: [ConfigService],
         }),
         ModelsModule.forFeature([OceanModel.Message]),
+        NatsOpentelemetryTracingModule.registerAsync([
+          {
+            name: 'GROUP_SERVICE',
+            imports: [ConfigModule],
+            useFactory: (configService: ConfigService) => ({
+              servers: [configService.get<string>('nats.url') as string],
+            }),
+            inject: [ConfigService],
+          },
+        ]),
       ],
       controllers: [OceanchatQueryController],
-      providers: [OceanchatQueryService],
+      providers: [
+        OceanchatQueryService,
+        { provide: APP_INTERCEPTOR, useClass: NatsTraceInterceptor },
+      ],
     };
   }
 }

@@ -21,12 +21,24 @@ const emergencyLog = (type: string, error: unknown) => {
     serviceName,
     serviceInstanceId,
     msg: `[${type}] ${error instanceof Error ? error.message : String(error)}`,
-    err: error instanceof Error ? { stack: error.stack, message: error.message } : error,
+    err:
+      error instanceof Error
+        ? { stack: error.stack, message: error.message }
+        : error,
   };
   process.stderr.write(JSON.stringify(logPayload) + '\n');
 };
 
 async function bootstrap() {
+  console.log(`
+   ____   _____ ______          _   _      _____ _    _       _______     _____ __  __
+  / __ \\ / ____|  ____|   /\\   | \\ | |    / ____| |  | |   /\\|__   __|   |_   _|  \\/  |
+ | |  | | |    | |__     /  \\  |  \\| |   | |    | |__| |  /  \\  | |        | | | \\  / |
+ | |  | | |    |  __|   / /\\ \\ | . \` |   | |    |  __  | / /\\ \\ | |        | | | |\\/| |
+ | |__| | |____| |____ / ____ \\| |\\  |   | |____| |  | |/ ____ \\| |       _| |_| |  | |
+  \\____/ \\_____|______/_/    \\_\\_| \\_|    \\_____|_|  |_/_/    \\_\\_|      |_____|_|  |_|
+  `);
+
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(
     OceanchatQueryModule.forRoot({
       serviceName,
@@ -76,8 +88,14 @@ async function bootstrap() {
 
 bootstrap().catch((error) => {
   if (error instanceof Error) {
-    console.error(`[Bootstrap Error][${serviceName}::${serviceInstanceId}] Failed to start microservice: ${error.message}`, error.stack);
+    console.error(
+      `[Bootstrap Error][${serviceName}::${serviceInstanceId}] Failed to start microservice: ${error.message}`,
+      error.stack,
+    );
   } else {
-    console.error(`[Bootstrap Error][${serviceName}::${serviceInstanceId}] Failed to start microservice with a non-error:`, error);
+    console.error(
+      `[Bootstrap Error][${serviceName}::${serviceInstanceId}] Failed to start microservice with a non-error:`,
+      error,
+    );
   }
 });

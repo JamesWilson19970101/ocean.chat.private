@@ -12,7 +12,7 @@ export interface InternalSyncMessagesDto extends SyncMessagesDto {
 export class OceanchatQueryController {
   constructor(private readonly oceanchatQueryService: OceanchatQueryService) {}
 
-  @MessagePattern({ cmd: 'sync_messages' })
+  @MessagePattern('query.messages.sync')
   async syncMessages(
     @Payload() payload: InternalSyncMessagesDto,
   ): Promise<SyncMessagesResponse> {

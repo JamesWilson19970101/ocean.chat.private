@@ -8,13 +8,18 @@ import {
   isAppException,
 } from '@ocean.chat/common-exceptions';
 import { I18nService } from '@ocean.chat/i18n';
-import { Group, GroupRepository, User } from '@ocean.chat/models';
+import {
+  Group,
+  GroupMemberRepository,
+  GroupRepository,
+  User,
+} from '@ocean.chat/models';
 import {
   CreateRoomRpcRequest,
   CreateRoomRpcResponse,
   GroupType,
 } from '@ocean.chat/types';
-import { Connection } from 'mongoose';
+import { Connection, Types } from 'mongoose';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { catchError, firstValueFrom, timeout } from 'rxjs';
 
@@ -22,6 +27,7 @@ import { catchError, firstValueFrom, timeout } from 'rxjs';
 export class OceanchatGroupService {
   constructor(
     private readonly groupRepository: GroupRepository,
+    private readonly groupMemberRepository: GroupMemberRepository,
     @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
     private readonly i18nService: I18nService,
     @InjectConnection() private readonly connection: Connection,
@@ -33,7 +39,6 @@ export class OceanchatGroupService {
     payload: CreateRoomRpcRequest,
   ): Promise<CreateRoomRpcResponse> {
     const { type, name, members, userId } = payload;
-    console.log('payload is: ', payload);
 
     // De-duplicate members, ensure creator is included, and SORT them for determinism.
     const uniqueMembers = [...new Set([...members, userId])].sort();
@@ -83,9 +88,17 @@ export class OceanchatGroupService {
     let savedGroup: Group;
     try {
       // Create the Group Document
+      const generatedId = new Types.ObjectId().toHexString();
+      const customId =
+        type === GroupType.DIRECT ? `D${generatedId}` : `P${generatedId}`;
+
       const groupPayload: Partial<Group> = {
+        _id: customId as any,
         type,
-        name: type === GroupType.PRIVATE_GROUP ? name : undefined,
+        name:
+          type === GroupType.PRIVATE_GROUP
+            ? name
+            : users.find((u) => String(u._id) !== userId)?.username,
         u: {
           _id: String(creator._id),
           username: creator.username,
@@ -180,6 +193,36 @@ export class OceanchatGroupService {
     };
   }
 
+  /**
+   * Retrieves all user IDs belonging to a specific group.
+   *
+   * @param groupId The unique identifier of the group.
+   * @returns An array of user IDs.
+   */
+  async getGroupMemberIds(groupId: string): Promise<string[]> {
+    this.logger.debug({ groupId }, 'Fetching group member IDs');
+
+    try {
+      // Uses lean() and select() for maximum read performance
+      const members =
+        await this.groupRepository.findMemberIdsByGroupId(groupId);
+
+      return members;
+    } catch (error) {
+      this.logger.error(
+        { err: error, groupId },
+        'Failed to fetch group member IDs',
+      );
+      throw new InfrastructureException(
+        this.i18nService.translate('INTERNAL_SERVER_ERROR'),
+        ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        { cause: error },
+      );
+    }
+  }
+
   private async validateAndFetchUsers(userIds: string[]): Promise<User[]> {
     const users = await firstValueFrom(
       this.userClient
@@ -212,5 +255,37 @@ export class OceanchatGroupService {
     }
 
     return users;
+  }
+
+  /**
+   * Retrieves all groups that a specific user belongs to.
+   *
+   * @param userId The unique identifier of the user.
+   * @returns An array of group objects containing type, name, and groupId.
+   */
+  async getUserGroups(
+    userId: string,
+  ): Promise<{ type: GroupType; name: string; groupId: string }[]> {
+    this.logger.debug({ userId }, 'Fetching user groups');
+
+    try {
+      const members =
+        await this.groupMemberRepository.findGroupsByUserId(userId);
+
+      return members.map((member) => ({
+        type: member.type,
+        name: member.name,
+        groupId: member.groupId,
+      }));
+    } catch (error) {
+      this.logger.error({ err: error, userId }, 'Failed to fetch user groups');
+      throw new InfrastructureException(
+        this.i18nService.translate('INTERNAL_SERVER_ERROR'),
+        ErrorCodes.UNEXPECTED_ERROR,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        false,
+        { cause: error },
+      );
+    }
   }
 }

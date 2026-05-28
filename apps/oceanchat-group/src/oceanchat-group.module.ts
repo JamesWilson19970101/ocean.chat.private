@@ -20,15 +20,13 @@ import {
 } from '@ocean.chat/nats-opentelemetry-tracing';
 import { RedisModule } from '@ocean.chat/redis';
 import { TracingOptions } from '@ocean.chat/types';
+import { SERVICE_INSTANCE_ID, SERVICE_NAME } from '@ocean.chat/types';
 import { context, trace } from '@opentelemetry/api';
 import { Connection } from 'mongoose';
 import { LoggerModule, PinoLogger } from 'nestjs-pino';
 
 import { OceanchatGroupController } from './oceanchat-group.controller';
 import { OceanchatGroupService } from './oceanchat-group.service';
-
-export const SERVICE_INSTANCE_ID = 'SERVICE_INSTANCE_ID';
-export const SERVICE_NAME = 'SERVICE_NAME';
 
 @Module({})
 export class OceanchatGroupModule {
