@@ -360,6 +360,27 @@ export const MsgUp: MessageFns<MsgUp> = {
     }
     return obj;
   },
+
+  create<I extends Exact<DeepPartial<MsgUp>, I>>(base?: I): MsgUp {
+    return MsgUp.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MsgUp>, I>>(object: I): MsgUp {
+    const message = createBaseMsgUp();
+    message.clientMsgId = object.clientMsgId ?? "";
+    message.groupId = object.groupId ?? "";
+    message.msgType = object.msgType ?? 0;
+    message.content = object.content ?? "";
+    message.url = object.url ?? "";
+    message.width = object.width ?? 0;
+    message.height = object.height ?? 0;
+    message.size = object.size ?? "0";
+    message.format = object.format ?? "";
+    message.duration = object.duration ?? 0;
+    message.fileName = object.fileName ?? "";
+    message.extension = object.extension ?? "";
+    message.thumbnailUrl = object.thumbnailUrl ?? "";
+    return message;
+  },
 };
 
 function createBaseMsgUpAck(): MsgUpAck {
@@ -471,6 +492,19 @@ export const MsgUpAck: MessageFns<MsgUpAck> = {
     }
     return obj;
   },
+
+  create<I extends Exact<DeepPartial<MsgUpAck>, I>>(base?: I): MsgUpAck {
+    return MsgUpAck.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MsgUpAck>, I>>(object: I): MsgUpAck {
+    const message = createBaseMsgUpAck();
+    message.clientMsgId = object.clientMsgId ?? "";
+    message.syncSeqId = object.syncSeqId ?? "0";
+    message.success = object.success ?? false;
+    message.errorMessage = object.errorMessage ?? "";
+    message.serverTimestamp = object.serverTimestamp ?? "0";
+    return message;
+  },
 };
 
 function createBaseMsgNotify(): MsgNotify {
@@ -536,6 +570,16 @@ export const MsgNotify: MessageFns<MsgNotify> = {
       obj.syncSeqId = message.syncSeqId;
     }
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<MsgNotify>, I>>(base?: I): MsgNotify {
+    return MsgNotify.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<MsgNotify>, I>>(object: I): MsgNotify {
+    const message = createBaseMsgNotify();
+    message.groupId = object.groupId ?? "";
+    message.syncSeqId = object.syncSeqId ?? "0";
+    return message;
   },
 };
 
@@ -647,6 +691,18 @@ export const AuthReq: MessageFns<AuthReq> = {
     }
     return obj;
   },
+
+  create<I extends Exact<DeepPartial<AuthReq>, I>>(base?: I): AuthReq {
+    return AuthReq.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AuthReq>, I>>(object: I): AuthReq {
+    const message = createBaseAuthReq();
+    message.deviceType = object.deviceType ?? "";
+    message.deviceId = object.deviceId ?? "";
+    message.jwt = object.jwt ?? "";
+    message.supportedVersions = object.supportedVersions?.map((e) => e) || [];
+    return message;
+  },
 };
 
 function createBaseAuthAck(): AuthAck {
@@ -695,6 +751,15 @@ export const AuthAck: MessageFns<AuthAck> = {
       obj.userId = message.userId;
     }
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<AuthAck>, I>>(base?: I): AuthAck {
+    return AuthAck.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<AuthAck>, I>>(object: I): AuthAck {
+    const message = createBaseAuthAck();
+    message.userId = object.userId ?? "";
+    return message;
   },
 };
 
@@ -761,6 +826,16 @@ export const ReadReceipt: MessageFns<ReadReceipt> = {
       obj.syncSeqId = message.syncSeqId;
     }
     return obj;
+  },
+
+  create<I extends Exact<DeepPartial<ReadReceipt>, I>>(base?: I): ReadReceipt {
+    return ReadReceipt.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ReadReceipt>, I>>(object: I): ReadReceipt {
+    const message = createBaseReadReceipt();
+    message.groupId = object.groupId ?? "";
+    message.syncSeqId = object.syncSeqId ?? "0";
+    return message;
   },
 };
 
@@ -872,7 +947,31 @@ export const ExceptionAck: MessageFns<ExceptionAck> = {
     }
     return obj;
   },
+
+  create<I extends Exact<DeepPartial<ExceptionAck>, I>>(base?: I): ExceptionAck {
+    return ExceptionAck.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<ExceptionAck>, I>>(object: I): ExceptionAck {
+    const message = createBaseExceptionAck();
+    message.errorCode = object.errorCode ?? 0;
+    message.message = object.message ?? "";
+    message.timestamp = object.timestamp ?? "";
+    message.serverSupportedVersions = object.serverSupportedVersions?.map((e) => e) || [];
+    return message;
+  },
 };
+
+type Builtin = Date | Function | Uint8Array | string | number | boolean | undefined;
+
+export type DeepPartial<T> = T extends Builtin ? T
+  : T extends globalThis.Array<infer U> ? globalThis.Array<DeepPartial<U>>
+  : T extends ReadonlyArray<infer U> ? ReadonlyArray<DeepPartial<U>>
+  : T extends {} ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : Partial<T>;
+
+type KeysOfUnion<T> = T extends T ? keyof T : never;
+export type Exact<P, I extends P> = P extends Builtin ? P
+  : P & { [K in keyof P]: Exact<P[K], I[K]> } & { [K in Exclude<keyof I, KeysOfUnion<P>>]: never };
 
 function isSet(value: any): boolean {
   return value !== null && value !== undefined;
@@ -883,4 +982,6 @@ export interface MessageFns<T> {
   decode(input: BinaryReader | Uint8Array, length?: number): T;
   fromJSON(object: any): T;
   toJSON(message: T): unknown;
+  create<I extends Exact<DeepPartial<T>, I>>(base?: I): T;
+  fromPartial<I extends Exact<DeepPartial<T>, I>>(object: I): T;
 }
