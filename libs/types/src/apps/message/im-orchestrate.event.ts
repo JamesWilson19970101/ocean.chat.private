@@ -1,11 +1,14 @@
 import { Type } from 'class-transformer';
 import {
   IsDefined,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
+
+import { MsgType } from '../../libs/models/message.type';
 
 export class OrchestrateRawHeaderDto {
   @IsNumber()
@@ -17,13 +20,15 @@ export class OrchestrateRawHeaderDto {
 
 export class OrchestrateMsgUpDto {
   @IsString()
-  clientMsgId: string;
+  @IsOptional()
+  clientMsgId?: string;
 
   @IsString()
   groupId: string;
 
-  @IsNumber()
-  msgType: number;
+  @IsEnum(MsgType)
+  @IsOptional()
+  msgType?: MsgType;
 
   @IsString()
   @IsOptional()
@@ -71,15 +76,10 @@ export class ImOrchestrateEvent {
   userId: string;
 
   @IsString()
-  @IsOptional()
-  deviceId?: string;
+  deviceId: string;
 
   @IsString()
   gatewayId: string;
-
-  @IsString()
-  @IsOptional()
-  connectionId?: string;
 
   @IsDefined()
   @ValidateNested()

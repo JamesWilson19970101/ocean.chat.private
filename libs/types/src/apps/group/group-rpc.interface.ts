@@ -22,5 +22,5 @@ export interface CreateRoomRpcRequest {
 export interface CreateRoomRpcResponse {
   groupId: string;
   type: GroupType;
-  name?: string;
+  name: string;
 }

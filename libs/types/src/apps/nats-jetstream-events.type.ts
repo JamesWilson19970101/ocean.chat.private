@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsDateString,
   IsDefined,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -80,8 +81,8 @@ export interface RawHeader {
 }
 
 export interface ImUpEnvelope {
-  userId?: string;
-  deviceId?: string;
+  userId: string;
+  deviceId: string;
   gatewayId: string;
   connectionId?: string;
   rawHeader: RawHeader;
@@ -98,19 +99,15 @@ export class RawHeaderDto {
 
 export class ImUpEnvelopeDto {
   @IsString()
-  @IsOptional()
-  userId?: string;
+  @IsNotEmpty()
+  userId: string;
 
   @IsString()
-  @IsOptional()
-  deviceId?: string;
+  @IsNotEmpty()
+  deviceId: string;
 
   @IsString()
   gatewayId: string;
-
-  @IsString()
-  @IsOptional()
-  connectionId?: string;
 
   @IsDefined()
   @ValidateNested()
@@ -126,8 +123,7 @@ export class ImDownboundEventDto {
   userId: string;
 
   @IsString()
-  @IsOptional()
-  deviceId?: string;
+  deviceId: string;
 
   @IsNumber()
   cmd: number;
@@ -136,8 +132,7 @@ export class ImDownboundEventDto {
   payload: string; // Base64 encoded Protobuf payload
 
   @IsNumber()
-  @IsOptional()
-  reqId?: number;
+  reqId: number;
 }
 
 export class SyncCursorReadEventDto {

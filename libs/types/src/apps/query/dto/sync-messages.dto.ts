@@ -25,8 +25,8 @@ export interface SyncMessageItem {
   extension?: string;
   thumbnailUrl?: string;
   syncSeqId: string;
-  senderId: string;
-  createdAt: string;
+  senderId?: string;
+  createdAt?: string;
 }
 
 export interface SyncMessagesResponse {
