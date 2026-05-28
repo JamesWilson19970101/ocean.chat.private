@@ -181,6 +181,28 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /**
+   * Atomically adds a message sequence ID to a ZSET and trims it to maintain a sliding window.
+   * I use syncSeqId as BOTH the score (for chronological sorting) and the member (for uniqueness).
+   * This minimalist approach enables extremely fast O(log(N)) unread badge counting.
+   *
+   * @param key The key of the ZSET.
+   * @param seqId The sequence ID of the message.
+   * @param limit The maximum number of latest messages to retain (default: 100).
+   */
+  async addMessageToSlidingWindow(
+    key: RedisKey,
+    seqId: string,
+    limit: number = 100,
+  ): Promise<void> {
+    const LUA_SCRIPT = `
+      redis.call("ZADD", KEYS[1], ARGV[1], ARGV[1])
+      redis.call("ZREMRANGEBYRANK", KEYS[1], 0, tonumber(ARGV[2]))
+    `;
+    const stopRank = -(limit + 1); // e.g., limit 100 -> stopRank -101
+    await this.eval(LUA_SCRIPT, [key], [seqId, stopRank]);
+  }
+
+  /**
    * Atomically gets the value of a key and then deletes the key.
    * Useful for implementing one-time-use tokens or locks.
    * @param key The key to get and delete.
